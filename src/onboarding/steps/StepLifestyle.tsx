@@ -63,7 +63,7 @@ export default function StepLifestyle({ api, showError }: { api: Api; showError:
               className="rounded-2xl border-2 p-4 flex items-center gap-3.5"
               style={{ borderColor: "var(--primary)", background: "var(--muted)" }}
             >
-              <span className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: "rgba(107,92,246,0.12)" }}>
+              <span className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: "rgba(30,64,175,0.12)" }}>
                 {SOURCES.find((x) => x.key === s.wearable)?.icon ?? "⌚"}
               </span>
               <div className="flex-1 min-w-0">

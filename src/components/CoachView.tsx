@@ -40,7 +40,7 @@ const COACHES: Coach[] = [
     specialities: ["Sleep hygiene", "Stress reduction", "Breathwork"],
     rating: 4.9, reviews: 302, sessions: "1,800+", availability: "Next: Thu",
     initials: "SA", price: "$90/session", languages: ["English", "Swedish"],
-    badge: "Most booked", avatarColor: "rgba(184,174,255,0.3)",
+    badge: "Most booked", avatarColor: "rgba(143,169,224,0.3)",
     bio: "Helps clients reclaim restorative sleep and manage chronic stress through evidence-based mindfulness and CBT-I techniques. Certified by the Sleep Foundation.",
   },
   {
@@ -48,7 +48,7 @@ const COACHES: Coach[] = [
     specialities: ["Habit formation", "Accountability", "Mental fitness"],
     rating: 4.7, reviews: 139, sessions: "700+", availability: "Next: Fri",
     initials: "MW", price: "$65/session", languages: ["English"],
-    avatarColor: "rgba(107,92,246,0.18)",
+    avatarColor: "rgba(30,64,175,0.18)",
     bio: "Combines behavioural science with motivational coaching to help clients build sustainable daily routines that stick. ICF-certified coach and certified habit strategist.",
   },
   {
@@ -80,7 +80,7 @@ const COACHES: Coach[] = [
     specialities: ["Blood sugar", "Fasting protocols", "Biohacking"],
     rating: 4.7, reviews: 112, sessions: "600+", availability: "Next: Sat",
     initials: "DP", price: "$100/session", languages: ["English", "Korean"],
-    avatarColor: "rgba(137,196,244,0.3)",
+    avatarColor: "rgba(91,169,240,0.3)",
     bio: "Focuses on metabolic optimisation through continuous glucose monitoring, time-restricted eating, and personalised supplementation. Works with clients on 3–6 month transformation programmes.",
   },
 ];
@@ -90,7 +90,7 @@ const SORT_OPTIONS = ["Top rated", "Most reviewed", "Price: low–high", "Price:
 
 const BADGE_STYLES: Record<string, { background: string; color: string }> = {
   "Top rated": { background: "rgba(245,166,35,0.18)", color: "#b06800" },
-  "Most booked": { background: "rgba(107,92,246,0.15)", color: "var(--primary)" },
+  "Most booked": { background: "rgba(30,64,175,0.15)", color: "var(--primary)" },
   "New": { background: "rgba(45,196,178,0.18)", color: "#1a8a7e" },
 };
 
@@ -197,7 +197,7 @@ export default function CoachView() {
             const booked = requested.has(coach.id);
             const open = expanded === coach.id;
             return (
-              <div key={coach.id} className="rounded-2xl border border-border bg-card flex flex-col overflow-hidden transition-all hover:shadow-md" style={{ boxShadow: "0 2px 12px rgba(107,92,246,0.06)" }}>
+              <div key={coach.id} className="rounded-2xl border border-border bg-card flex flex-col overflow-hidden transition-all hover:shadow-md" style={{ boxShadow: "0 2px 12px rgba(30,64,175,0.06)" }}>
                 {/* Card body */}
                 <div className="p-5 flex flex-col gap-4 flex-1">
                   {/* Avatar + badge + name */}

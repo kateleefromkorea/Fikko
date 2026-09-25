@@ -45,7 +45,7 @@ export default function StepPreferences({ api }: { api: Api }) {
               ? { borderColor: "var(--primary)", background: "var(--muted)" }
               : { borderColor: "var(--border)", background: "var(--card)" }}
           >
-            <span className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ background: s.remindersEnabled ? "rgba(107,92,246,0.12)" : "var(--secondary)" }}>
+            <span className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ background: s.remindersEnabled ? "rgba(30,64,175,0.12)" : "var(--secondary)" }}>
               🔔
             </span>
             <span className="flex-1 min-w-0">

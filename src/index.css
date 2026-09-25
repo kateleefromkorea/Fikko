@@ -24,31 +24,35 @@
 }
 
 :root {
-  --background: #EDE9FF;
-  --foreground: #1A1033;
+  --background: #E7EDF9;
+  --foreground: #0C1A38;
   --card: #FFFFFF;
-  --card-foreground: #1A1033;
-  --primary: #6B5CF6;
+  --card-foreground: #0C1A38;
+  --primary: #1E40AF;
   --primary-foreground: #FFFFFF;
-  --secondary: #F0EEF8;
-  --secondary-foreground: #4A3F8A;
-  --muted: #F5F3FF;
-  --muted-foreground: #8B7DB8;
+  --secondary: #E9EFFA;
+  --secondary-foreground: #23407F;
+  --muted: #F1F5FE;
+  --muted-foreground: #5C7299;
   --accent: #2DC4B2;
   --accent-foreground: #FFFFFF;
-  --border: #DDD8F4;
-  --ring: #6B5CF6;
+  --border: #CFDCF2;
+  --ring: #1E40AF;
   --radius: 16px;
 
+  /* Chart + card accents. These stay multi-hue on purpose: the dashboard uses
+     them to tell series apart (heart rate vs HRV vs calories), so collapsing
+     them into the blue family would make the charts unreadable. The blue-family
+     ones below are tuned to sit with the navy primary. */
   --coral: #FF7575;
   --amber: #F5A623;
   --teal: #2DC4B2;
-  --lilac: #C4B5F4;
+  --lilac: #A8BEE4;
   --peach: #FFB399;
-  --sky: #89C4F4;
+  --sky: #5BA9F0;
   --mint: #7EDCCE;
   --rose: #FFB3C1;
-  --lavender: #B8AEFF;
+  --lavender: #8FA9E0;
   --gold: #FFD166;
 }
 
@@ -71,7 +75,7 @@ h1, h2 {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
 
-/* Light purple background with a subtle dot texture — used on the sign-in
+/* Soft blue background with a subtle dot texture — used on the sign-in
    screen and the app shell alike, since it's calm enough to sit behind text. */
 .dot-bg {
   background-color: var(--background);

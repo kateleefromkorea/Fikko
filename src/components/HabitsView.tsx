@@ -280,7 +280,7 @@ function WaterCard({ data, onChange, activeDate, biometrics }: Props) {
   return (
     <div className={cardBase}>
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: "rgba(137,196,244,0.2)" }}>💧</div>
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: "rgba(91,169,240,0.2)" }}>💧</div>
         <div>
           <h3 className="font-extrabold text-foreground text-xl">Water Intake</h3>
           <p className="text-xs text-muted-foreground">Target: {nudgeTarget} glasses/day</p>
@@ -520,7 +520,7 @@ function SleepCard({ data, onChange, activeDate, biometrics }: Props) {
     <div className="rounded-2xl p-6 border border-border bg-card flex flex-col gap-6">
       {/* Card header */}
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: "rgba(184,174,255,0.2)" }}>🌙</div>
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: "rgba(143,169,224,0.2)" }}>🌙</div>
         <div>
           <h3 className="font-extrabold text-foreground text-xl">Sleep</h3>
           <p className="text-xs text-muted-foreground">Watch data · subjective · context</p>
@@ -713,7 +713,7 @@ function MoodCard({ data, onChange, activeDate, biometrics }: Props) {
           <button key={m.value} onClick={() => set(m.value)}
             className="flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all text-left flex-1"
             style={mood === m.value
-              ? { background: "#3D2E7C", color: "#fff" }
+              ? { background: "#23407F", color: "#fff" }
               : { background: "var(--muted)", color: "var(--foreground)" }}>
             <span className="text-xl">{m.emoji}</span>
             <span className="text-xs font-bold">{m.label}</span>

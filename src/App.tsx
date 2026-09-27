@@ -67,7 +67,7 @@ export default function App() {
   const pct = Math.round((done / total) * 100);
 
   return (
-    <div className="min-h-screen dot-bg">
+    <div className="min-h-screen app-bg">
       <header className="sticky top-0 z-40 border-b border-border bg-card">
         <div className="w-full px-3 sm:px-6 flex items-center gap-2 sm:gap-3 h-16">
 
@@ -173,7 +173,7 @@ export default function App() {
         />
       )}
 
-      <footer className="border-t border-border text-center py-6 text-xs text-muted-foreground px-4 sm:px-6">
+      <footer className="border-t border-white/20 text-center py-6 text-xs text-white/70 px-4 sm:px-6">
         Fikko · {new Date().getFullYear()} · Stay consistent, stay you.
       </footer>
     </div>

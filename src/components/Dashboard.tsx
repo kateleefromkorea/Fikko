@@ -123,8 +123,8 @@ function Section({ title, sub, children }: { title: string; sub?: string; childr
   return (
     <div>
       <div className="mb-4">
-        <h3 className="text-lg font-extrabold text-foreground">{title}</h3>
-        {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
+        <h3 className="text-lg font-extrabold text-white">{title}</h3>
+        {sub && <p className="text-xs text-white/70 mt-0.5">{sub}</p>}
       </div>
       {children}
     </div>

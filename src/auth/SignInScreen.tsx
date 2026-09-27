@@ -31,7 +31,7 @@ export default function SignInScreen() {
   }
 
   return (
-    <div className="min-h-screen dot-bg flex items-center justify-center px-4">
+    <div className="min-h-screen app-bg flex items-center justify-center px-4">
       <div className="w-full max-w-sm bg-card border border-border rounded-2xl p-8 shadow-sm">
         <div className="flex items-center gap-2 justify-center mb-6">
           <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg font-bold text-primary-foreground bg-primary">

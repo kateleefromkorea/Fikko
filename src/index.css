@@ -75,13 +75,14 @@ h1, h2 {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
 
-/* Soft blue background with a subtle dot texture — used on the sign-in
-   screen and the app shell alike, since it's calm enough to sit behind text. */
-.dot-bg {
-  background-color: var(--background);
-  background-image: radial-gradient(circle, var(--lilac) 1.6px, transparent 1.6px);
-  background-size: 26px 26px;
-  background-position: 0 0;
+/* Dark blue → blue wash behind the app. Fixed so it stays put as the page
+   scrolls; the colour fallback covers browsers that ignore
+   background-attachment: fixed. */
+.app-bg {
+  background-color: #1E40AF;
+  background-image: linear-gradient(180deg, #0B1E5B 0%, #1E40AF 55%, #3B6FE0 100%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
 }
 
 /* Each onboarding step is remounted by key, so this plays on every advance

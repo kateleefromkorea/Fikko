@@ -1,8 +1,9 @@
-import { TESTIMONIALS, type Testimonial } from "./mockTestimonials";
+import { IS_SAMPLE, TESTIMONIALS, type Testimonial } from "./mockTestimonials";
 
 // Fixed height so the sign-in layout can reserve exactly this much space
-// below the card without measuring.
-export const TESTIMONIAL_STRIP_HEIGHT = 136;
+// below the card without measuring. Includes the sample-reviews label row.
+const LABEL_HEIGHT = 24;
+export const TESTIMONIAL_STRIP_HEIGHT = 136 + (IS_SAMPLE ? LABEL_HEIGHT : 0);
 
 function Stars({ rating }: { rating: number }) {
   return (
@@ -47,16 +48,26 @@ function Card({ t }: { t: Testimonial }) {
 export default function TestimonialLoop() {
   return (
     <section
-      aria-label="What people say about Fikko"
-      className="testimonial-loop w-full overflow-hidden py-3"
+      aria-label={IS_SAMPLE ? "Sample reviews (illustrative, not from real customers)" : "What people say about Fikko"}
       style={{ height: TESTIMONIAL_STRIP_HEIGHT }}
     >
+      {IS_SAMPLE && (
+        // Outside the faded, scrolling area so it stays readable and still.
+        <p
+          className="flex items-center justify-center text-xs font-semibold"
+          style={{ height: LABEL_HEIGHT, color: "rgba(255, 255, 255, 0.75)", fontFamily: "'Inter', system-ui, sans-serif" }}
+        >
+          Sample reviews · for illustration, not from real customers
+        </p>
+      )}
+      <div className="testimonial-loop w-full overflow-hidden py-3" style={{ height: 136 }}>
       <div className="testimonial-track flex w-max gap-4">
         {[0, 1].map((copy) => (
           <div key={copy} className="flex gap-4" aria-hidden={copy === 1 ? true : undefined}>
             {TESTIMONIALS.map((t) => <Card key={`${copy}-${t.name}`} t={t} />)}
           </div>
         ))}
+      </div>
       </div>
     </section>
   );

@@ -31,6 +31,8 @@ This is the canonical project structure. Start with task-relevant files below. O
 
 This project uses **Tailwind CSS v4** through the `@tailwindcss/vite` plugin configured in `vite.config.ts`. `src/index.css` imports Tailwind with `@import 'tailwindcss';`. Use Tailwind utility classes directly in JSX and put global CSS or Tailwind v4 theme customization in `src/index.css`. This scaffold does not need a Tailwind config file or PostCSS config.
 
+UI is built from [shadcn/ui](https://ui.shadcn.com) components in `src/components/ui/` (add more with `npx shadcn@latest add <component>`), on shadcn's neutral theme with Fikko green (`#157954`) as the primary. The colour tokens in `src/index.css` match the marketing site (`../fikko-site/src/index.css`), so keep the two in step. Per-habit hues (`water`, `meds`, `food`, `exercise`, `sleep`, `mood`) only identify a habit or chart series; selected and active states use the primary green. Use lucide icons rather than emoji. `src/components/HabitCard.tsx` holds the shared habit card frame.
+
 `src/main.tsx` imports `src/index.css`, so global font wiring belongs in `src/index.css`. Keep CSS `@import` statements first, then add any `@font-face` rules and font-family defaults there.
 
 ## Code quality

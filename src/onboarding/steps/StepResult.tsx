@@ -1,5 +1,7 @@
+import { ArrowRight, Loader2, TriangleAlert } from "lucide-react";
 import type { Baseline } from "../../lib/metabolics";
 import { goalByKey } from "../../lib/metabolics";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   baseline: Baseline;
@@ -14,26 +16,21 @@ export default function StepResult({ baseline, goalKey, name, onDone, saving }: 
   const { bmr, tdee, calorieTarget, adjustment, clampedToFloor } = baseline;
 
   return (
-    <div className="text-center">
-      <div className="text-5xl mb-3">🎉</div>
-      <h2 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight">
+    <div>
+      <h2 className="text-2xl font-semibold">
         {name ? `${name.split(/\s+/)[0]}, your plan is ready.` : "Your plan is ready."}
       </h2>
-      <p className="text-sm text-white/75 mt-1.5">
-        Worked out from your own body and goal — not a generic default.
+      <p className="mt-2 text-sm text-muted-foreground">
+        Worked out from your own body and goal, not a generic default.
       </p>
 
       {/* The headline number */}
-      <div className="mt-6 rounded-2xl p-6" style={{ background: "linear-gradient(135deg, #3FA58A, #157954)", border: "1px solid rgba(255,255,255,0.3)" }}>
-        <p className="text-xs font-bold uppercase tracking-wide" style={{ color: "rgba(255,255,255,0.75)" }}>
-          Your daily target
-        </p>
-        <p className="text-5xl font-extrabold mt-1" style={{ color: "#fff" }}>
-          {calorieTarget.toLocaleString()}
-        </p>
-        <p className="text-sm font-semibold" style={{ color: "rgba(255,255,255,0.85)" }}>kcal per day</p>
+      <div className="mt-8 rounded-lg border border-primary/25 bg-primary/5 p-6 text-center">
+        <p className="text-sm font-medium text-primary">Your daily target</p>
+        <p className="mt-1 text-5xl font-semibold text-primary tabular-nums">{calorieTarget.toLocaleString()}</p>
+        <p className="mt-1 text-sm text-muted-foreground">kcal per day</p>
         {adjustment !== 0 && (
-          <p className="text-xs mt-2" style={{ color: "rgba(255,255,255,0.8)" }}>
+          <p className="mt-3 text-sm text-muted-foreground">
             {adjustment < 0
               ? `A ${Math.abs(adjustment).toLocaleString()} kcal daily deficit`
               : `A ${adjustment.toLocaleString()} kcal daily surplus`}
@@ -43,39 +40,39 @@ export default function StepResult({ baseline, goalKey, name, onDone, saving }: 
       </div>
 
       <div className="mt-3 grid grid-cols-2 gap-3">
-        <div className="rounded-2xl border border-border bg-card p-4">
-          <p className="text-2xl font-extrabold text-foreground">{bmr.toLocaleString()}</p>
-          <p className="text-xs font-bold text-muted-foreground mt-0.5">BMR</p>
-          <p className="text-xs text-muted-foreground mt-1">What you burn at complete rest</p>
+        <div className="rounded-lg border p-4">
+          <p className="text-sm text-muted-foreground">BMR</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums">{bmr.toLocaleString()}</p>
+          <p className="mt-1 text-sm text-muted-foreground">What you burn at complete rest</p>
         </div>
-        <div className="rounded-2xl border border-border bg-card p-4">
-          <p className="text-2xl font-extrabold text-foreground">{tdee.toLocaleString()}</p>
-          <p className="text-xs font-bold text-muted-foreground mt-0.5">TDEE</p>
-          <p className="text-xs text-muted-foreground mt-1">With your activity level on top</p>
+        <div className="rounded-lg border p-4">
+          <p className="text-sm text-muted-foreground">TDEE</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums">{tdee.toLocaleString()}</p>
+          <p className="mt-1 text-sm text-muted-foreground">With your activity level on top</p>
         </div>
       </div>
 
       {clampedToFloor && (
-        <p className="text-xs rounded-xl p-3 mt-3 text-left" style={{ background: "#FFF3D6", color: "#8a5a00" }}>
-          ⚠️ Your chosen pace worked out below a safe daily minimum, so we raised your target to{" "}
-          {calorieTarget.toLocaleString()} kcal. Pick a gentler rate in your profile if you would like the
-          maths to match your original pace.
+        <p className="mt-3 flex gap-2 rounded-lg border border-food/30 bg-food/10 p-3 text-sm text-amber-900">
+          <TriangleAlert className="mt-0.5 size-4 shrink-0 text-food" aria-hidden="true" />
+          <span>
+            Your chosen pace worked out below a safe daily minimum, so we raised your target to{" "}
+            {calorieTarget.toLocaleString()} kcal. Pick a gentler rate in your profile if you would like the maths to
+            match your original pace.
+          </span>
         </p>
       )}
 
-      <p className="text-xs text-white/70 mt-4">
-        These are estimates from the Mifflin-St Jeor equation, not medical advice. Check with a
-        clinician before making big changes.
+      <p className="mt-6 text-xs text-muted-foreground">
+        These are estimates from the Mifflin-St Jeor equation, not medical advice. Check with a clinician before making
+        big changes.
       </p>
 
-      <button
-        type="button"
-        onClick={onDone}
-        disabled={saving}
-        className="w-full mt-5 py-3 rounded-xl bg-white text-primary text-sm font-bold hover:opacity-90 transition-all disabled:opacity-60"
-      >
-        {saving ? "Saving…" : "Go to my dashboard →"}
-      </button>
+      <Button onClick={onDone} disabled={saving} className="mt-6 h-10 w-full">
+        {saving ? <Loader2 className="animate-spin" /> : null}
+        {saving ? "Saving…" : "Go to my dashboard"}
+        {!saving && <ArrowRight />}
+      </Button>
     </div>
   );
 }

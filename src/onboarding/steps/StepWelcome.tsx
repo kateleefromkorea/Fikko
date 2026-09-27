@@ -1,20 +1,21 @@
+import { ChartColumn, Sprout, Utensils } from "lucide-react";
 import { StepHeading } from "../ui";
 
 const VALUE_PROPS = [
   {
-    icon: "🌱",
+    icon: Sprout,
     title: "Whole-person health",
-    body: "Water, sleep, movement, mood and medication — all in one place, not five apps.",
+    body: "Water, sleep, movement, mood and medication, all in one place instead of five apps.",
   },
   {
-    icon: "🍽️",
+    icon: Utensils,
     title: "Smart nutrition tracking",
     body: "Search a real food database, log a meal in seconds, and save the foods you eat often.",
   },
   {
-    icon: "📊",
+    icon: ChartColumn,
     title: "A plan built from your numbers",
-    body: "We work out your daily calorie target from your own body and goals — no generic defaults.",
+    body: "We work out your daily calorie target from your own body and goals, not a generic default.",
   },
 ];
 
@@ -26,24 +27,21 @@ export default function StepWelcome({ name }: { name: string }) {
         subtitle="Six quick questions and your dashboard is set up around you. It takes about a minute."
       />
 
-      <div className="flex flex-col gap-3">
+      <ul className="flex flex-col gap-3">
         {VALUE_PROPS.map((v) => (
-          <div key={v.title} className="rounded-2xl border border-border bg-card p-4 flex items-start gap-3.5">
-            <span
-              className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-              style={{ background: "var(--muted)" }}
-            >
-              {v.icon}
+          <li key={v.title} className="flex items-start gap-4 rounded-lg border p-4">
+            <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/8 text-primary" aria-hidden="true">
+              <v.icon className="size-5" />
             </span>
             <div className="min-w-0">
-              <p className="text-sm font-bold text-foreground">{v.title}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{v.body}</p>
+              <p className="text-sm font-medium">{v.title}</p>
+              <p className="mt-0.5 text-sm text-muted-foreground">{v.body}</p>
             </div>
-          </div>
+          </li>
         ))}
-      </div>
+      </ul>
 
-      <p className="text-xs text-white/70 mt-5">
+      <p className="mt-6 text-sm text-muted-foreground">
         Your answers stay in your own account and are only used to work out your targets.
       </p>
     </div>

@@ -20,7 +20,7 @@ export default function StepDiet({ api }: { api: Api }) {
         subtitle="We use this to filter food search and meal ideas. Skip it if nothing applies."
       />
 
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-8">
         <Field label="Dietary pattern" hint="Pick the one closest to how you usually eat.">
           <div className="flex flex-wrap gap-2">
             {PATTERNS.map((p) => (

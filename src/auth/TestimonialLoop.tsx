@@ -1,3 +1,4 @@
+import { Star } from "lucide-react";
 import { TESTIMONIALS, type Testimonial } from "./testimonials";
 
 // Fixed height so the sign-in layout can reserve exactly this much space
@@ -8,9 +9,11 @@ function Stars({ rating }: { rating: number }) {
   return (
     <div className="flex gap-0.5" role="img" aria-label={`${rating} out of 5 stars`}>
       {[1, 2, 3, 4, 5].map((i) => (
-        <span key={i} aria-hidden="true" style={{ color: i <= rating ? "#FFD166" : "rgba(255,255,255,0.25)" }}>
-          ★
-        </span>
+        <Star
+          key={i}
+          aria-hidden="true"
+          className={i <= rating ? "size-3.5 fill-mood text-mood" : "size-3.5 text-border"}
+        />
       ))}
     </div>
   );
@@ -18,23 +21,14 @@ function Stars({ rating }: { rating: number }) {
 
 function Card({ t }: { t: Testimonial }) {
   return (
-    <figure
-      className="flex-shrink-0 w-72 h-[112px] rounded-2xl px-4 py-3 flex flex-col justify-between"
-      style={{
-        background: "rgba(255, 255, 255, 0.1)",
-        border: "1px solid rgba(255, 255, 255, 0.18)",
-        backdropFilter: "blur(6px)",
-      }}
-    >
+    <figure className="flex h-[112px] w-72 shrink-0 flex-col justify-between rounded-xl border bg-card/80 px-4 py-3 backdrop-blur">
       <div className="flex items-center justify-between gap-2">
         <Stars rating={t.rating} />
-        <figcaption className="text-xs font-semibold truncate" style={{ color: "rgba(255,255,255,0.9)" }}>
-          {t.name} <span style={{ color: "rgba(255,255,255,0.55)" }}>· {t.detail}</span>
+        <figcaption className="truncate text-xs font-medium">
+          {t.name} <span className="text-muted-foreground">· {t.detail}</span>
         </figcaption>
       </div>
-      <blockquote className="text-sm leading-snug line-clamp-3" style={{ color: "rgba(255,255,255,0.88)" }}>
-        “{t.quote}”
-      </blockquote>
+      <blockquote className="line-clamp-3 text-sm leading-snug text-muted-foreground">“{t.quote}”</blockquote>
     </figure>
   );
 }

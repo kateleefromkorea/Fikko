@@ -1,4 +1,5 @@
 import type { useOnboardingState } from "../useOnboardingState";
+import { Input } from "@/components/ui/input";
 import { Chip, ErrorText, Field, inputCls, selectCls, StepHeading, Segmented } from "../ui";
 
 type Api = ReturnType<typeof useOnboardingState>;
@@ -25,9 +26,9 @@ export default function StepBiometrics({ api, showError }: { api: Api; showError
         subtitle="These four numbers are what the calorie maths runs on. Nothing here is shared."
       />
 
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-6">
         <Field label="Your name">
-          <input
+          <Input
             value={s.name}
             onChange={(e) => set("name", e.target.value)}
             placeholder="What should we call you?"
@@ -63,7 +64,7 @@ export default function StepBiometrics({ api, showError }: { api: Api; showError
         <Field label="Height">
           <div className="flex flex-wrap items-center gap-3">
             {s.heightUnit === "cm" ? (
-              <input
+              <Input
                 type="number" inputMode="decimal" min="100" max="250"
                 value={s.heightCm}
                 onChange={(e) => set("heightCm", e.target.value)}
@@ -73,7 +74,7 @@ export default function StepBiometrics({ api, showError }: { api: Api; showError
               />
             ) : (
               <div className="flex items-center gap-2">
-                <input
+                <Input
                   type="number" inputMode="numeric" min="3" max="8"
                   value={s.heightFt}
                   onChange={(e) => set("heightFt", e.target.value)}
@@ -82,7 +83,7 @@ export default function StepBiometrics({ api, showError }: { api: Api; showError
                   aria-label="Height, feet"
                 />
                 <span className="text-sm text-muted-foreground">ft</span>
-                <input
+                <Input
                   type="number" inputMode="numeric" min="0" max="11"
                   value={s.heightIn}
                   onChange={(e) => set("heightIn", e.target.value)}
@@ -104,7 +105,7 @@ export default function StepBiometrics({ api, showError }: { api: Api; showError
 
         <Field label="Current weight">
           <div className="flex flex-wrap items-center gap-3">
-            <input
+            <Input
               type="number" inputMode="decimal" min="0" step="0.1"
               value={s.weight}
               onChange={(e) => set("weight", e.target.value)}

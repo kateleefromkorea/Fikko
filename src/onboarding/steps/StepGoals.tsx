@@ -1,7 +1,10 @@
 import { useEffect, useRef } from "react";
 import type { useOnboardingState } from "../useOnboardingState";
 import { GAIN_RATES, GOALS, LOSS_RATES, goalByKey } from "../../lib/metabolics";
-import { ErrorText, Field, inputCls, SelectCard, StepHeading } from "../ui";
+import { TriangleAlert } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { ErrorText, FALLBACK_ICON, Field, GOAL_ICONS, inputCls, SelectCard, StepHeading } from "../ui";
 
 type Api = ReturnType<typeof useOnboardingState>;
 
@@ -37,11 +40,11 @@ export default function StepGoals({ api, showError }: { api: Api; showError: boo
         subtitle="This shapes your calorie target and what the dashboard puts front and centre."
       />
 
-      <div className="flex flex-col gap-2.5">
+      <div className="flex flex-col gap-2">
         {GOALS.map((g) => (
           <SelectCard
             key={g.key}
-            icon={g.icon}
+            icon={GOAL_ICONS[g.key] ?? FALLBACK_ICON}
             label={g.label}
             description={g.description}
             selected={s.goalKey === g.key}
@@ -56,12 +59,12 @@ export default function StepGoals({ api, showError }: { api: Api; showError: boo
       </div>
 
       {direction && (
-        <div ref={detailsRef} className="mt-6 pt-6 border-t border-border flex flex-col gap-5">
+        <div ref={detailsRef} className="mt-8 flex flex-col gap-6 border-t pt-8">
           <Field
             label={`Target weight (${s.weightUnit})`}
             hint={direction === "loss" ? "Where you would like to get to — no rush." : "The lean mass you are building towards."}
           >
-            <input
+            <Input
               type="number" inputMode="decimal" min="0" step="0.1"
               value={s.targetWeight}
               onChange={(e) => set("targetWeight", e.target.value)}
@@ -82,21 +85,22 @@ export default function StepGoals({ api, showError }: { api: Api; showError: boo
                   type="button"
                   onClick={() => set("weeklyRate", r.kg)}
                   aria-pressed={s.weeklyRate === r.kg}
-                  className="rounded-xl border-2 px-3 py-2.5 text-center transition-all hover:opacity-90"
-                  style={s.weeklyRate === r.kg
-                    ? { borderColor: "var(--primary)", background: "var(--muted)", boxShadow: "0 0 0 3px #FFFFFF" }
-                    : { borderColor: "var(--border)", background: "var(--card)" }}
+                  className={cn(
+                    "rounded-lg border bg-card px-3 py-3 text-center transition-colors hover:bg-muted/60",
+                    s.weeklyRate === r.kg && "border-primary bg-primary/5 text-primary hover:bg-primary/5",
+                  )}
                 >
-                  <span className="block text-sm font-bold text-foreground">{r.label}</span>
-                  <span className="block text-xs text-muted-foreground mt-0.5">{r.note}</span>
+                  <span className="block text-sm font-medium">{r.label}</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">{r.note}</span>
                 </button>
               ))}
             </div>
           </Field>
 
           {direction === "loss" && s.weeklyRate != null && s.weeklyRate >= 0.75 && (
-            <p className="text-xs rounded-xl p-3" style={{ background: "#FFF3D6", color: "#8a5a00" }}>
-              ⚠️ That is a fast pace. It is safe for many people short-term, but it is harder to
+            <p className="flex gap-2 rounded-lg border border-food/30 bg-food/10 p-3 text-sm text-amber-900">
+              <TriangleAlert className="mt-0.5 size-4 shrink-0 text-food" aria-hidden="true" />
+              That is a fast pace. It is safe for many people short-term, but it is harder to
               sustain — you can ease off any time from your profile.
             </p>
           )}

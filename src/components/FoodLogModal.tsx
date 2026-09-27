@@ -1,7 +1,15 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { Loader2, Plus, Search, X } from "lucide-react";
 import { searchFoods, type FoodResult } from "../lib/usdaFoodSearch";
 import type { FoodLogItem, MealKey } from "../types";
 import { DB_LIMITS, clamp } from "../lib/limits";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 
 interface Props {
   meal: MealKey;
@@ -14,11 +22,6 @@ interface Props {
   onSaveFood: (name: string, caloriesPer100g: number) => void;
   onClose: () => void;
 }
-
-const inputCls =
-  "flex-1 rounded-xl border border-border px-3 py-2 text-sm bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring";
-const btnPrimary =
-  "px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all disabled:opacity-50";
 
 // Everything is stored in grams internally; these let people enter an amount
 // in whatever unit is natural and have it converted. Volume conversions assume
@@ -33,7 +36,7 @@ const UNITS: { key: string; label: string; grams: number }[] = [
 ];
 
 export default function FoodLogModal({
-  meal, mealLabel, items, savedFoods, onAdd, onUpdateGrams, onDelete, onSaveFood, onClose,
+  mealLabel, items, savedFoods, onAdd, onUpdateGrams, onDelete, onSaveFood, onClose,
 }: Props) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<FoodResult[]>([]);
@@ -53,14 +56,6 @@ export default function FoodLogModal({
     : [];
   const allMatches = [...savedMatches, ...results];
   const visibleMatches = showAll ? allMatches : allMatches.slice(0, 1);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
 
   async function runSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -99,153 +94,160 @@ export default function FoodLogModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
-      <div
-        className="w-full max-w-lg bg-card-solid rounded-2xl p-6 max-h-[85vh] overflow-y-auto flex flex-col gap-5"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-extrabold text-foreground text-xl">{mealLabel}</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">{Math.round(total)} kcal logged</p>
-          </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-lg">✕</button>
-        </div>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-h-[85vh] gap-6 overflow-y-auto p-6 sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="text-lg font-semibold">{mealLabel}</DialogTitle>
+          <DialogDescription className="tabular-nums">{Math.round(total)} kcal logged</DialogDescription>
+        </DialogHeader>
 
         {items.length > 0 && (
-          <div className="flex flex-col gap-2">
+          <ul className="divide-y rounded-lg border">
             {items.map((item) => (
-              <div key={item.id} className="flex items-center gap-3 rounded-xl border border-border bg-muted p-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-foreground truncate">{item.name}</p>
-                  <p className="text-xs text-muted-foreground">{Math.round(item.calories)} kcal</p>
+              <li key={item.id} className="flex items-center gap-3 px-4 py-3">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{item.name}</p>
+                  <p className="text-xs text-muted-foreground tabular-nums">{Math.round(item.calories)} kcal</p>
                 </div>
-                <input
+                <Input
                   type="number"
                   min="0"
                   value={item.grams}
                   onChange={(e) => onUpdateGrams(item.id, clamp(parseFloat(e.target.value) || 0, DB_LIMITS.foodGrams))}
-                  className="w-20 rounded-lg border border-border px-2 py-1.5 text-sm bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  aria-label={`Grams of ${item.name}`}
+                  className="h-8 w-20"
                 />
                 <span className="text-xs text-muted-foreground">g</span>
-                <button onClick={() => onDelete(item.id)} className="text-muted-foreground hover:text-foreground text-sm">✕</button>
-              </div>
+                <Button variant="ghost" size="icon-sm" onClick={() => onDelete(item.id)} aria-label={`Remove ${item.name}`} className="text-muted-foreground">
+                  <X />
+                </Button>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
 
-        <form onSubmit={runSearch} className="flex gap-2">
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search a food, e.g. banana"
-            className={inputCls}
-          />
-          <button type="submit" disabled={searching} className={btnPrimary}>
-            {searching ? "…" : "Search"}
-          </button>
-        </form>
+        <div className="space-y-3">
+          <form onSubmit={runSearch} className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search a food, e.g. banana"
+                aria-label="Search foods"
+                className="h-9 pl-9"
+              />
+            </div>
+            <Button type="submit" disabled={searching} className="h-9 min-w-20 px-4">
+              {searching ? <Loader2 className="animate-spin" /> : "Search"}
+            </Button>
+          </form>
 
-        {error && <p className="text-xs text-red-600">{error}</p>}
+          {error && <p className="text-sm text-destructive">{error}</p>}
 
-        {allMatches.length > 0 && (
-          <div className="flex flex-col gap-2 max-h-60 overflow-y-auto">
-            {visibleMatches.map((result) => (
-              <div key={result.id} className="flex items-center gap-2 rounded-xl border border-border p-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-sm font-bold text-foreground truncate">{result.name}</p>
-                    {result.saved && (
-                      <span className="text-xs px-1.5 py-0.5 rounded-md font-bold bg-secondary text-secondary-foreground flex-shrink-0">
-                        Saved
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {result.brand ? `${result.brand} · ` : ""}
-                    {Math.round(result.caloriesPer100g)} kcal / 100g
-                  </p>
-                </div>
-                <input
-                  type="number"
-                  min="1"
-                  placeholder="100"
-                  value={gramsByResult[result.id] ?? ""}
-                  onChange={(e) => setGramsByResult((p) => ({ ...p, [result.id]: e.target.value }))}
-                  className="w-16 rounded-lg border border-border px-2 py-1.5 text-sm bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-                <span className="text-xs text-muted-foreground">g</span>
-                <button onClick={() => addResult(result)} className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all">
-                  Add
-                </button>
-              </div>
-            ))}
-            {!showAll && allMatches.length > 1 && (
-              <button
-                onClick={() => setShowAll(true)}
-                className="text-xs text-primary font-bold hover:opacity-70 transition-all self-start px-1"
-              >
-                Not it? Show {allMatches.length - 1} more {allMatches.length === 2 ? "option" : "options"}
-              </button>
-            )}
-          </div>
-        )}
+          {allMatches.length > 0 && (
+            <div className="space-y-2">
+              <ul className="max-h-60 divide-y overflow-y-auto rounded-lg border">
+                {visibleMatches.map((result) => (
+                  <li key={result.id} className="flex items-center gap-2 px-4 py-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <p className="truncate text-sm font-medium">{result.name}</p>
+                        {result.saved && <Badge variant="secondary">Saved</Badge>}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {result.brand ? `${result.brand} · ` : ""}
+                        {Math.round(result.caloriesPer100g)} kcal / 100g
+                      </p>
+                    </div>
+                    <Input
+                      type="number"
+                      min="1"
+                      placeholder="100"
+                      value={gramsByResult[result.id] ?? ""}
+                      onChange={(e) => setGramsByResult((p) => ({ ...p, [result.id]: e.target.value }))}
+                      aria-label={`Grams of ${result.name}`}
+                      className="h-8 w-16"
+                    />
+                    <span className="text-xs text-muted-foreground">g</span>
+                    <Button size="sm" onClick={() => addResult(result)} className="h-8 px-3">
+                      <Plus />
+                      Add
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+              {!showAll && allMatches.length > 1 && (
+                <Button variant="link" onClick={() => setShowAll(true)} className="h-auto p-0">
+                  Not it? Show {allMatches.length - 1} more {allMatches.length === 2 ? "option" : "options"}
+                </Button>
+              )}
+            </div>
+          )}
 
-        {searched && !searching && allMatches.length === 0 && !error && (
-          <p className="text-xs text-muted-foreground">
-            No matches — try a simpler word, or add it manually below.
-          </p>
-        )}
+          {searched && !searching && allMatches.length === 0 && !error && (
+            <p className="text-sm text-muted-foreground">No matches. Try a simpler word, or add it yourself below.</p>
+          )}
+        </div>
 
-        <div className="pt-2 border-t border-border">
-          {manualMode ? (
-            <div className="flex flex-col gap-2">
-              <input
+        <Separator />
+
+        {manualMode ? (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="manual-name">Food name</Label>
+              <Input
+                id="manual-name"
                 value={manual.name}
                 onChange={(e) => setManual((p) => ({ ...p, name: e.target.value }))}
-                placeholder="Food name"
-                className={`${inputCls} w-full`}
+                className="h-9"
               />
-              <div className="flex gap-2">
-                <div className="flex flex-1 gap-1">
-                  <input
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="manual-amount">Amount</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="manual-amount"
                     type="number" min="0"
                     value={manual.amount}
                     onChange={(e) => setManual((p) => ({ ...p, amount: e.target.value }))}
-                    placeholder="Amount"
-                    className={inputCls}
+                    className="h-9"
                   />
-                  <select
-                    value={manual.unit}
-                    onChange={(e) => setManual((p) => ({ ...p, unit: e.target.value }))}
-                    className="rounded-xl border border-border bg-card px-2 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    {UNITS.map((u) => <option key={u.key} value={u.key}>{u.label}</option>)}
-                  </select>
+                  <Select value={manual.unit} onValueChange={(unit) => setManual((p) => ({ ...p, unit }))}>
+                    <SelectTrigger className="h-9 w-20" aria-label="Unit">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {UNITS.map((u) => <SelectItem key={u.key} value={u.key}>{u.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <input
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="manual-calories">Calories</Label>
+                <Input
+                  id="manual-calories"
                   type="number" min="0"
                   value={manual.calories}
                   onChange={(e) => setManual((p) => ({ ...p, calories: e.target.value }))}
-                  placeholder="Calories"
-                  className={inputCls}
+                  placeholder="kcal"
+                  className="h-9"
                 />
               </div>
-              <div className="flex gap-2">
-                <button onClick={addManual} className={btnPrimary}>Add manually</button>
-                <button onClick={() => setManualMode(false)} className="px-4 py-2 rounded-xl bg-secondary text-secondary-foreground text-sm font-semibold">Cancel</button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Saved to your foods so you can search for it next time.
-              </p>
             </div>
-          ) : (
-            <button onClick={() => setManualMode(true)} className="text-sm text-primary font-bold hover:opacity-70 transition-all">
-              Can't find it? Add manually
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
+            <p className="text-sm text-muted-foreground">Saved to your foods so you can search for it next time.</p>
+            <div className="flex gap-2">
+              <Button onClick={addManual} className="h-9 px-4">Add food</Button>
+              <Button variant="ghost" onClick={() => setManualMode(false)} className="h-9 px-4">Cancel</Button>
+            </div>
+          </div>
+        ) : (
+          <Button variant="link" onClick={() => setManualMode(true)} className="h-auto justify-self-start p-0">
+            Can't find it? Add your own food
+          </Button>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

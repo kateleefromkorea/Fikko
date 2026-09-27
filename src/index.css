@@ -1,116 +1,112 @@
-@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&family=Inter:wght@400;500;700;800&family=Nunito:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import 'tailwindcss';
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-solid: var(--card-solid);
-  --color-card-foreground: var(--card-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-border: var(--border);
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-heading: 'Inter', system-ui, sans-serif;
+
+  /* Teal and sky are the fresh accents; the rest are one hue per habit,
+     shared with the marketing site, used only to identify a habit or a
+     chart series. */
+  --color-teal: var(--teal);
+  --color-sky: var(--sky);
+  --color-water: var(--water);
+  --color-meds: var(--meds);
+  --color-food: var(--food);
+  --color-exercise: var(--exercise);
+  --color-sleep: var(--sleep);
+  --color-mood: var(--mood);
+  --color-custom: var(--custom);
+
   --color-ring: var(--ring);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: var(--radius);
-  --radius-lg: calc(var(--radius) + 6px);
-  --radius-xl: calc(var(--radius) + 12px);
-  --radius-2xl: calc(var(--radius) + 20px);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* shadcn's neutral base with Fikko green as the primary — the same tokens
+   as the marketing site (fikko-site/src/index.css), so the two read as one
+   product. The page sits on a faint grey so white cards lift off it. */
 :root {
-  --background: #21263A;
-  --foreground: #0C342C;
-  /* Cards are slightly see-through so the dark background softens their
-     glare. Dialogs and the top bar use --card-solid: over busy content,
-     see-through would make them harder to read, not easier. */
-  --card: rgba(255, 255, 255, 0.85);
-  --card-solid: #FFFFFF;
-  --card-foreground: #0C342C;
+  --background: oklch(0.985 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
   --primary: #157954;
   --primary-foreground: #FFFFFF;
-  --secondary: #ECEEF1;
-  --secondary-foreground: #0B4F42;
-  --muted: #F4F5F7;
-  --muted-foreground: #5B7A6F;
-  --accent: #2DC4B2;
-  --accent-foreground: #FFFFFF;
-  --border: #E2E5EA;
-  --ring: #157954;
-  --radius: 16px;
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: #2DC4B2;
+  --radius: 0.625rem;
 
-  /* Chart + card accents. These stay multi-hue on purpose: the dashboard uses
-     them to tell series apart (heart rate vs HRV vs calories), so collapsing
-     them into the blue family would make the charts unreadable. The blue-family
-     ones below are tuned to sit with the green primary. */
-  --coral: #FF7575;
-  --amber: #F5A623;
   --teal: #2DC4B2;
-  --lilac: #A8BEE4;
-  --peach: #FFB399;
   --sky: #5BA9F0;
-  --mint: #7EDCCE;
-  --rose: #FFB3C1;
-  --lavender: #8FA9E0;
-  --gold: #FFD166;
+
+  --water: #5BA9F0;
+  --meds: #8FA9E0;
+  --food: #F5A623;
+  --exercise: #FF7575;
+  --sleep: #7E6FD8;
+  --mood: #E9B92F;
+  --custom: #2DC4B2;
 }
 
-* {
-  box-sizing: border-box;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+  }
+  h1, h2, h3 {
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
 }
 
-body {
-  font-family: 'Nunito', system-ui, sans-serif;
-  background-color: var(--background);
-  color: var(--foreground);
-  line-height: 1.6;
-}
-
-/* All titles use Inter; body text stays Nunito. */
-h1, h2, h3, h4 {
-  font-family: 'Inter', system-ui, sans-serif;
-  letter-spacing: -0.01em;
-}
-
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
-
-/* Green → dark slate wash behind the app, fixed to the viewport. Both ends
-   are dark, so text placed directly on it is white. The colour fallback
-   covers browsers that ignore background-attachment: fixed. */
-.app-bg {
-  background-color: #1B4F47;
-  background-image: linear-gradient(180deg, #157954 0%, #21263A 100%);
-  background-attachment: fixed;
-  background-repeat: no-repeat;
-}
-
-/* Same gradient, scoped to a dialog body so it scrolls with the content. */
-.modal-bg {
-  background-color: #1B4F47;
-  background-image: linear-gradient(180deg, #157954 0%, #21263A 100%);
-}
-
-/* Login-page icon carousel: each icon spins and scales in as it appears. */
-@keyframes icon-spin-in {
-  from { opacity: 0; transform: rotate(-180deg) scale(0.4); }
-  to   { opacity: 1; transform: rotate(0deg) scale(1); }
-}
-
-.icon-spin-in {
-  display: inline-block;
-  animation: icon-spin-in 550ms cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .icon-spin-in { animation: none; }
+/* Sign-in backdrop: the marketing hero's teal and sky glows over white. */
+.hero-wash {
+  background:
+    radial-gradient(55% 70% at 88% 18%, color-mix(in srgb, var(--sky) 30%, transparent), transparent 70%),
+    radial-gradient(50% 65% at 8% 85%, color-mix(in srgb, var(--teal) 26%, transparent), transparent 70%),
+    linear-gradient(180deg, color-mix(in srgb, var(--teal) 6%, white), white);
 }
 
 /* Login-page testimonial loop. The track holds the list twice, so sliding it

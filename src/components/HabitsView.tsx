@@ -1,4 +1,9 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import {
+  Activity, Annoyed, Apple, BedDouble, Brain, CalendarDays, ChevronLeft, ChevronRight, Coffee, Droplet, Dumbbell,
+  Frown, Laugh, Meh, Moon, Pill, Plus, Smartphone, Smile, SmilePlus, Sun, Sunrise, Sunset, Thermometer, Trash2,
+  Utensils, Volume2, Watch, Wine, X, type LucideIcon,
+} from "lucide-react";
 import { DB_LIMITS, clamp } from "../lib/limits";
 import type { HabitData, BiometricData, HabitEntry, CustomHabit, MealKey, TimeOfDay } from "../types";
 import type { useMedications } from "../hooks/useMedications";
@@ -6,6 +11,20 @@ import { useFoodLog } from "../hooks/useFoodLog";
 import { useCustomFoods } from "../hooks/useCustomFoods";
 import FoodLogModal from "./FoodLogModal";
 import PageHeader from "./PageHeader";
+import { CUSTOM_ICONS, CustomHabitIcon, Figure, GroupLabel, HabitCard, Hint } from "./HabitCard";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 
 function timeGreeting() {
   const h = new Date().getHours();
@@ -21,7 +40,7 @@ function greeting(name: string) {
 
 function progressSubtitle(done: number, total: number) {
   if (total === 0 || done === 0) return "How are you doing today?";
-  if (done >= total) return "You've completed everything today! 🎉";
+  if (done >= total) return "You've completed everything today.";
   return `${done} of ${total} habits done today.`;
 }
 
@@ -51,30 +70,35 @@ function setDateValue(entries: HabitEntry[], date: string, value: number, note?:
   return [...entries, { date, value, ...(note !== undefined ? { note } : {}) }];
 }
 
-const inputCls =
-  "flex-1 rounded-xl border border-border px-4 py-2.5 text-sm bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring";
-const btnPrimary =
-  "px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all";
-const cardBase = "rounded-2xl p-6 border border-border bg-card h-full flex flex-col";
-const ICONS = ["⭐", "📚", "🧘", "🎯", "💪", "🎨", "🌿", "🐾", "🎵", "✍️", "🧠", "🛁"];
+/** Shared look for a selectable option: neutral at rest, Fikko green when chosen. */
+const optionCls =
+  "rounded-lg border bg-card text-left transition-colors hover:bg-muted/60 aria-pressed:border-primary aria-pressed:bg-primary/5 aria-pressed:text-primary";
 
-// Short, dynamic one-liner shown under a card's title — a quick read on how
-// today is going for that habit, without having to parse the numbers below.
-function CommentBubble({ text }: { text: string }) {
+function Bar({ value, max, over }: { value: number; max: number; over?: boolean }) {
   return (
-    <div className="rounded-xl bg-muted border border-border px-3 py-2 mb-4">
-      <p className="text-xs text-secondary-foreground">✨ {text}</p>
+    <Progress
+      value={Math.min((value / max) * 100, 100)}
+      className={cn("h-2", over && "[&>div]:bg-food")}
+    />
+  );
+}
+
+/** Placeholder shown where wearable data would go. */
+function NoDeviceData({ className }: { className?: string }) {
+  return (
+    <div className={cn("flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed px-4 py-8 text-center", className)}>
+      <Watch className="size-5 text-muted-foreground" aria-hidden="true" />
+      <p className="mt-3 text-sm text-muted-foreground">No device data for this date.</p>
+      <p className="mt-1 text-xs text-muted-foreground/70">Wearable sync is coming soon.</p>
     </div>
   );
 }
 
-function ProgressBar({ value, max, color = "var(--primary)" }: { value: number; max: number; color?: string }) {
+function Stat({ value, label }: { value: string | number; label: string }) {
   return (
-    <div className="h-2 rounded-full bg-secondary overflow-hidden">
-      <div
-        className="h-full rounded-full transition-all duration-500"
-        style={{ width: `${Math.min((value / max) * 100, 100)}%`, background: color }}
-      />
+    <div className="rounded-lg border bg-muted/40 p-3 text-center">
+      <p className="text-lg font-semibold tabular-nums">{value}</p>
+      <p className="mt-0.5 text-xs text-muted-foreground">{label}</p>
     </div>
   );
 }
@@ -82,11 +106,11 @@ function ProgressBar({ value, max, color = "var(--primary)" }: { value: number; 
 /* ─── Calorie Tracker ─── */
 interface MealCalories { breakfast: number; lunch: number; dinner: number; snacks: number; }
 
-const MEALS: { key: MealKey; label: string; icon: string }[] = [
-  { key: "breakfast", label: "Breakfast", icon: "🌅" },
-  { key: "lunch",     label: "Lunch",     icon: "☀️" },
-  { key: "dinner",    label: "Dinner",    icon: "🌆" },
-  { key: "snacks",    label: "Snacks",    icon: "🍎" },
+const MEALS: { key: MealKey; label: string; icon: LucideIcon }[] = [
+  { key: "breakfast", label: "Breakfast", icon: Sunrise },
+  { key: "lunch",     label: "Lunch",     icon: Sun },
+  { key: "dinner",    label: "Dinner",    icon: Sunset },
+  { key: "snacks",    label: "Snacks",    icon: Apple },
 ];
 
 function FoodCard({ data, onChange, activeDate, userId }: Props) {
@@ -101,79 +125,49 @@ function FoodCard({ data, onChange, activeDate, userId }: Props) {
 
   const target = 2000;
   const total = meals.breakfast + meals.lunch + meals.dinner + meals.snacks;
-  const pct = Math.min((total / target) * 100, 100);
   const overTarget = total > target;
 
   const foodComment = total === 0
-    ? "Nothing logged yet — tap a meal below to get started."
+    ? "Nothing logged yet. Pick a meal below to get started."
     : overTarget
-      ? `You're ${Math.round(total - target).toLocaleString()} kcal over today's target.`
+      ? `${Math.round(total - target).toLocaleString()} kcal over today's target.`
       : `${Math.round(target - total).toLocaleString()} kcal left to reach your target.`;
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-6 h-full flex flex-col">
-      <div className="flex items-start justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl" style={{ background: "rgba(245,166,35,0.15)" }}>🍽️</div>
-          <div>
-            <h3 className="font-extrabold text-foreground text-xl">Calorie Tracker</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">Daily target: {target.toLocaleString()} kcal</p>
-          </div>
-        </div>
-        <div className="text-right">
-          <p className="text-4xl font-extrabold text-foreground">{total.toLocaleString()}</p>
-          <p className="text-xs text-muted-foreground">{overTarget ? `${(total - target).toLocaleString()} over` : `${(target - total).toLocaleString()} remaining`}</p>
-        </div>
+    <HabitCard
+      icon={Utensils}
+      hue="food"
+      title="Calories"
+      description={`Daily target ${target.toLocaleString()} kcal`}
+      action={<Figure value={Math.round(total).toLocaleString()} unit="kcal" />}
+    >
+      <div className="space-y-2">
+        <Bar value={total} max={target} over={overTarget} />
+        <Hint>{foodComment}</Hint>
       </div>
 
-      <CommentBubble text={foodComment} />
-
-      <div className="mb-8">
-        <div className="h-3 rounded-full bg-secondary overflow-hidden">
-          <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: overTarget ? "var(--coral)" : "var(--amber)" }} />
-        </div>
-        <div className="flex justify-between text-xs text-muted-foreground mt-1.5">
-          <span>0</span><span>{(target / 2).toLocaleString()}</span><span>{target.toLocaleString()}</span>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 flex-1">
-        {MEALS.map(({ key, label, icon }) => {
+      <div className="mt-6 grid flex-1 grid-cols-2 gap-3 lg:grid-cols-4">
+        {MEALS.map(({ key, label, icon: Icon }) => {
           const val = meals[key] ?? 0;
-          const mealPct = Math.min((val / (target / 4)) * 100, 100);
           const itemCount = foodLog.items.filter((i) => i.meal === key).length;
           return (
-            <div key={key} className="rounded-xl border border-border bg-muted p-4 flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-base">{icon}</span>
-                  <span className="text-sm font-bold text-secondary-foreground">{label}</span>
-                </div>
-                <span className="text-lg font-extrabold text-foreground">{Math.round(val)}</span>
+            <div key={key} className="flex flex-col gap-4 rounded-lg border p-4">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Icon className="size-4" aria-hidden="true" />
+                {label}
               </div>
-              <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
-                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${mealPct}%`, background: "var(--amber)" }} />
-              </div>
-              <button
-                onClick={() => setOpenMeal(key)}
-                className="px-3 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all"
-              >
-                {itemCount > 0 ? `Log food · ${itemCount} item${itemCount === 1 ? "" : "s"}` : "Log food"}
-              </button>
+              <p className="text-xl font-semibold tabular-nums">
+                {Math.round(val)}
+                <span className="ml-1 text-xs font-normal text-muted-foreground">kcal</span>
+              </p>
+              <Button variant="outline" className="mt-auto h-9" onClick={() => setOpenMeal(key)}>
+                <Plus />
+                {itemCount > 0 ? `${itemCount} item${itemCount === 1 ? "" : "s"}` : "Log food"}
+              </Button>
             </div>
           );
         })}
       </div>
-
-      {total > 0 && (
-        <div className="mt-5 flex gap-3 flex-wrap">
-          {MEALS.map(({ key, label }) => meals[key] > 0 ? (
-            <span key={key} className="text-xs px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground font-semibold">
-              {label}: {Math.round(meals[key])} kcal · {Math.round((meals[key] / total) * 100)}%
-            </span>
-          ) : null)}
-        </div>
-      )}
 
       {openMeal && (
         <FoodLogModal
@@ -188,7 +182,7 @@ function FoodCard({ data, onChange, activeDate, userId }: Props) {
           onClose={() => setOpenMeal(null)}
         />
       )}
-    </div>
+    </HabitCard>
   );
 }
 
@@ -199,69 +193,29 @@ function ExerciseCard({ activeDate, biometrics }: Props) {
   const standHours = biometrics?.standHours?.find((e) => e.date === activeDate)?.value ?? null;
   const vo2        = biometrics?.vo2max?.find((e) => e.date === activeDate)?.value ?? null;
   const stepsGoal  = 10000;
-  const stepsPct   = steps !== null ? Math.min((steps / stepsGoal) * 100, 100) : 0;
-  const exerciseComment = steps !== null
-    ? (steps >= stepsGoal
-        ? "Daily step goal reached — nice work!"
-        : `${(stepsGoal - steps).toLocaleString()} steps left to hit today's goal.`)
-    : null;
 
   return (
-    <div className={cardBase}>
-      <div className="flex items-center gap-3 mb-5">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: "rgba(255,117,117,0.15)" }}>🏃</div>
-        <div>
-          <h3 className="font-extrabold text-foreground text-xl">Activity</h3>
-          <p className="text-xs text-muted-foreground">From your wearable</p>
-        </div>
-      </div>
-
-      {exerciseComment && <CommentBubble text={exerciseComment} />}
-
+    <HabitCard icon={Activity} hue="exercise" title="Activity" description="From your wearable">
       {steps !== null ? (
         <>
-          {/* Steps hero */}
-          <div className="text-center mb-4">
-            <p className="text-5xl font-extrabold text-foreground">{steps.toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground mt-1">steps today</p>
+          <p className="text-4xl font-semibold tabular-nums">{steps.toLocaleString()}</p>
+          <p className="mt-1 text-sm text-muted-foreground">steps today</p>
+          <div className="mt-4 space-y-2">
+            <Bar value={steps} max={stepsGoal} />
+            <Hint>
+              {steps >= stepsGoal ? "Daily step goal reached." : `${(stepsGoal - steps).toLocaleString()} steps to goal.`}
+            </Hint>
           </div>
-          <div className="h-2 rounded-full bg-secondary overflow-hidden mb-1">
-            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${stepsPct}%`, background: "var(--coral)" }} />
-          </div>
-          <p className="text-xs text-muted-foreground mb-5">
-            {steps >= stepsGoal ? "Daily goal reached!" : `${(stepsGoal - steps).toLocaleString()} to goal`}
-          </p>
-
-          {/* Supporting stats */}
-          <div className="grid grid-cols-3 gap-2 mt-auto">
-            {activeCal !== null && (
-              <div className="rounded-xl bg-muted border border-border p-3 text-center">
-                <p className="text-lg font-extrabold text-foreground">{activeCal}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Active kcal</p>
-              </div>
-            )}
-            {standHours !== null && (
-              <div className="rounded-xl bg-muted border border-border p-3 text-center">
-                <p className="text-lg font-extrabold text-foreground">{standHours}h</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Stand hrs</p>
-              </div>
-            )}
-            {vo2 !== null && (
-              <div className="rounded-xl bg-muted border border-border p-3 text-center">
-                <p className="text-lg font-extrabold text-foreground">{vo2}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">VO₂ max</p>
-              </div>
-            )}
+          <div className="mt-auto grid grid-cols-3 gap-2 pt-6">
+            {activeCal !== null && <Stat value={activeCal} label="Active kcal" />}
+            {standHours !== null && <Stat value={`${standHours}h`} label="Stand hrs" />}
+            {vo2 !== null && <Stat value={vo2} label="VO₂ max" />}
           </div>
         </>
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center text-center py-8">
-          <p className="text-3xl mb-3">⌚</p>
-          <p className="text-sm text-muted-foreground">No device data for this date.</p>
-          <p className="text-xs text-muted-foreground mt-1 opacity-60">Wearable sync is coming soon.</p>
-        </div>
+        <NoDeviceData />
       )}
-    </div>
+    </HabitCard>
   );
 }
 
@@ -273,41 +227,54 @@ function WaterCard({ data, onChange, activeDate, biometrics }: Props) {
   const steps = biometrics?.steps?.find((e) => e.date === activeDate)?.value ?? null;
   const nudgeTarget = steps !== null && steps > 10000 ? 10 : 8;
   const nudgeMsg = steps !== null && steps > 10000
-    ? `You walked ${steps.toLocaleString()} steps today — aim for ${nudgeTarget} glasses to stay hydrated.`
-    : steps !== null && steps > 7000
-      ? "Good activity level — keep up your regular hydration."
-      : null;
+    ? `You walked ${steps.toLocaleString()} steps today, so aim for ${nudgeTarget} glasses.`
+    : glasses >= nudgeTarget
+      ? "Target reached for today."
+      : `${nudgeTarget - glasses} more to reach your target.`;
 
   return (
-    <div className={cardBase}>
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: "rgba(91,169,240,0.2)" }}>💧</div>
-        <div>
-          <h3 className="font-extrabold text-foreground text-xl">Water Intake</h3>
-          <p className="text-xs text-muted-foreground">Target: {nudgeTarget} glasses/day</p>
-        </div>
-        <span className="ml-auto text-3xl font-extrabold text-foreground">{glasses}/{nudgeTarget}</span>
+    <HabitCard
+      icon={Droplet}
+      hue="water"
+      title="Water"
+      description={`Target ${nudgeTarget} glasses`}
+      action={<Figure value={`${glasses}/${nudgeTarget}`} />}
+    >
+      <div className="grid grid-cols-4 gap-2">
+        {Array.from({ length: nudgeTarget }).map((_, i) => {
+          const filled = i < glasses;
+          return (
+            <button
+              key={i}
+              onClick={() => set(filled ? i : i + 1)}
+              aria-label={filled ? `Remove glass ${i + 1}` : `Log glass ${i + 1}`}
+              aria-pressed={filled}
+              className={cn(
+                "grid aspect-square place-items-center rounded-lg border transition-colors",
+                filled ? "border-water/40 bg-water/10" : "border-dashed hover:bg-muted/60",
+              )}
+            >
+              <Droplet
+                className={cn("size-5", filled ? "fill-water text-water" : "text-muted-foreground/50")}
+                aria-hidden="true"
+              />
+            </button>
+          );
+        })}
       </div>
-
-      {nudgeMsg && <CommentBubble text={nudgeMsg} />}
-
-      <div className="grid gap-1 mb-4" style={{ gridTemplateColumns: `repeat(${nudgeTarget}, minmax(0, 1fr))` }}>
-        {Array.from({ length: nudgeTarget }).map((_, i) => (
-          <button key={i} onClick={() => set(i < glasses ? i : i + 1)} className="flex items-center justify-center text-3xl aspect-square transition-all hover:scale-110 w-full">
-            {i < glasses ? "💧" : "🫙"}
-          </button>
-        ))}
+      <div className="mt-auto space-y-2 pt-6">
+        <Bar value={glasses} max={nudgeTarget} />
+        <Hint>{nudgeMsg}</Hint>
       </div>
-      <ProgressBar value={glasses} max={nudgeTarget} color="var(--sky)" />
-    </div>
+    </HabitCard>
   );
 }
 
 /* ─── Medications & Supplements ─── */
-const TIME_SLOTS: { key: TimeOfDay; label: string; icon: string }[] = [
-  { key: "breakfast", label: "Breakfast", icon: "🌅" },
-  { key: "midday",    label: "Midday",    icon: "☀️" },
-  { key: "night",     label: "Night",     icon: "🌙" },
+const TIME_SLOTS: { key: TimeOfDay; label: string; icon: LucideIcon }[] = [
+  { key: "breakfast", label: "Morning", icon: Sunrise },
+  { key: "midday",    label: "Midday",  icon: Sun },
+  { key: "night",     label: "Night",   icon: Moon },
 ];
 
 function MedicationCard({ data, onChange, activeDate, medications }: Props) {
@@ -320,12 +287,6 @@ function MedicationCard({ data, onChange, activeDate, medications }: Props) {
   const checkedRaw: Record<string, boolean> = entry?.note ? JSON.parse(entry.note) : {};
   const checkedCount = medList.filter((m) => checkedRaw[m.id]).length;
   const allTaken = medList.length > 0 && checkedCount === medList.length;
-
-  const medComment = medList.length === 0
-    ? "Add your medications or supplements to build a daily schedule."
-    : allTaken
-      ? "All done for today — nice work staying on track!"
-      : `${medList.length - checkedCount} left to take today.`;
 
   const toggleMed = (id: string) => {
     const updated = { ...checkedRaw, [id]: !checkedRaw[id] };
@@ -351,52 +312,57 @@ function MedicationCard({ data, onChange, activeDate, medications }: Props) {
   };
 
   return (
-    <div className={cardBase}>
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: "rgba(126,220,206,0.2)" }}>💊</div>
-        <div className="flex-1">
-          <h3 className="font-extrabold text-foreground text-xl">Medications & Supplements</h3>
-          <p className="text-xs text-muted-foreground">{checkedCount}/{medList.length} taken</p>
-        </div>
-        {allTaken && <span className="text-xs px-2 py-1 rounded-full font-bold text-accent-foreground" style={{ background: "var(--teal)" }}>All done ✓</span>}
-      </div>
-
-      <CommentBubble text={medComment} />
-
-      <div className="space-y-4 flex-1">
-        {medList.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-4">No medications or supplements added yet.</p>
+    <HabitCard
+      icon={Pill}
+      hue="meds"
+      title="Medications"
+      description={medList.length ? `${checkedCount} of ${medList.length} taken` : "Build a daily schedule"}
+      action={allTaken ? <Badge className="bg-primary/10 text-primary">All taken</Badge> : undefined}
+    >
+      <div className="flex-1 space-y-5">
+        {medList.length === 0 && !adding && (
+          <Hint>Add your medications or supplements and tick them off each day.</Hint>
         )}
-        {TIME_SLOTS.map(({ key, label, icon }) => {
+        {TIME_SLOTS.map(({ key, label, icon: Icon }) => {
           const slotMeds = medList.filter((m) => m.time_of_day === key);
           if (slotMeds.length === 0) return null;
           return (
-            <div key={key}>
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <span>{icon}</span> {label}
-              </p>
-              <ul className="space-y-2">
+            <div key={key} className="space-y-2">
+              <GroupLabel className="flex items-center gap-1.5">
+                <Icon className="size-3.5" aria-hidden="true" /> {label}
+              </GroupLabel>
+              <ul className="space-y-1">
                 {slotMeds.map((med) => {
                   const checked = !!checkedRaw[med.id];
+                  const id = `med-${med.id}`;
                   return (
-                    <li key={med.id} className="flex items-center gap-2 group">
-                      <button
-                        onClick={() => toggleMed(med.id)}
-                        className="w-5 h-5 rounded-md border-2 flex-shrink-0 flex items-center justify-center transition-all"
-                        style={checked ? { background: "var(--primary)", borderColor: "var(--primary)" } : { borderColor: "var(--border)" }}
+                    <li key={med.id} className="group -mx-2 flex items-center gap-3 rounded-md px-2 py-1.5 hover:bg-muted/60">
+                      <Checkbox id={id} checked={checked} onCheckedChange={() => toggleMed(med.id)} />
+                      <Label
+                        htmlFor={id}
+                        className={cn("flex-1 cursor-pointer font-normal", checked && "text-muted-foreground line-through")}
                       >
-                        {checked && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                      </button>
-                      <span className="flex-1 text-sm text-foreground" style={checked ? { textDecoration: "line-through", color: "var(--muted-foreground)" } : {}}>{med.name}</span>
-                      <select
-                        value={med.time_of_day}
-                        onChange={(e) => updateTimeOfDay(med.id, e.target.value as TimeOfDay)}
-                        title="Move to a different time of day"
-                        className="text-xs rounded-lg border border-border bg-card px-1.5 py-1 text-muted-foreground opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all"
-                      >
-                        {TIME_SLOTS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
-                      </select>
-                      <button onClick={() => removeMed(med.id)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground text-xs transition-all">✕</button>
+                        {med.name}
+                      </Label>
+                      <div className="flex items-center gap-1 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
+                        <Select value={med.time_of_day} onValueChange={(v) => updateTimeOfDay(med.id, v as TimeOfDay)}>
+                          <SelectTrigger size="sm" className="h-7 text-xs" aria-label={`Time of day for ${med.name}`}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {TIME_SLOTS.map((s) => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => removeMed(med.id)}
+                          aria-label={`Remove ${med.name}`}
+                          className="text-muted-foreground"
+                        >
+                          <Trash2 />
+                        </Button>
+                      </div>
                     </li>
                   );
                 })}
@@ -406,43 +372,43 @@ function MedicationCard({ data, onChange, activeDate, medications }: Props) {
         })}
       </div>
 
-      <div className="mt-4 pt-4 border-t border-border">
-        {adding ? (
-          <div className="flex flex-col gap-2">
-            <input
-              value={newMed}
-              onChange={(e) => setNewMed(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") addMed(); if (e.key === "Escape") setAdding(false); }}
-              placeholder="Medication or supplement name…"
-              autoFocus
-              className="flex-1 rounded-xl border border-border px-3 py-2 text-sm bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-            <div className="flex gap-1.5">
-              {TIME_SLOTS.map((s) => (
-                <button
-                  key={s.key}
-                  onClick={() => setNewSlot(s.key)}
-                  className="flex-1 px-2 py-1.5 rounded-lg text-xs font-bold transition-all"
-                  style={newSlot === s.key
-                    ? { background: "var(--primary)", color: "var(--primary-foreground)" }
-                    : { background: "var(--muted)", color: "var(--muted-foreground)" }}
-                >
-                  {s.icon} {s.label}
-                </button>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <button onClick={addMed} className="px-3 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all">Add</button>
-              <button onClick={() => setAdding(false)} className="px-3 py-2 rounded-xl bg-secondary text-secondary-foreground text-sm transition-all">✕</button>
-            </div>
+      <Separator className="my-5" />
+      {adding ? (
+        <div className="space-y-3">
+          <Input
+            value={newMed}
+            onChange={(e) => setNewMed(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") addMed(); if (e.key === "Escape") setAdding(false); }}
+            placeholder="Medication or supplement"
+            aria-label="Medication or supplement name"
+            autoFocus
+            className="h-9"
+          />
+          <div className="grid grid-cols-3 gap-2" role="group" aria-label="Time of day">
+            {TIME_SLOTS.map((s) => (
+              <button
+                key={s.key}
+                onClick={() => setNewSlot(s.key)}
+                aria-pressed={newSlot === s.key}
+                className={cn(optionCls, "flex items-center justify-center gap-1.5 px-2 py-2 text-xs font-medium")}
+              >
+                <s.icon className="size-3.5" aria-hidden="true" />
+                {s.label}
+              </button>
+            ))}
           </div>
-        ) : (
-          <button onClick={() => setAdding(true)} className="w-full py-2 rounded-xl border border-dashed border-border text-muted-foreground text-sm hover:border-primary hover:text-primary transition-all">
-            + Add medication or supplement
-          </button>
-        )}
-      </div>
-    </div>
+          <div className="flex gap-2">
+            <Button onClick={addMed} className="h-9 px-4">Add</Button>
+            <Button variant="ghost" onClick={() => setAdding(false)} className="h-9 px-4">Cancel</Button>
+          </div>
+        </div>
+      ) : (
+        <Button variant="outline" onClick={() => setAdding(true)} className="h-9 w-full border-dashed text-muted-foreground">
+          <Plus />
+          Add medication or supplement
+        </Button>
+      )}
+    </HabitCard>
   );
 }
 
@@ -455,15 +421,15 @@ const REST_SCALE = [
   { value: 5, label: "Fully rested", sub: "Ready to go" },
 ];
 
-const SLEEP_FACTORS = [
-  { id: "caffeine",  label: "Caffeine",       emoji: "☕" },
-  { id: "screens",   label: "Late screens",   emoji: "📱" },
-  { id: "stress",    label: "Stress",         emoji: "😰" },
-  { id: "exercise",  label: "Exercise",       emoji: "🏃" },
-  { id: "alcohol",   label: "Alcohol",        emoji: "🍷" },
-  { id: "noise",     label: "Noise",          emoji: "🔊" },
-  { id: "heat",      label: "Too warm",       emoji: "🌡️" },
-  { id: "nap",       label: "Napped",         emoji: "💤" },
+const SLEEP_FACTORS: { id: string; label: string; icon: LucideIcon }[] = [
+  { id: "caffeine",  label: "Caffeine",     icon: Coffee },
+  { id: "screens",   label: "Late screens", icon: Smartphone },
+  { id: "stress",    label: "Stress",       icon: Brain },
+  { id: "exercise",  label: "Exercise",     icon: Dumbbell },
+  { id: "alcohol",   label: "Alcohol",      icon: Wine },
+  { id: "noise",     label: "Noise",        icon: Volume2 },
+  { id: "heat",      label: "Too warm",     icon: Thermometer },
+  { id: "nap",       label: "Napped",       icon: BedDouble },
 ];
 
 interface SleepNote { bedtime?: string; wake?: string; factors?: string[]; }
@@ -507,176 +473,114 @@ function SleepCard({ data, onChange, activeDate, biometrics }: Props) {
       ]
     : [];
 
-  const STAGE_COLORS = ["var(--primary)", "var(--teal)", "var(--lavender)"];
-
   const sleepComment = totalH === null
-    ? "Log how rested you feel below — no wearable data for this date yet."
+    ? "How did last night go?"
     : totalH >= 7
-      ? "Solid night — you're in a healthy sleep range."
+      ? "Solid night, in a healthy sleep range."
       : totalH >= 5
-        ? "A bit short on sleep — try to wind down earlier tonight."
-        : "Low sleep total — prioritize rest tonight if you can.";
+        ? "A bit short. Try to wind down earlier tonight."
+        : "Low sleep total. Prioritise rest tonight if you can.";
 
   return (
-    <div className="rounded-2xl p-6 border border-border bg-card flex flex-col gap-6">
-      {/* Card header */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: "rgba(143,169,224,0.2)" }}>🌙</div>
-        <div>
-          <h3 className="font-extrabold text-foreground text-xl">Sleep</h3>
-          <p className="text-xs text-muted-foreground">How you slept · context</p>
-        </div>
-        {totalH !== null && (
-          <div className="ml-auto text-right">
-            <p className="text-3xl font-extrabold text-foreground">{totalH}h</p>
-            <p className="text-xs text-muted-foreground">total sleep</p>
-          </div>
-        )}
-      </div>
-
-      <CommentBubble text={sleepComment} />
-
-      {/* Three-column body */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        {/* Column 1 — Biometric read-out */}
+    <HabitCard
+      icon={Moon}
+      hue="sleep"
+      title="Sleep"
+      description={sleepComment}
+      action={totalH !== null ? <Figure value={totalH} unit="h" /> : undefined}
+    >
+      <div className="grid gap-8 lg:grid-cols-3">
+        {/* Wearable read-out */}
         <div className="flex flex-col gap-4">
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Wearable</p>
-
+          <GroupLabel>Wearable</GroupLabel>
           {totalH !== null ? (
             <>
-              {/* Stage bars */}
               <div className="space-y-3">
-                {stageData.map((s, i) => (
-                  <div key={s.label}>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="font-bold text-secondary-foreground">{s.label}</span>
-                      <span className="text-muted-foreground">{s.hours}h · {s.pct}%</span>
+                {stageData.map((s) => (
+                  <div key={s.label} className="space-y-1.5">
+                    <div className="flex justify-between text-sm">
+                      <span className="font-medium">{s.label}</span>
+                      <span className="text-muted-foreground tabular-nums">{s.hours}h · {s.pct}%</span>
                     </div>
-                    <div className="h-2 rounded-full bg-secondary overflow-hidden">
-                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${s.pct}%`, background: STAGE_COLORS[i] }} />
-                    </div>
+                    <Progress value={s.pct} className="h-2" />
                   </div>
                 ))}
               </div>
-
-              {/* Vitals row */}
-              <div className="grid grid-cols-3 gap-2 pt-1">
-                {hrv !== null && (
-                  <div className="rounded-xl bg-muted border border-border p-2.5 text-center">
-                    <p className="text-base font-extrabold text-foreground">{hrv}</p>
-                    <p className="text-xs text-muted-foreground">HRV ms</p>
-                  </div>
-                )}
-                {rec !== null && (
-                  <div className="rounded-xl bg-muted border border-border p-2.5 text-center">
-                    <p className="text-base font-extrabold text-foreground">{rec}</p>
-                    <p className="text-xs text-muted-foreground">Recovery</p>
-                  </div>
-                )}
-                {hr !== null && (
-                  <div className="rounded-xl bg-muted border border-border p-2.5 text-center">
-                    <p className="text-base font-extrabold text-foreground">{hr}</p>
-                    <p className="text-xs text-muted-foreground">Resting HR</p>
-                  </div>
-                )}
+              <div className="grid grid-cols-3 gap-2">
+                {hrv !== null && <Stat value={hrv} label="HRV ms" />}
+                {rec !== null && <Stat value={rec} label="Recovery" />}
+                {hr !== null && <Stat value={hr} label="Resting HR" />}
               </div>
             </>
           ) : (
-            <div className="rounded-xl border border-dashed border-border p-6 text-center flex-1 flex flex-col items-center justify-center">
-              <p className="text-2xl mb-2">⌚</p>
-              <p className="text-xs text-muted-foreground">No wearable data for this date</p>
-            </div>
+            <NoDeviceData />
           )}
         </div>
 
-        {/* Column 2 — Restedness */}
-        <div className="flex flex-col gap-3">
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-            {totalH !== null ? `After ${totalH}h — how rested do you feel?` : "How rested do you feel?"}
-          </p>
-          <div className="flex flex-col gap-2 flex-1">
+        {/* Restedness */}
+        <div className="flex flex-col gap-4">
+          <GroupLabel>{totalH !== null ? `After ${totalH}h, how rested do you feel?` : "How rested do you feel?"}</GroupLabel>
+          <div className="flex flex-col gap-2" role="group" aria-label="How rested you feel">
             {REST_SCALE.map((r) => (
               <button
                 key={r.value}
                 onClick={() => setRest(r.value)}
-                className="flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all flex-1"
-                style={restScore === r.value
-                  ? { background: "var(--primary)", color: "var(--primary-foreground)" }
-                  : { background: "var(--muted)", color: "var(--foreground)" }}
+                aria-pressed={restScore === r.value}
+                className={cn(optionCls, "group flex items-center gap-3 px-4 py-2.5")}
               >
-                <span className="text-sm font-bold w-4 text-center opacity-50">{r.value}</span>
-                <div>
-                  <p className="text-sm font-bold leading-tight">{r.label}</p>
-                  <p className="text-xs opacity-50 leading-tight">{r.sub}</p>
-                </div>
+                <span className="w-4 text-center text-sm text-muted-foreground tabular-nums group-aria-pressed:text-primary">
+                  {r.value}
+                </span>
+                <span>
+                  <span className="block text-sm font-medium">{r.label}</span>
+                  <span className="block text-xs text-muted-foreground">{r.sub}</span>
+                </span>
               </button>
             ))}
           </div>
         </div>
 
-        {/* Column 3 — Context: timing + factors */}
+        {/* Context: timing + factors */}
         <div className="flex flex-col gap-4">
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Sleep context</p>
-
-          <div>
-            <p className="text-sm font-bold text-foreground mb-2">What time did you actually sleep and wake up?</p>
-          </div>
+          <GroupLabel>Sleep context</GroupLabel>
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-muted-foreground block mb-1">Bedtime</label>
-              <input
-                type="time"
-                value={note.bedtime ?? ""}
-                onChange={(e) => setTime("bedtime", e.target.value)}
-                className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              />
+            <div className="space-y-2">
+              <Label htmlFor="bedtime" className="text-muted-foreground">Bedtime</Label>
+              <Input id="bedtime" type="time" value={note.bedtime ?? ""} onChange={(e) => setTime("bedtime", e.target.value)} className="h-9" />
             </div>
-            <div>
-              <label className="text-xs text-muted-foreground block mb-1">Wake time</label>
-              <input
-                type="time"
-                value={note.wake ?? ""}
-                onChange={(e) => setTime("wake", e.target.value)}
-                className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              />
+            <div className="space-y-2">
+              <Label htmlFor="wake" className="text-muted-foreground">Wake time</Label>
+              <Input id="wake" type="time" value={note.wake ?? ""} onChange={(e) => setTime("wake", e.target.value)} className="h-9" />
             </div>
           </div>
 
-          <div>
-            <p className="text-xs text-muted-foreground mb-2 font-semibold">What affected your sleep?</p>
-            <div className="grid grid-cols-2 gap-2">
-              {SLEEP_FACTORS.map((f) => {
-                const active = (note.factors ?? []).includes(f.id);
-                return (
-                  <button
-                    key={f.id}
-                    onClick={() => toggleFactor(f.id)}
-                    className="flex items-center gap-2 px-3 py-2 rounded-xl text-left text-xs font-bold transition-all"
-                    style={active
-                      ? { background: "var(--lavender)", color: "var(--foreground)" }
-                      : { background: "var(--muted)", color: "var(--muted-foreground)" }}
-                  >
-                    <span>{f.emoji}</span>
-                    {f.label}
-                  </button>
-                );
-              })}
-            </div>
+          <p className="mt-2 text-sm text-muted-foreground">What affected your sleep?</p>
+          <div className="grid grid-cols-2 gap-2">
+            {SLEEP_FACTORS.map((f) => (
+              <button
+                key={f.id}
+                onClick={() => toggleFactor(f.id)}
+                aria-pressed={(note.factors ?? []).includes(f.id)}
+                className={cn(optionCls, "flex items-center gap-2 px-3 py-2 text-sm")}
+              >
+                <f.icon className="size-4 shrink-0 opacity-70" aria-hidden="true" />
+                {f.label}
+              </button>
+            ))}
           </div>
         </div>
       </div>
-    </div>
+    </HabitCard>
   );
 }
 
 /* ─── Mood ─── */
-const MOODS = [
-  { value: 1, emoji: "😞", label: "Rough" },
-  { value: 2, emoji: "😕", label: "Meh" },
-  { value: 3, emoji: "😐", label: "Okay" },
-  { value: 4, emoji: "😊", label: "Good" },
-  { value: 5, emoji: "🤩", label: "Great" },
+const MOODS: { value: number; icon: LucideIcon; label: string }[] = [
+  { value: 1, icon: Frown,   label: "Rough" },
+  { value: 2, icon: Annoyed, label: "Meh" },
+  { value: 3, icon: Meh,     label: "Okay" },
+  { value: 4, icon: Smile,   label: "Good" },
+  { value: 5, icon: Laugh,   label: "Great" },
 ];
 
 function MoodCard({ data, onChange, activeDate, biometrics }: Props) {
@@ -684,57 +588,54 @@ function MoodCard({ data, onChange, activeDate, biometrics }: Props) {
   const set = (v: number) => onChange({ ...data, mood: setDateValue(data.mood, activeDate, v) });
   const rec = biometrics?.recoveryScore?.find((e) => e.date === activeDate)?.value ?? null;
   const moodLabel = MOODS.find((m) => m.value === mood)?.label;
-  const moodComment = moodLabel
-    ? `Feeling ${moodLabel.toLowerCase()} today — thanks for checking in.`
-    : "How are you feeling today? Pick a mood below.";
 
   return (
-    <div className={cardBase}>
-      <div className="flex items-center gap-2 mb-4">
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-base" style={{ background: "rgba(255,179,193,0.25)" }}>😊</div>
-        <h3 className="font-extrabold text-foreground text-xl">Mood</h3>
-      </div>
-
-      <CommentBubble text={moodComment} />
-
-      {rec !== null && (
-        <div className="rounded-xl bg-muted border border-border px-3 py-2 mb-3">
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-xs text-muted-foreground">Recovery</p>
-            <p className="text-xs font-bold text-foreground">{rec}/100</p>
-          </div>
-          <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
-            <div className="h-full rounded-full transition-all" style={{ width: `${rec}%`, background: "var(--teal)" }} />
-          </div>
-        </div>
-      )}
-
-      <div className="flex flex-col gap-1.5 flex-1">
+    <HabitCard
+      icon={SmilePlus}
+      hue="mood"
+      title="Mood"
+      description={moodLabel ? `Feeling ${moodLabel.toLowerCase()} today` : "How are you feeling today?"}
+    >
+      <div className="grid grid-cols-5 gap-2" role="group" aria-label="Mood">
         {MOODS.map((m) => (
-          <button key={m.value} onClick={() => set(m.value)}
-            className="flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all text-left flex-1"
-            style={mood === m.value
-              ? { background: "#0B4F42", color: "#fff" }
-              : { background: "var(--muted)", color: "var(--foreground)" }}>
-            <span className="text-xl">{m.emoji}</span>
-            <span className="text-xs font-bold">{m.label}</span>
+          <button
+            key={m.value}
+            onClick={() => set(m.value)}
+            aria-pressed={mood === m.value}
+            className={cn(optionCls, "flex flex-col items-center gap-2 px-1 py-3 text-center")}
+          >
+            <m.icon className="size-5" aria-hidden="true" />
+            <span className="text-xs font-medium">{m.label}</span>
           </button>
         ))}
       </div>
-    </div>
+
+      {rec !== null && (
+        <div className="mt-auto space-y-2 pt-6">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Recovery</span>
+            <span className="font-medium tabular-nums">{rec}/100</span>
+          </div>
+          <Progress value={rec} className="h-2" />
+        </div>
+      )}
+    </HabitCard>
   );
 }
 
 /* ─── Custom Habits ─── */
+const ICON_KEYS = Object.keys(CUSTOM_ICONS);
+const EMPTY_FORM = { name: "", unit: "times", target: 1, icon: ICON_KEYS[0] };
+
 function CustomHabitsCard({ data, onChange, activeDate }: Props) {
   const [adding, setAdding] = useState(false);
-  const [form, setForm] = useState({ name: "", unit: "times", target: 1, icon: ICONS[0] });
+  const [form, setForm] = useState(EMPTY_FORM);
   const [logInput, setLogInput] = useState<Record<string, string>>({});
 
   const saveHabit = () => {
     if (!form.name.trim()) return;
     onChange({ ...data, custom: [...data.custom, { id: crypto.randomUUID(), name: form.name.trim().slice(0, DB_LIMITS.nameLength), unit: form.unit, target: clamp(form.target, DB_LIMITS.habitValue), color: "#374151", icon: form.icon, entries: [] }] });
-    setForm({ name: "", unit: "times", target: 1, icon: ICONS[0] });
+    setForm(EMPTY_FORM);
     setAdding(false);
   };
 
@@ -750,77 +651,139 @@ function CustomHabitsCard({ data, onChange, activeDate }: Props) {
   const deleteHabit = (id: string) => onChange({ ...data, custom: data.custom.filter((h) => h.id !== id) });
 
   return (
-    <div className="col-span-full rounded-2xl p-6 border border-border bg-card">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xl font-extrabold text-foreground">Custom Habits</h3>
-        <button onClick={() => setAdding(true)} className={btnPrimary}>+ New Habit</button>
-      </div>
-
-      {adding && (
-        <div className="rounded-2xl p-6 mb-4 border border-border bg-muted">
-          <h4 className="font-bold text-foreground mb-4">Create Custom Habit</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Habit name…" className={inputCls} />
-            <div className="flex gap-2">
-              <input value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} placeholder="Unit (pages, ml…)" className={inputCls} />
-              <input value={form.target} onChange={(e) => setForm({ ...form, target: parseInt(e.target.value) || 1 })} type="number" min="1" placeholder="Target" className="w-24 rounded-xl border border-border px-4 py-2.5 text-sm bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
-            </div>
+    <Card className="gap-6 [--card-spacing:--spacing(6)]">
+      <CardHeader>
+        <CardTitle className="text-base font-semibold">Your own habits</CardTitle>
+        <CardDescription>Anything else you want to keep an eye on, with your own unit and target.</CardDescription>
+        <CardAction>
+          <Button onClick={() => setAdding(true)} className="h-9 px-4">
+            <Plus />
+            New habit
+          </Button>
+        </CardAction>
+      </CardHeader>
+      <CardContent>
+        {data.custom.length === 0 ? (
+          <div className="rounded-lg border border-dashed px-6 py-10 text-center">
+            <p className="text-sm text-muted-foreground">No habits of your own yet.</p>
+            <p className="mt-1 text-sm text-muted-foreground/70">Reading, stretching, time outside: anything you can count.</p>
           </div>
-          <div className="mb-4">
-            <p className="text-xs text-muted-foreground mb-2 font-semibold">Pick an icon</p>
-            <div className="flex gap-2 flex-wrap">
-              {ICONS.map((ic) => (
-                <button key={ic} onClick={() => setForm({ ...form, icon: ic })} className="text-xl p-2 rounded-lg transition-all" style={form.icon === ic ? { background: "var(--secondary)", boxShadow: "0 0 0 2px var(--primary)" } : { background: "var(--card)" }}>{ic}</button>
-              ))}
-            </div>
-          </div>
-          <div className="flex gap-3">
-            <button onClick={saveHabit} className={btnPrimary}>Create Habit</button>
-            <button onClick={() => setAdding(false)} className="px-5 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-sm font-semibold">Cancel</button>
-          </div>
-        </div>
-      )}
-
-      {data.custom.length === 0 && !adding && (
-        <div className="rounded-2xl border-2 border-dashed border-border p-10 text-center">
-          <p className="text-4xl mb-3">🎯</p>
-          <p className="text-muted-foreground text-sm">No custom habits yet.</p>
-          <p className="text-muted-foreground text-xs mt-1 opacity-70">Click "New Habit" to add your own.</p>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {data.custom.map((habit) => {
-          const todayVal = habit.entries.find((e) => e.date === activeDate)?.value ?? 0;
-          return (
-            <div key={habit.id} className="rounded-2xl p-5 border border-border bg-card">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center text-xl">{habit.icon}</div>
-                <div className="flex-1">
-                  <h4 className="font-bold text-foreground">{habit.name}</h4>
-                  <p className="text-xs text-muted-foreground">Target: {habit.target} {habit.unit}</p>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2">
+            {data.custom.map((habit) => {
+              const todayVal = habit.entries.find((e) => e.date === activeDate)?.value ?? 0;
+              return (
+                <div key={habit.id} className="space-y-4 rounded-lg border p-5">
+                  <div className="flex items-center gap-3">
+                    <CustomHabitIcon icon={habit.icon} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{habit.name}</p>
+                      <p className="text-sm text-muted-foreground">Target {habit.target} {habit.unit}</p>
+                    </div>
+                    <p className="text-lg font-semibold tabular-nums">
+                      {todayVal}
+                      <span className="ml-1 text-sm font-normal text-muted-foreground">{habit.unit}</span>
+                    </p>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => deleteHabit(habit.id)}
+                      aria-label={`Delete ${habit.name}`}
+                      className="text-muted-foreground"
+                    >
+                      <X />
+                    </Button>
+                  </div>
+                  <Bar value={todayVal} max={habit.target} />
+                  <div className="flex gap-2">
+                    <Input
+                      value={logInput[habit.id] ?? ""}
+                      onChange={(e) => setLogInput({ ...logInput, [habit.id]: e.target.value })}
+                      onKeyDown={(e) => e.key === "Enter" && logCustom(habit)}
+                      placeholder={`Add ${habit.unit}`}
+                      aria-label={`Amount of ${habit.unit} to add`}
+                      type="number"
+                      min="0"
+                      className="h-9"
+                    />
+                    <Button variant="outline" onClick={() => logCustom(habit)} className="h-9 px-4">Log</Button>
+                  </div>
                 </div>
-                <span className="text-xl font-extrabold text-foreground">
-                  {todayVal} <span className="text-sm font-normal text-muted-foreground">{habit.unit}</span>
-                </span>
-                <button onClick={() => deleteHabit(habit.id)} className="text-muted-foreground hover:text-foreground text-sm ml-1">✕</button>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+
+      <Dialog open={adding} onOpenChange={(open) => { setAdding(open); if (!open) setForm(EMPTY_FORM); }}>
+        <DialogContent className="gap-6 p-6 sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold">New habit</DialogTitle>
+            <DialogDescription>Give it a name, the unit you count it in, and a daily target.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="habit-name">Name</Label>
+              <Input
+                id="habit-name"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                onKeyDown={(e) => e.key === "Enter" && saveHabit()}
+                placeholder="Read"
+                className="h-9"
+              />
+            </div>
+            <div className="grid grid-cols-[1fr_7rem] gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="habit-unit">Unit</Label>
+                <Input id="habit-unit" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} placeholder="pages" className="h-9" />
               </div>
-              <ProgressBar value={todayVal} max={habit.target} color="var(--peach)" />
-              <div className="flex gap-2 mt-4">
-                <input value={logInput[habit.id] ?? ""} onChange={(e) => setLogInput({ ...logInput, [habit.id]: e.target.value })} onKeyDown={(e) => e.key === "Enter" && logCustom(habit)} placeholder={`Log ${habit.unit}…`} type="number" min="0" className={inputCls} />
-                <button onClick={() => logCustom(habit)} className={btnPrimary}>Log</button>
+              <div className="space-y-2">
+                <Label htmlFor="habit-target">Daily target</Label>
+                <Input
+                  id="habit-target"
+                  value={form.target}
+                  onChange={(e) => setForm({ ...form, target: parseInt(e.target.value) || 1 })}
+                  type="number"
+                  min="1"
+                  className="h-9"
+                />
               </div>
             </div>
-          );
-        })}
-      </div>
-    </div>
+            <div className="space-y-2">
+              <Label>Icon</Label>
+              <div className="flex flex-wrap gap-2" role="group" aria-label="Icon">
+                {ICON_KEYS.map((key) => {
+                  const Icon = CUSTOM_ICONS[key];
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => setForm({ ...form, icon: key })}
+                      aria-pressed={form.icon === key}
+                      aria-label={key}
+                      className={cn(optionCls, "grid size-9 place-items-center text-muted-foreground")}
+                    >
+                      <Icon className="size-4" />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="-mx-6 -mb-6 p-6 py-4">
+            <Button variant="outline" onClick={() => setAdding(false)} className="h-9 px-4">Cancel</Button>
+            <Button onClick={saveHabit} disabled={!form.name.trim()} className="h-9 px-4">Create habit</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
   );
 }
 
 /* ─── Date Navigator ─── */
 function DateNavigator({ activeDate, onChange }: { activeDate: string; onChange: (d: string) => void }) {
   const isToday = activeDate === TODAY;
+  const pickerRef = useRef<HTMLInputElement>(null);
 
   const shift = (days: number) => {
     const d = new Date(activeDate + "T00:00:00");
@@ -837,42 +800,39 @@ function DateNavigator({ activeDate, onChange }: { activeDate: string; onChange:
   })();
 
   return (
-    <div className="flex items-center gap-3">
-      <button
-        onClick={() => shift(-1)}
-        className="w-9 h-9 rounded-xl bg-secondary hover:bg-border flex items-center justify-center text-secondary-foreground transition-all font-bold"
-      >
-        ‹
-      </button>
-
-      <div className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border bg-card">
-        <span className="text-sm font-bold text-foreground min-w-[6rem] text-center">{label}</span>
+    <div className="flex items-center gap-2">
+      {!isToday && (
+        <Button variant="ghost" onClick={() => onChange(TODAY)} className="h-9 px-3 text-primary hover:text-primary">
+          Back to today
+        </Button>
+      )}
+      <Button variant="outline" size="icon-lg" onClick={() => shift(-1)} aria-label="Previous day">
+        <ChevronLeft />
+      </Button>
+      <div className="relative">
+        <Button
+          variant="outline"
+          className="h-9 min-w-36 px-3"
+          onClick={() => pickerRef.current?.showPicker?.()}
+          aria-label={`${label}. Choose a date`}
+        >
+          <CalendarDays className="text-muted-foreground" />
+          {label}
+        </Button>
         <input
+          ref={pickerRef}
           type="date"
           max={TODAY}
           value={activeDate}
-          onChange={(e) => { if (e.target.value <= TODAY) onChange(e.target.value); }}
-          className="text-xs text-muted-foreground bg-transparent border-none outline-none cursor-pointer w-4"
-          title="Jump to date"
+          onChange={(e) => { if (e.target.value && e.target.value <= TODAY) onChange(e.target.value); }}
+          tabIndex={-1}
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 opacity-0"
         />
       </div>
-
-      <button
-        onClick={() => shift(1)}
-        disabled={isToday}
-        className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center text-secondary-foreground transition-all font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-border"
-      >
-        ›
-      </button>
-
-      {!isToday && (
-        <button
-          onClick={() => onChange(TODAY)}
-          className="px-3 py-2 rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:opacity-90 transition-all"
-        >
-          Back to today
-        </button>
-      )}
+      <Button variant="outline" size="icon-lg" onClick={() => shift(1)} disabled={isToday} aria-label="Next day">
+        <ChevronRight />
+      </Button>
     </div>
   );
 }
@@ -883,40 +843,29 @@ export default function HabitsView({ data, onChange, biometrics, medications, us
   const cardProps = { data, onChange, activeDate, biometrics, medications, userId, profileName, done, total };
 
   return (
-    <div className="space-y-6">
-      {/* Header + date navigator */}
+    <div className="space-y-10">
       <PageHeader
         title={greeting(profileName)}
         subtitle={progressSubtitle(done, total)}
         action={<DateNavigator activeDate={activeDate} onChange={setActiveDate} />}
       />
 
-      {/* Top row: Calorie (7) + Exercise (3) */}
-      <div className="grid grid-cols-1 md:grid-cols-10 gap-6 items-stretch">
-        <div className="md:col-span-7 flex flex-col">
-          <FoodCard {...cardProps} />
-        </div>
-        <div className="md:col-span-3 flex flex-col">
+      <div className="space-y-6">
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2"><FoodCard {...cardProps} /></div>
           <ExerciseCard {...cardProps} />
         </div>
-      </div>
 
-      {/* Second row: Water + Mood stacked left, Medication right */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-6 items-stretch">
-        <div className="md:col-span-3 flex flex-col gap-6">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <WaterCard {...cardProps} />
           <MoodCard {...cardProps} />
+          <div className="md:col-span-2 lg:col-span-1"><MedicationCard {...cardProps} /></div>
         </div>
-        <div className="md:col-span-2 flex flex-col">
-          <MedicationCard {...cardProps} />
-        </div>
+
+        <SleepCard {...cardProps} />
+
+        <CustomHabitsCard {...cardProps} />
       </div>
-
-      {/* Third row: Sleep — full width */}
-      <SleepCard {...cardProps} />
-
-      {/* Custom habits */}
-      <CustomHabitsCard {...cardProps} />
     </div>
   );
 }

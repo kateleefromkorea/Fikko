@@ -1,6 +1,7 @@
 import { Suspense, lazy, useState } from "react";
 import { LogOut, UserRound } from "lucide-react";
-import { EMPTY_BIOMETRICS, type HabitData } from "./types";
+import { EMPTY_BIOMETRICS } from "./types";
+import { completion } from "./lib/completion";
 import HabitsView from "./components/HabitsView";
 import ProfileView from "./components/ProfileView";
 import CoachView from "./components/CoachView";
@@ -42,17 +43,6 @@ const NAV: { id: Tab; label: string; beta?: boolean }[] = [
 
 const TODAY = new Date().toISOString().split("T")[0];
 
-function completedToday(data: HabitData): number {
-  let count = 0;
-  if ((data.water.find((e) => e.date === TODAY)?.value ?? 0) >= 8) count++;
-  if (data.medication.find((e) => e.date === TODAY)?.value === 1) count++;
-  if ((data.food.find((e) => e.date === TODAY)?.value ?? 0) > 0) count++;
-  if ((data.exercise.find((e) => e.date === TODAY)?.value ?? 0) >= 30) count++;
-  if ((data.sleep.find((e) => e.date === TODAY)?.value ?? 0) >= 3) count++;
-  if ((data.mood.find((e) => e.date === TODAY)?.value ?? 0) > 0) count++;
-  return count;
-}
-
 export default function App() {
   const { session, loading, signOut } = useAuth();
   const userId = session?.user.id ?? null;
@@ -87,14 +77,13 @@ export default function App() {
   // user never sees it flash.
   const needsOnboarding = !profileLoading && !profile.onboarding_completed_at;
 
-  const done = completedToday(data);
-  const total = 6 + data.custom.length;
+  const { done, total } = completion(data, TODAY);
   const pct = Math.round((done / total) * 100);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:gap-6 sm:px-8">
+    <div className="app-wash flex min-h-screen flex-col">
+      <header className="sticky top-0 z-40 border-b bg-white/70 backdrop-blur">
+        <div className="mx-auto flex h-16 max-w-screen-2xl items-center gap-3 px-4 sm:gap-6 sm:px-6">
           <button
             onClick={() => setTab("habits")}
             className="text-lg font-bold tracking-wide"
@@ -173,7 +162,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-8 sm:py-12">
+      <main className="mx-auto w-full max-w-screen-2xl flex-1 px-4 py-10 sm:px-6 sm:py-12">
         {tab === "habits" && (
           <HabitsView
             data={data}
@@ -182,8 +171,6 @@ export default function App() {
             medications={medications}
             userId={userId}
             profileName={profile.name}
-            done={done}
-            total={total}
           />
         )}
         {tab === "dashboard" && (
@@ -218,7 +205,7 @@ export default function App() {
       )}
 
       <footer className="border-t">
-        <div className="mx-auto max-w-6xl px-4 py-8 text-sm text-muted-foreground sm:px-8">
+        <div className="mx-auto max-w-screen-2xl px-4 py-8 text-sm text-muted-foreground sm:px-6">
           Fikko · {new Date().getFullYear()} · Stay consistent, stay you.
         </div>
       </footer>

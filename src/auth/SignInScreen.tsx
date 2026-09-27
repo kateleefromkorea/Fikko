@@ -51,7 +51,7 @@ export default function SignInScreen() {
 
   return (
     <div className="hero-wash flex min-h-screen flex-col">
-      <header className="mx-auto flex h-16 w-full max-w-6xl items-center px-6 sm:px-8">
+      <header className="mx-auto flex h-16 w-full max-w-screen-2xl items-center px-4 sm:px-6">
         <span className="text-lg font-bold tracking-wide">FIKKO</span>
       </header>
 

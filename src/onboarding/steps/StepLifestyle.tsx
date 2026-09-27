@@ -100,7 +100,7 @@ export default function StepLifestyle({ api, showError }: { api: Api; showError:
       {sheet && (
         <div className="fixed inset-0 z-[60] bg-black/40 flex items-end sm:items-center justify-center p-4" onClick={() => !connecting && setAsking(null)}>
           <div
-            className="w-full max-w-sm bg-card rounded-2xl p-6 text-center"
+            className="w-full max-w-sm bg-card-solid rounded-2xl p-6 text-center"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"

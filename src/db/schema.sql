@@ -1,6 +1,11 @@
--- Fikko schema
--- Run this in the Supabase SQL editor (Project → SQL Editor → New query).
--- Safe to re-run: drops and recreates everything below from scratch.
+-- Fikko base schema — FOR A BRAND-NEW, EMPTY SUPABASE PROJECT ONLY.
+--
+-- ⚠️  NEVER run this against the live database: it DROPS every table and
+--     deletes all user data. Changes to production go in migrations/ as
+--     additive, re-runnable files instead.
+--
+-- Fresh setup: run this file, then every file in src/db/migrations/ in
+-- numeric order (002, 003, …). This file alone is not the complete schema.
 
 drop trigger if exists on_auth_user_created on auth.users;
 drop function if exists public.handle_new_user();

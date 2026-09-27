@@ -1,8 +1,9 @@
 import { useState } from "react";
 import type { ProfileRow } from "../hooks/useProfile";
-import type { HabitData } from "../types";
 import PageHeader from "./PageHeader";
-import { computeBaseline } from "../lib/metabolics";
+import { computeBaseline, LIMITS, inRange } from "../lib/metabolics";
+import { DB_LIMITS, clamp } from "../lib/limits";
+import { deleteAccount, exportAllData } from "../lib/account";
 
 interface Draft {
   name: string;
@@ -20,31 +21,31 @@ interface Props {
   email: string;
   profile: ProfileRow;
   onUpdateProfile: (patch: Partial<ProfileRow>) => void;
-  habitData: HabitData;
+  userId: string;
   onSignOut: () => void;
 }
 
+// Integrations Fikko plans to support. None can connect yet, so they are
+// listed as "coming soon" rather than pretending to sync.
 interface Connector {
   id: string;
   name: string;
   description: string;
   icon: string;
-  connected: boolean;
-  lastSync?: string;
 }
 
 const ACTIVITY_LEVELS = ["Sedentary", "Lightly active", "Moderately active", "Very active", "Extra active"];
 const GENDERS = ["Male", "Female", "Non-binary", "Prefer not to say"];
 
-const INITIAL_CONNECTORS: Connector[] = [
-  { id: "apple-watch", name: "Apple Watch", description: "Sync heart rate, steps, workouts & sleep", icon: "⌚", connected: true, lastSync: "demo data" },
-  { id: "apple-health", name: "Apple Health", description: "Pull nutrition, body measurements & activity", icon: "🍎", connected: true, lastSync: "demo data" },
-  { id: "google-fit", name: "Google Fit", description: "Sync activity, heart points & workouts", icon: "🏃", connected: false },
-  { id: "fitbit", name: "Fitbit", description: "Import steps, sleep stages & heart rate", icon: "📊", connected: false },
-  { id: "garmin", name: "Garmin Connect", description: "Import GPS workouts, VO2 max & body battery", icon: "🛰️", connected: false },
-  { id: "whoop", name: "WHOOP", description: "Sync recovery score, strain & sleep performance", icon: "💪", connected: false },
-  { id: "oura", name: "Oura Ring", description: "Import readiness, sleep quality & activity", icon: "💍", connected: false },
-  { id: "samsung", name: "Samsung Health", description: "Sync steps, workouts & sleep from Galaxy Watch", icon: "📱", connected: false },
+const CONNECTORS: Connector[] = [
+  { id: "apple-watch", name: "Apple Watch", description: "Sync heart rate, steps, workouts & sleep", icon: "⌚" },
+  { id: "apple-health", name: "Apple Health", description: "Pull nutrition, body measurements & activity", icon: "🍎" },
+  { id: "google-fit", name: "Google Fit", description: "Sync activity, heart points & workouts", icon: "🏃" },
+  { id: "fitbit", name: "Fitbit", description: "Import steps, sleep stages & heart rate", icon: "📊" },
+  { id: "garmin", name: "Garmin Connect", description: "Import GPS workouts, VO2 max & body battery", icon: "🛰️" },
+  { id: "whoop", name: "WHOOP", description: "Sync recovery score, strain & sleep performance", icon: "💪" },
+  { id: "oura", name: "Oura Ring", description: "Import readiness, sleep quality & activity", icon: "💍" },
+  { id: "samsung", name: "Samsung Health", description: "Sync steps, workouts & sleep from Galaxy Watch", icon: "📱" },
 ];
 
 function toDraft(profile: ProfileRow): Draft {
@@ -92,24 +93,37 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 const inputCls = "rounded-xl border border-border px-4 py-2.5 text-sm text-foreground bg-card focus:outline-none focus:ring-2 focus:ring-ring transition-all";
 const selectCls = `${inputCls} appearance-none cursor-pointer`;
 
-export default function ProfileView({ email, profile, onUpdateProfile, habitData, onSignOut }: Props) {
-  const [connectors, setConnectors] = useState<Connector[]>(INITIAL_CONNECTORS);
+export default function ProfileView({ email, profile, onUpdateProfile, userId, onSignOut }: Props) {
   const [editingInfo, setEditingInfo] = useState(false);
   const [editingGoals, setEditingGoals] = useState(false);
   const [draft, setDraft] = useState<Draft>(toDraft(profile));
-  const [syncing, setSyncing] = useState<string | null>(null);
-  const [deleteConfirming, setDeleteConfirming] = useState(false);
+  const [infoError, setInfoError] = useState<string | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteText, setDeleteText] = useState("");
+  const [accountBusy, setAccountBusy] = useState<"export" | "delete" | null>(null);
+  const [accountError, setAccountError] = useState<string | null>(null);
 
   const set = (k: keyof Draft) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setDraft((p) => ({ ...p, [k]: e.target.value }));
 
   const saveInfo = () => {
+    const height = draft.height ? parseFloat(draft.height) : null;
+    const weight = draft.weight ? parseFloat(draft.weight) : null;
+    if (height !== null && !inRange(height, LIMITS.heightCm)) {
+      setInfoError(`Height must be between ${LIMITS.heightCm.min} and ${LIMITS.heightCm.max} cm.`);
+      return;
+    }
+    if (weight !== null && !inRange(weight, LIMITS.weightKg)) {
+      setInfoError(`Weight must be between ${LIMITS.weightKg.min} and ${LIMITS.weightKg.max} kg.`);
+      return;
+    }
+    setInfoError(null);
     const patch: Partial<ProfileRow> = {
-      name: draft.name,
+      name: draft.name.trim().slice(0, DB_LIMITS.nameLength),
       date_of_birth: draft.dob || null,
       gender: draft.gender,
-      height_cm: draft.height ? parseFloat(draft.height) : null,
-      weight_kg: draft.weight ? parseFloat(draft.weight) : null,
+      height_cm: height,
+      weight_kg: weight,
     };
     // Weight, height, age and sex are all Mifflin-St Jeor inputs.
     const baseline = baselineFrom(draft, profile);
@@ -126,9 +140,9 @@ export default function ProfileView({ email, profile, onUpdateProfile, habitData
     onUpdateProfile({
       activity_level: draft.activityLevel,
       // Typed by hand in this very form, so it beats the recommendation.
-      calorie_goal: parseFloat(draft.calorieGoal) || baseline?.calorieTarget || 2000,
-      water_goal: parseFloat(draft.waterGoal) || 8,
-      sleep_goal: parseFloat(draft.sleepGoal) || 8,
+      calorie_goal: clamp(parseFloat(draft.calorieGoal) || baseline?.calorieTarget || 2000, DB_LIMITS.calorieGoal),
+      water_goal: clamp(parseFloat(draft.waterGoal) || 8, DB_LIMITS.waterGoal),
+      sleep_goal: clamp(parseFloat(draft.sleepGoal) || 8, DB_LIMITS.sleepGoal),
       ...(baseline ? { bmr: baseline.bmr, tdee: baseline.tdee } : {}),
     });
     setEditingGoals(false);
@@ -151,45 +165,34 @@ export default function ProfileView({ email, profile, onUpdateProfile, habitData
       return next;
     });
   };
-  const cancelInfo = () => { setDraft(toDraft(profile)); setEditingInfo(false); };
+  const cancelInfo = () => { setDraft(toDraft(profile)); setInfoError(null); setEditingInfo(false); };
   const cancelGoals = () => { setDraft(toDraft(profile)); setEditingGoals(false); };
 
-  const toggleConnector = (id: string) => {
-    setSyncing(id);
-    setTimeout(() => {
-      setConnectors((prev) =>
-        prev.map((c) =>
-          c.id === id
-            ? c.connected
-              ? { ...c, connected: false, lastSync: undefined }
-              : { ...c, connected: true, lastSync: "demo data" }
-            : c
-        )
-      );
-      setSyncing(null);
-    }, 1200);
-  };
-
-  const exportData = () => {
-    const payload = { profile, habitData, exportedAt: new Date().toISOString() };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "fikko-export.json";
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const requestDeleteAccount = () => {
-    if (!deleteConfirming) {
-      setDeleteConfirming(true);
-      return;
+  const exportData = async () => {
+    setAccountBusy("export");
+    setAccountError(null);
+    try {
+      await exportAllData(userId);
+    } catch (err) {
+      setAccountError(err instanceof Error ? err.message : "Export failed. Please try again.");
+    } finally {
+      setAccountBusy(null);
     }
-    setDeleteConfirming(false);
-    alert(
-      "Account deletion isn't wired up yet — it needs a server-side step (the Vercel deploy phase) so it can run with elevated permissions safely. For now, use Sign out, and reach out if you want your data removed manually.",
-    );
+  };
+
+  // Deletion is irreversible, so it needs the word typed out rather than a
+  // second click that is easy to hit by accident.
+  const confirmDelete = async () => {
+    if (deleteText !== "DELETE") return;
+    setAccountBusy("delete");
+    setAccountError(null);
+    try {
+      await deleteAccount();
+      // Signing out returns the app to the login screen.
+    } catch (err) {
+      setAccountError(err instanceof Error ? err.message : "We couldn't delete your account. Please try again.");
+      setAccountBusy(null);
+    }
   };
 
   const age = draft.dob
@@ -209,7 +212,6 @@ export default function ProfileView({ email, profile, onUpdateProfile, habitData
   const recommended = baselineFrom(draft, profile)?.calorieTarget ?? null;
   const overridden = recommended != null && String(recommended) !== draft.calorieGoal.trim();
 
-  const connectedCount = connectors.filter((c) => c.connected).length;
   const displayName = profile.name || email;
   const initials = displayName.split(/\s+/).map((n) => n[0]).join("").slice(0, 2).toUpperCase();
 
@@ -362,6 +364,7 @@ export default function ProfileView({ email, profile, onUpdateProfile, habitData
                     out from these details and your goal. You can still change it under Daily Goals.
                   </p>
                 )}
+                {infoError && <p className="text-xs font-semibold mt-4" style={{ color: "#D93636" }}>{infoError}</p>}
                 <div className="flex gap-3 mt-5 pt-5 border-t border-border">
                   <button onClick={saveInfo} className="px-6 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all">Save changes</button>
                   <button onClick={cancelInfo} className="px-6 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-sm font-semibold hover:opacity-80 transition-all">Cancel</button>
@@ -388,47 +391,25 @@ export default function ProfileView({ email, profile, onUpdateProfile, habitData
 
           {/* Connected devices */}
           <div className="rounded-2xl border border-border bg-card p-6">
-            <div className="flex items-center justify-between mb-5">
-              <div>
-                <div className="flex items-center gap-2">
-                  <h4 className="font-bold text-foreground text-sm uppercase tracking-wide">Connected Devices</h4>
-                  <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-secondary text-secondary-foreground">Demo</span>
-                </div>
-                <p className="text-xs text-muted-foreground mt-0.5">{connectedCount} of {connectors.length} connected · sample data, not a real sync yet</p>
+            <div className="mb-5">
+              <div className="flex items-center gap-2">
+                <h4 className="font-bold text-foreground text-sm uppercase tracking-wide">Connected Devices</h4>
+                <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-secondary text-secondary-foreground">Coming soon</span>
               </div>
+              <p className="text-xs text-muted-foreground mt-0.5">Wearable sync isn't available yet. These are the integrations we're planning.</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {connectors.map((c) => (
-                <div
-                  key={c.id}
-                  className="rounded-xl border p-4 flex items-center gap-4 transition-all"
-                  style={c.connected ? { borderColor: "var(--primary)", background: "var(--muted)" } : { borderColor: "var(--border)", background: "var(--card)" }}
-                >
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ background: c.connected ? "rgba(21,121,84,0.12)" : "var(--secondary)" }}>
+              {CONNECTORS.map((c) => (
+                <div key={c.id} className="rounded-xl border border-border bg-card p-4 flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 bg-secondary">
                     {c.icon}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h5 className="text-sm font-bold text-foreground truncate">{c.name}</h5>
-                      {c.connected && <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "var(--teal)" }} />}
-                    </div>
-                    <p className="text-xs text-muted-foreground truncate">{c.lastSync ? `Synced ${c.lastSync}` : c.description}</p>
+                    <h5 className="text-sm font-bold text-foreground truncate">{c.name}</h5>
+                    <p className="text-xs text-muted-foreground truncate">{c.description}</p>
                   </div>
-                  <button
-                    onClick={() => toggleConnector(c.id)}
-                    disabled={syncing === c.id}
-                    className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-all disabled:opacity-50"
-                    style={
-                      syncing === c.id
-                        ? { background: "var(--secondary)", color: "var(--muted-foreground)" }
-                        : c.connected
-                        ? { background: "var(--secondary)", color: "var(--secondary-foreground)" }
-                        : { background: "var(--primary)", color: "var(--primary-foreground)" }
-                    }
-                  >
-                    {syncing === c.id ? "…" : c.connected ? "Disconnect" : "Connect"}
-                  </button>
+                  <span className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold bg-secondary text-muted-foreground">Soon</span>
                 </div>
               ))}
             </div>
@@ -441,16 +422,63 @@ export default function ProfileView({ email, profile, onUpdateProfile, habitData
         <h4 className="font-bold text-foreground mb-1 text-sm uppercase tracking-wide">Account</h4>
         <p className="text-xs text-muted-foreground mb-4">Manage your account data and preferences</p>
         <div className="flex flex-wrap gap-3">
-          <button onClick={exportData} className="px-4 py-2.5 rounded-xl border border-border text-sm text-secondary-foreground font-semibold hover:bg-secondary transition-all">Export my data</button>
-          <button onClick={onSignOut} className="px-4 py-2.5 rounded-xl border border-border text-sm text-secondary-foreground font-semibold hover:bg-secondary transition-all">Sign out</button>
           <button
-            onClick={requestDeleteAccount}
-            className="px-4 py-2.5 rounded-xl border text-sm font-semibold transition-all ml-auto"
-            style={{ borderColor: "#FFB3C1", color: "#FF7575", background: "rgba(255,117,117,0.05)" }}
+            onClick={exportData}
+            disabled={accountBusy !== null}
+            className="px-4 py-2.5 rounded-xl border border-border text-sm text-secondary-foreground font-semibold hover:bg-secondary transition-all disabled:opacity-60"
           >
-            {deleteConfirming ? "Click again to confirm" : "Delete account"}
+            {accountBusy === "export" ? "Preparing export…" : "Export my data"}
           </button>
+          <button onClick={onSignOut} className="px-4 py-2.5 rounded-xl border border-border text-sm text-secondary-foreground font-semibold hover:bg-secondary transition-all">Sign out</button>
+          {!deleteOpen && (
+            <button
+              onClick={() => { setDeleteOpen(true); setAccountError(null); }}
+              className="px-4 py-2.5 rounded-xl border text-sm font-semibold transition-all ml-auto"
+              style={{ borderColor: "#FFB3C1", color: "#D93636", background: "rgba(255,117,117,0.05)" }}
+            >
+              Delete account
+            </button>
+          )}
         </div>
+
+        {deleteOpen && (
+          <div className="mt-5 rounded-xl border p-4" style={{ borderColor: "#FFB3C1", background: "rgba(255,117,117,0.05)" }}>
+            <p className="text-sm font-bold" style={{ color: "#B42323" }}>Permanently delete your account?</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              This deletes your profile, every habit you've logged, your food log, medications and saved foods. It can't be
+              undone. Export your data first if you want a copy.
+            </p>
+            <label className="block text-xs font-semibold text-foreground mt-3 mb-1.5" htmlFor="delete-confirm">
+              Type <span className="font-mono">DELETE</span> to confirm
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <input
+                id="delete-confirm"
+                value={deleteText}
+                onChange={(e) => setDeleteText(e.target.value)}
+                autoComplete="off"
+                className={`${inputCls} w-40`}
+              />
+              <button
+                onClick={confirmDelete}
+                disabled={deleteText !== "DELETE" || accountBusy !== null}
+                className="px-4 py-2.5 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-40"
+                style={{ background: "#D93636" }}
+              >
+                {accountBusy === "delete" ? "Deleting…" : "Delete my account"}
+              </button>
+              <button
+                onClick={() => { setDeleteOpen(false); setDeleteText(""); setAccountError(null); }}
+                disabled={accountBusy === "delete"}
+                className="px-4 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-sm font-semibold hover:opacity-80 transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {accountError && <p className="text-xs font-semibold mt-3" style={{ color: "#D93636" }}>{accountError}</p>}
       </div>
     </div>
   );

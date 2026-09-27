@@ -6,29 +6,11 @@ export interface FoodResult {
   saved?: boolean; // true for the user's own saved foods, not USDA results
 }
 
-interface UsdaNutrient {
-  nutrientName: string;
-  unitName: string;
-  value: number;
-}
-
-interface UsdaFoodItem {
-  fdcId: number;
-  description: string;
-  brandName?: string;
-  brandOwner?: string;
-  foodNutrients?: UsdaNutrient[];
-}
-
-const API_KEY = import.meta.env.VITE_USDA_API_KEY;
-
-// USDA's default search is very noisy: a plain "banana" query returns ~5,000
-// hits where the top results are duplicate branded entries, banana *dishes*,
-// and even banana peppers — the plain fruit lands around 10th. Two fixes:
-//   1. Restrict to the Foundation / SR Legacy datasets (generic whole foods),
-//      which removes all branded-product noise.
-//   2. Re-rank what's left so the plainest match for the query wins.
-const DATA_TYPES = "Foundation,SR Legacy";
+// Searches go through our own /api/food-search function, which holds the USDA
+// key server-side and restricts results to generic whole foods (branded
+// products make USDA's results very noisy: "banana" ranked the plain fruit
+// ~10th behind branded duplicates). This file re-ranks what comes back so the
+// plainest match for the query wins.
 
 function normalize(s: string) {
   return s.toLowerCase().trim().replace(/s$/, "");
@@ -50,41 +32,16 @@ function relevanceScore(description: string, query: string) {
 }
 
 export async function searchFoods(query: string): Promise<FoodResult[]> {
-  if (!API_KEY) {
-    throw new Error(
-      "Missing VITE_USDA_API_KEY. Get a free key at https://api.data.gov/signup and add it to .env.local.",
-    );
-  }
-  if (!query.trim()) return [];
+  // Normalised the same way as the server so repeat searches hit its cache.
+  const q = query.trim().toLowerCase().replace(/\s+/g, " ");
+  if (!q) return [];
 
-  const url = new URL("https://api.nal.usda.gov/fdc/v1/foods/search");
-  url.searchParams.set("api_key", API_KEY);
-  url.searchParams.set("query", query.trim());
-  url.searchParams.set("pageSize", "25");
-  url.searchParams.set("dataType", DATA_TYPES);
+  const res = await fetch(`/api/food-search?q=${encodeURIComponent(q)}`);
+  const data: { foods?: FoodResult[]; error?: string } = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error ?? `Food search failed (${res.status})`);
 
-  const res = await fetch(url.toString());
-  if (!res.ok) throw new Error(`USDA search failed (${res.status})`);
-  const data: { foods?: UsdaFoodItem[] } = await res.json();
-
-  const results: { result: FoodResult; score: number }[] = [];
-  for (const food of data.foods ?? []) {
-    const energy = food.foodNutrients?.find(
-      (n) => n.nutrientName === "Energy" && n.unitName?.toUpperCase() === "KCAL",
-    );
-    if (!energy) continue;
-    results.push({
-      result: {
-        id: String(food.fdcId),
-        name: food.description,
-        brand: food.brandName || food.brandOwner || undefined,
-        caloriesPer100g: energy.value,
-      },
-      score: relevanceScore(food.description, query),
-    });
-  }
-
-  return results
+  return (data.foods ?? [])
+    .map((result) => ({ result, score: relevanceScore(result.name, q) }))
     .sort((a, b) => b.score - a.score)
     .slice(0, 6)
     .map((r) => r.result);

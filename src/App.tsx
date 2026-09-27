@@ -1,7 +1,5 @@
-import { useState } from "react";
-import { defaultBiometrics } from "./data";
-import type { HabitData } from "./types";
-import Dashboard from "./components/Dashboard";
+import { Suspense, lazy, useState } from "react";
+import { EMPTY_BIOMETRICS, type HabitData } from "./types";
 import HabitsView from "./components/HabitsView";
 import ProfileView from "./components/ProfileView";
 import CoachView from "./components/CoachView";
@@ -12,7 +10,12 @@ import { isSupabaseConfigured } from "./lib/supabase";
 import { useHabitData } from "./hooks/useHabitData";
 import { useProfile } from "./hooks/useProfile";
 import { useMedications } from "./hooks/useMedications";
-import OnboardingModal from "./onboarding/OnboardingModal";
+
+// Loaded on demand. The Dashboard carries the charting library (most of the
+// app's JavaScript) and onboarding only runs once per user, so neither should
+// slow down the first load of the Habits page.
+const Dashboard = lazy(() => import("./components/Dashboard"));
+const OnboardingModal = lazy(() => import("./onboarding/OnboardingModal"));
 
 type Tab = "habits" | "dashboard" | "coaches" | "profile";
 
@@ -36,7 +39,7 @@ export default function App() {
   const { data, setData } = useHabitData(userId);
   const { profile, updateProfile, loading: profileLoading } = useProfile(userId);
   const medications = useMedications(userId);
-  const biometrics = defaultBiometrics;
+  const biometrics = EMPTY_BIOMETRICS;
 
   if (!isSupabaseConfigured) {
     return <SetupNeeded />;
@@ -68,7 +71,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen app-bg">
-      <header className="sticky top-0 z-40 border-b border-border bg-card">
+      <header className="sticky top-0 z-40 border-b border-border bg-card-solid">
         <div className="w-full px-3 sm:px-6 flex items-center gap-2 sm:gap-3 h-16">
 
           {/* Logo */}
@@ -147,20 +150,25 @@ export default function App() {
             total={total}
           />
         )}
-        {tab === "dashboard" && <Dashboard data={data} biometrics={biometrics} profile={profile} />}
+        {tab === "dashboard" && (
+          <Suspense fallback={<p className="text-sm text-white/75 py-10 text-center">Loading dashboard…</p>}>
+            <Dashboard data={data} biometrics={biometrics} profile={profile} />
+          </Suspense>
+        )}
         {tab === "coaches" && <CoachView />}
         {tab === "profile" && (
           <ProfileView
             email={session.user.email ?? ""}
             profile={profile}
             onUpdateProfile={updateProfile}
-            habitData={data}
+            userId={session.user.id}
             onSignOut={signOut}
           />
         )}
       </main>
 
       {needsOnboarding && (
+        <Suspense fallback={null}>
         <OnboardingModal
           profile={profile}
           onComplete={async (patch) => {
@@ -170,6 +178,7 @@ export default function App() {
             setTab("dashboard");
           }}
         />
+        </Suspense>
       )}
 
       <footer className="border-t border-white/20 text-center py-6 text-xs text-white/70 px-4 sm:px-6">

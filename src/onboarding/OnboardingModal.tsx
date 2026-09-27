@@ -107,10 +107,10 @@ export default function OnboardingModal({ profile, onComplete }: Props) {
         role="dialog"
         aria-modal="true"
         aria-label="Set up your Fikko profile"
-        className="w-full sm:max-w-xl bg-card rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[94vh] sm:max-h-[88vh] overflow-hidden"
+        className="w-full sm:max-w-xl bg-card-solid rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[94vh] sm:max-h-[88vh] overflow-hidden"
       >
         {/* ── Progress header ── */}
-        <div className="px-5 sm:px-8 pt-6 pb-4 border-b border-border bg-card flex-shrink-0">
+        <div className="px-5 sm:px-8 pt-6 pb-4 border-b border-border bg-card-solid flex-shrink-0">
           <div className="flex items-center justify-between mb-2.5">
             <div className="flex items-center gap-2">
               <span className="w-7 h-7 rounded-lg flex items-center justify-center text-sm font-bold text-primary-foreground bg-primary">
@@ -175,7 +175,7 @@ export default function OnboardingModal({ profile, onComplete }: Props) {
 
         {/* ── Footer controls (the result step carries its own CTA) ── */}
         {!onResult && (
-          <div className="px-5 sm:px-8 py-4 border-t border-border bg-card flex items-center gap-3 flex-shrink-0">
+          <div className="px-5 sm:px-8 py-4 border-t border-border bg-card-solid flex items-center gap-3 flex-shrink-0">
             {step > 1 && (
               <button
                 type="button"

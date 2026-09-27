@@ -263,6 +263,21 @@ function BaselinePlan({ profile }: { profile: ProfileRow }) {
   );
 }
 
+function WearableComingSoon() {
+  return (
+    <div className="rounded-2xl border border-border bg-card p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+      <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0" style={{ background: "var(--muted)" }}>⌚</div>
+      <div className="min-w-0">
+        <h3 className="font-extrabold text-foreground text-lg">Heart, sleep & activity insights are coming soon</h3>
+        <p className="text-sm text-muted-foreground mt-1">
+          Once Apple Health and other wearables can sync, your vitals, sleep stages and recovery trends will appear here.
+          Everything below is from what you've logged in Fikko.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard({ data, biometrics, profile }: Props) {
   const [period, setPeriod] = useState<Period>("week");
 
@@ -270,6 +285,10 @@ export default function Dashboard({ data, biometrics, profile }: Props) {
 
   // Slices
   const bm = biometrics;
+  // Wearable sections only render when there is real device data. Until a sync
+  // integration exists this is false for everyone, and those sections are
+  // replaced by a placeholder rather than shown with empty or invented numbers.
+  const hasWearableData = Object.values(bm).some((series) => series.length > 0);
   const hrSlice   = last(bm.heartRate, days);
   const hrvSlice  = last(bm.hrv, days);
   const spo2Slice = last(bm.spo2, days);
@@ -367,13 +386,16 @@ export default function Dashboard({ data, biometrics, profile }: Props) {
       {/* ── Header ── */}
       <PageHeader
         title="Dashboard"
-        subtitle={`${periodLabel} · synced from Apple Watch & Apple Health`}
+        subtitle={hasWearableData ? `${periodLabel} · synced from your wearable` : `${periodLabel} · from what you've logged`}
         action={<PeriodToggle period={period} onChange={setPeriod} />}
       />
 
       {/* ── Baseline from onboarding (absent until the wizard is finished) ── */}
       {profile?.bmr != null && profile.tdee != null && <BaselinePlan profile={profile} />}
 
+      {!hasWearableData && <WearableComingSoon />}
+
+      {hasWearableData && (<>
       {/* ── Today's overview ── */}
       <Section title="Today's Overview" sub="Snapshot from your latest device sync">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -659,17 +681,19 @@ export default function Dashboard({ data, biometrics, profile }: Props) {
         </div>
       </Section>
 
+      </>)}
+
       {/* ── Habit Trends ── */}
       <Section title="Habit Trends" sub="Logged manually">
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className={`grid grid-cols-1 gap-4 ${hasWearableData ? "lg:grid-cols-2 xl:grid-cols-4" : "md:grid-cols-3"}`}>
           <ChartCard title="Water" sub="glasses/day">
             <MiniSparkline data={chartData(waterSlice)} color="#5BA9F0" />
             <p className="text-xs text-muted-foreground mt-1">Avg {avg(waterSlice).toFixed(1)} gl · target 8</p>
           </ChartCard>
-          <ChartCard title="Activity" sub="steps">
+          {hasWearableData && <ChartCard title="Activity" sub="steps">
             <MiniSparkline data={chartData(stepsSlice)} color="#FF7575" />
             <p className="text-xs text-muted-foreground mt-1">{last(bm.steps, days).filter(e => e.value >= 10000).length} days hit goal</p>
-          </ChartCard>
+          </ChartCard>}
           <ChartCard title="Mood" sub="1–5 scale">
             <MiniSparkline data={chartData(moodSlice)} color="#FFB3C1" />
             <p className="text-xs text-muted-foreground mt-1">Avg {avg(moodSlice).toFixed(1)}/5 this {period}</p>

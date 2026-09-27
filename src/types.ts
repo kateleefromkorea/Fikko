@@ -61,3 +61,15 @@ export interface BiometricData {
   stressScore: BiometricEntry[];     // 0–100 (lower = less stress)
   weight: BiometricEntry[];          // kg
 }
+
+/**
+ * No wearable sync exists yet, so every user's device data is empty. The
+ * Habits cards and Dashboard read this and show "no device data" states
+ * instead of numbers. Replace with real synced data once an integration ships.
+ */
+export const EMPTY_BIOMETRICS: BiometricData = {
+  heartRate: [], hrv: [], spo2: [], respiratoryRate: [], bodyTemp: [],
+  steps: [], activeCalories: [], vo2max: [], standHours: [],
+  sleepRem: [], sleepDeep: [], sleepCore: [],
+  recoveryScore: [], stressScore: [], weight: [],
+};

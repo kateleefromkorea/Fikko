@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type RefObject } from "react";
 import { useAuth } from "./AuthProvider";
 import TestimonialLoop, { TESTIMONIAL_STRIP_HEIGHT } from "./TestimonialLoop";
-import { SHOW_TESTIMONIALS } from "./mockTestimonials";
+import { SHOW_TESTIMONIALS } from "./testimonials";
 
 const fieldCls =
   "px-3 py-2 rounded-xl border border-gray-300 bg-white text-sm text-black placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-ring";

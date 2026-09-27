@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { searchFoods, type FoodResult } from "../lib/usdaFoodSearch";
 import type { FoodLogItem, MealKey } from "../types";
+import { DB_LIMITS, clamp } from "../lib/limits";
 
 interface Props {
   meal: MealKey;
@@ -80,7 +81,7 @@ export default function FoodLogModal({
   }
 
   function addResult(result: FoodResult) {
-    const grams = parseFloat(gramsByResult[result.id] ?? "100") || 100;
+    const grams = clamp(parseFloat(gramsByResult[result.id] ?? "100") || 100, DB_LIMITS.foodGrams);
     onAdd({ name: result.name, grams, caloriesPer100g: result.caloriesPer100g });
   }
 
@@ -88,10 +89,10 @@ export default function FoodLogModal({
     const amount = parseFloat(manual.amount) || 0;
     const calories = parseFloat(manual.calories) || 0;
     const unit = UNITS.find((u) => u.key === manual.unit) ?? UNITS[0];
-    const grams = amount * unit.grams;
+    const grams = clamp(amount * unit.grams, DB_LIMITS.foodGrams);
     if (!manual.name.trim() || grams <= 0) return;
-    const caloriesPer100g = (calories / grams) * 100;
-    const name = manual.name.trim();
+    const caloriesPer100g = clamp((calories / grams) * 100, DB_LIMITS.caloriesPer100g);
+    const name = manual.name.trim().slice(0, DB_LIMITS.foodNameLength);
     onAdd({ name, grams, caloriesPer100g });
     onSaveFood(name, caloriesPer100g);
     setManual({ name: "", amount: "100", unit: "g", calories: "" });
@@ -100,7 +101,7 @@ export default function FoodLogModal({
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="w-full max-w-lg bg-card rounded-2xl p-6 max-h-[85vh] overflow-y-auto flex flex-col gap-5"
+        className="w-full max-w-lg bg-card-solid rounded-2xl p-6 max-h-[85vh] overflow-y-auto flex flex-col gap-5"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
@@ -123,7 +124,7 @@ export default function FoodLogModal({
                   type="number"
                   min="0"
                   value={item.grams}
-                  onChange={(e) => onUpdateGrams(item.id, parseFloat(e.target.value) || 0)}
+                  onChange={(e) => onUpdateGrams(item.id, clamp(parseFloat(e.target.value) || 0, DB_LIMITS.foodGrams))}
                   className="w-20 rounded-lg border border-border px-2 py-1.5 text-sm bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
                 <span className="text-xs text-muted-foreground">g</span>

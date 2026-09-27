@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DB_LIMITS, clamp } from "../lib/limits";
 import type { HabitData, BiometricData, HabitEntry, CustomHabit, MealKey, TimeOfDay } from "../types";
 import type { useMedications } from "../hooks/useMedications";
 import { useFoodLog } from "../hooks/useFoodLog";
@@ -211,7 +212,7 @@ function ExerciseCard({ activeDate, biometrics }: Props) {
         <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: "rgba(255,117,117,0.15)" }}>🏃</div>
         <div>
           <h3 className="font-extrabold text-foreground text-xl">Activity</h3>
-          <p className="text-xs text-muted-foreground">From Apple Watch</p>
+          <p className="text-xs text-muted-foreground">From your wearable</p>
         </div>
       </div>
 
@@ -257,7 +258,7 @@ function ExerciseCard({ activeDate, biometrics }: Props) {
         <div className="flex-1 flex flex-col items-center justify-center text-center py-8">
           <p className="text-3xl mb-3">⌚</p>
           <p className="text-sm text-muted-foreground">No device data for this date.</p>
-          <p className="text-xs text-muted-foreground mt-1 opacity-60">Connect Apple Watch in Profile.</p>
+          <p className="text-xs text-muted-foreground mt-1 opacity-60">Wearable sync is coming soon.</p>
         </div>
       )}
     </div>
@@ -509,7 +510,7 @@ function SleepCard({ data, onChange, activeDate, biometrics }: Props) {
   const STAGE_COLORS = ["var(--primary)", "var(--teal)", "var(--lavender)"];
 
   const sleepComment = totalH === null
-    ? "Log how rested you feel below — no watch data for this date yet."
+    ? "Log how rested you feel below — no wearable data for this date yet."
     : totalH >= 7
       ? "Solid night — you're in a healthy sleep range."
       : totalH >= 5
@@ -523,7 +524,7 @@ function SleepCard({ data, onChange, activeDate, biometrics }: Props) {
         <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: "rgba(143,169,224,0.2)" }}>🌙</div>
         <div>
           <h3 className="font-extrabold text-foreground text-xl">Sleep</h3>
-          <p className="text-xs text-muted-foreground">Watch data · subjective · context</p>
+          <p className="text-xs text-muted-foreground">How you slept · context</p>
         </div>
         {totalH !== null && (
           <div className="ml-auto text-right">
@@ -540,7 +541,7 @@ function SleepCard({ data, onChange, activeDate, biometrics }: Props) {
 
         {/* Column 1 — Biometric read-out */}
         <div className="flex flex-col gap-4">
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Apple Watch</p>
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Wearable</p>
 
           {totalH !== null ? (
             <>
@@ -584,7 +585,7 @@ function SleepCard({ data, onChange, activeDate, biometrics }: Props) {
           ) : (
             <div className="rounded-xl border border-dashed border-border p-6 text-center flex-1 flex flex-col items-center justify-center">
               <p className="text-2xl mb-2">⌚</p>
-              <p className="text-xs text-muted-foreground">No watch data for this date</p>
+              <p className="text-xs text-muted-foreground">No wearable data for this date</p>
             </div>
           )}
         </div>
@@ -732,7 +733,7 @@ function CustomHabitsCard({ data, onChange, activeDate }: Props) {
 
   const saveHabit = () => {
     if (!form.name.trim()) return;
-    onChange({ ...data, custom: [...data.custom, { id: crypto.randomUUID(), name: form.name.trim(), unit: form.unit, target: form.target, color: "#374151", icon: form.icon, entries: [] }] });
+    onChange({ ...data, custom: [...data.custom, { id: crypto.randomUUID(), name: form.name.trim().slice(0, DB_LIMITS.nameLength), unit: form.unit, target: clamp(form.target, DB_LIMITS.habitValue), color: "#374151", icon: form.icon, entries: [] }] });
     setForm({ name: "", unit: "times", target: 1, icon: ICONS[0] });
     setAdding(false);
   };
@@ -741,14 +742,15 @@ function CustomHabitsCard({ data, onChange, activeDate }: Props) {
     const n = parseFloat(logInput[habit.id] ?? "");
     if (isNaN(n)) return;
     const cur = habit.entries.find((e) => e.date === activeDate)?.value ?? 0;
-    onChange({ ...data, custom: data.custom.map((h) => h.id === habit.id ? { ...h, entries: setDateValue(h.entries, activeDate, cur + n) } : h) });
+    const next = clamp(cur + n, DB_LIMITS.habitValue);
+    onChange({ ...data, custom: data.custom.map((h) => h.id === habit.id ? { ...h, entries: setDateValue(h.entries, activeDate, next) } : h) });
     setLogInput((prev) => ({ ...prev, [habit.id]: "" }));
   };
 
   const deleteHabit = (id: string) => onChange({ ...data, custom: data.custom.filter((h) => h.id !== id) });
 
   return (
-    <div className="col-span-full">
+    <div className="col-span-full rounded-2xl p-6 border border-border bg-card">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-xl font-extrabold text-foreground">Custom Habits</h3>
         <button onClick={() => setAdding(true)} className={btnPrimary}>+ New Habit</button>

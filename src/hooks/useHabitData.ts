@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { fetchAllRows } from "../lib/fetchAll";
 import type { CustomHabit, HabitData, HabitEntry } from "../types";
 
 const EMPTY_DATA: HabitData = {
@@ -15,11 +16,36 @@ const EMPTY_DATA: HabitData = {
 const SIMPLE_CATEGORIES = ["water", "medication", "food", "exercise", "sleep", "mood"] as const;
 type SimpleCategory = (typeof SIMPLE_CATEGORIES)[number];
 
+// How much history the app keeps loaded. The Dashboard's longest view is 12
+// months, so ~13 months covers it without downloading a user's entire history
+// on every visit (which grows forever). Saving only upserts changed entries,
+// so older rows outside this window are never touched. "Export my data"
+// fetches the full history separately.
+const HISTORY_DAYS = 400;
+
+function historyStart() {
+  const d = new Date();
+  d.setDate(d.getDate() - HISTORY_DAYS);
+  return d.toISOString().split("T")[0];
+}
+
 async function fetchHabitData(userId: string): Promise<HabitData> {
-  const [{ data: entries }, { data: customHabits }, { data: customEntries }] = await Promise.all([
-    supabase.from("habit_entries").select("category, date, value, note").eq("user_id", userId),
-    supabase.from("custom_habits").select("id, name, unit, target, color, icon").eq("user_id", userId),
-    supabase.from("custom_habit_entries").select("custom_habit_id, date, value").eq("user_id", userId),
+  const since = historyStart();
+  const [entries, customHabits, customEntries] = await Promise.all([
+    fetchAllRows((from, to) =>
+      supabase.from("habit_entries").select("category, date, value, note")
+        .eq("user_id", userId).gte("date", since)
+        .order("date").order("category").range(from, to),
+    ),
+    fetchAllRows((from, to) =>
+      supabase.from("custom_habits").select("id, name, unit, target, color, icon")
+        .eq("user_id", userId).order("id").range(from, to),
+    ),
+    fetchAllRows((from, to) =>
+      supabase.from("custom_habit_entries").select("custom_habit_id, date, value")
+        .eq("user_id", userId).gte("date", since)
+        .order("date").order("custom_habit_id").range(from, to),
+    ),
   ]);
 
   const byCategory: Record<SimpleCategory, HabitEntry[]> = {

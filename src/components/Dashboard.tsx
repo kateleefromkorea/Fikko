@@ -93,14 +93,14 @@ function groupByMonth(entries: (HabitEntry | BiometricEntry)[], agg: "avg" | "su
 
 const ttStyle = {
   fontSize: 12, borderRadius: 12,
-  border: "1px solid #CFDCF2",
-  boxShadow: "0 4px 16px rgba(30,64,175,.1)",
+  border: "1px solid #D5E4C7",
+  boxShadow: "0 4px 16px rgba(21,121,84,.1)",
   background: "#fff",
-  color: "#0C1A38",
+  color: "#0C342C",
 };
 
 const ax = {
-  tick: { fontSize: 10, fill: "#5C7299" },
+  tick: { fontSize: 10, fill: "#5B7A6F" },
   axisLine: false as const,
   tickLine: false as const,
 };
@@ -123,8 +123,8 @@ function Section({ title, sub, children }: { title: string; sub?: string; childr
   return (
     <div>
       <div className="mb-4">
-        <h3 className="text-lg font-extrabold text-white">{title}</h3>
-        {sub && <p className="text-xs text-white/70 mt-0.5">{sub}</p>}
+        <h3 className="text-xl font-bold text-white" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>{title}</h3>
+        {sub && <p className="text-xs text-white/75 mt-0.5">{sub}</p>}
       </div>
       {children}
     </div>
@@ -331,7 +331,7 @@ export default function Dashboard({ data, biometrics, profile }: Props) {
   };
   const sleepTotal = todaySleep.rem + todaySleep.deep + todaySleep.core;
   const sleepPie = [
-    { name: "REM",  value: todaySleep.rem,  fill: "#1E40AF" },
+    { name: "REM",  value: todaySleep.rem,  fill: "#157954" },
     { name: "Deep", value: todaySleep.deep, fill: "#2DC4B2" },
     { name: "Core", value: todaySleep.core, fill: "#8FA9E0" },
   ];
@@ -383,9 +383,9 @@ export default function Dashboard({ data, biometrics, profile }: Props) {
             <p className="text-xs text-muted-foreground mb-2">Across 7 dimensions</p>
             <ResponsiveContainer width="100%" height={220}>
               <RadarChart data={radarData}>
-                <PolarGrid stroke="#CFDCF2" />
-                <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fill: "#5C7299" }} />
-                <Radar dataKey="A" stroke="#1E40AF" fill="#1E40AF" fillOpacity={0.15} strokeWidth={2} />
+                <PolarGrid stroke="#D5E4C7" />
+                <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fill: "#5B7A6F" }} />
+                <Radar dataKey="A" stroke="#157954" fill="#157954" fillOpacity={0.15} strokeWidth={2} />
                 <Tooltip contentStyle={ttStyle} formatter={(v: number) => [`${Math.round(v)}%`, "Score"]} />
               </RadarChart>
             </ResponsiveContainer>
@@ -398,7 +398,7 @@ export default function Dashboard({ data, biometrics, profile }: Props) {
               <div className="flex items-center gap-4">
                 <div className="relative w-20 h-20 flex-shrink-0">
                   <svg viewBox="0 0 36 36" className="w-20 h-20 -rotate-90">
-                    <circle cx="18" cy="18" r="15.9" fill="none" stroke="#E9EFFA" strokeWidth="3" />
+                    <circle cx="18" cy="18" r="15.9" fill="none" stroke="#EEF4E0" strokeWidth="3" />
                     <circle cx="18" cy="18" r="15.9" fill="none" stroke="#2DC4B2" strokeWidth="3"
                       strokeDasharray={`${recNow} 100`} strokeLinecap="round" />
                   </svg>
@@ -465,7 +465,7 @@ export default function Dashboard({ data, biometrics, profile }: Props) {
                     <stop offset="95%" stopColor="#FF7575" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#CFDCF2" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#D5E4C7" />
                 <XAxis dataKey="label" {...ax} interval="preserveStartEnd" />
                 <YAxis domain={["auto", "auto"]} {...ax} width={28} />
                 <Tooltip contentStyle={ttStyle} formatter={(v: number) => [`${v} bpm`, "Heart Rate"]} />
@@ -483,7 +483,7 @@ export default function Dashboard({ data, biometrics, profile }: Props) {
                     <stop offset="95%" stopColor="#2DC4B2" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#CFDCF2" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#D5E4C7" />
                 <XAxis dataKey="label" {...ax} interval="preserveStartEnd" />
                 <YAxis domain={["auto", "auto"]} {...ax} width={28} />
                 <Tooltip contentStyle={ttStyle} formatter={(v: number) => [`${v} ms`, "HRV"]} />
@@ -511,7 +511,7 @@ export default function Dashboard({ data, biometrics, profile }: Props) {
           <ChartCard title="Daily Steps">
             <ResponsiveContainer width="100%" height={160}>
               <BarChart data={chartData(stepsSlice, "avg")} barSize={period === "year" ? 14 : 20}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#CFDCF2" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#D5E4C7" vertical={false} />
                 <XAxis dataKey="label" {...ax} interval="preserveStartEnd" />
                 <YAxis {...ax} width={40} tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} />
                 <Tooltip contentStyle={ttStyle} formatter={(v: number) => [`${Math.round(v).toLocaleString()}`, "Steps"]} />
@@ -529,7 +529,7 @@ export default function Dashboard({ data, biometrics, profile }: Props) {
                     <stop offset="95%" stopColor="#FF7575" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#CFDCF2" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#D5E4C7" />
                 <XAxis dataKey="label" {...ax} interval="preserveStartEnd" />
                 <YAxis {...ax} width={36} />
                 <Tooltip contentStyle={ttStyle} formatter={(v: number) => [`${Math.round(v)} kcal`, "Active Cal"]} />
@@ -578,14 +578,14 @@ export default function Dashboard({ data, biometrics, profile }: Props) {
               <AreaChart data={chartData(remSlice)}>
                 <defs>
                   <linearGradient id="gREM" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#1E40AF" stopOpacity={0.18} />
-                    <stop offset="95%" stopColor="#1E40AF" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#157954" stopOpacity={0.18} />
+                    <stop offset="95%" stopColor="#157954" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="label" {...ax} interval="preserveStartEnd" />
                 <YAxis domain={[0, 3]} {...ax} width={20} />
                 <Tooltip contentStyle={ttStyle} formatter={(v: number) => [`${v}h`, "REM"]} />
-                <Area type="monotone" dataKey="value" stroke="#1E40AF" strokeWidth={2} fill="url(#gREM)" dot={false} />
+                <Area type="monotone" dataKey="value" stroke="#157954" strokeWidth={2} fill="url(#gREM)" dot={false} />
               </AreaChart>
             </ResponsiveContainer>
           </ChartCard>
@@ -615,7 +615,7 @@ export default function Dashboard({ data, biometrics, profile }: Props) {
           <ChartCard title="Recovery Score" sub="0–100 · higher is better">
             <ResponsiveContainer width="100%" height={140}>
               <LineChart data={chartData(recSlice)}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#CFDCF2" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#D5E4C7" />
                 <XAxis dataKey="label" {...ax} interval="preserveStartEnd" />
                 <YAxis domain={[0, 100]} {...ax} width={24} />
                 <Tooltip contentStyle={ttStyle} formatter={(v: number) => [`${Math.round(v)}`, "Recovery"]} />
@@ -627,7 +627,7 @@ export default function Dashboard({ data, biometrics, profile }: Props) {
           <ChartCard title="Stress Score" sub="0–100 · lower is better">
             <ResponsiveContainer width="100%" height={140}>
               <LineChart data={chartData(stressSlice)}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#CFDCF2" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#D5E4C7" />
                 <XAxis dataKey="label" {...ax} interval="preserveStartEnd" />
                 <YAxis domain={[0, 100]} {...ax} width={24} />
                 <Tooltip contentStyle={ttStyle} formatter={(v: number) => [`${Math.round(v)}`, "Stress"]} />

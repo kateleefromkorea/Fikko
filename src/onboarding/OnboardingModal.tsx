@@ -107,7 +107,7 @@ export default function OnboardingModal({ profile, onComplete }: Props) {
         role="dialog"
         aria-modal="true"
         aria-label="Set up your Fikko profile"
-        className="w-full sm:max-w-xl bg-background rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[94vh] sm:max-h-[88vh] overflow-hidden"
+        className="w-full sm:max-w-xl bg-card rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[94vh] sm:max-h-[88vh] overflow-hidden"
       >
         {/* ── Progress header ── */}
         <div className="px-5 sm:px-8 pt-6 pb-4 border-b border-border bg-card flex-shrink-0">
@@ -138,7 +138,8 @@ export default function OnboardingModal({ profile, onComplete }: Props) {
         </div>
 
         {/* ── Step body ── */}
-        <div key={step} className="flex-1 overflow-y-auto px-5 sm:px-8 py-6 onboarding-step">
+        <div className="flex-1 overflow-y-auto modal-bg">
+        <div key={step} className="px-5 sm:px-8 py-6 onboarding-step">
           {step === 1 && <StepWelcome name={s.name} />}
           {step === 2 && <StepBiometrics api={api} showError={showError} />}
           {step === 3 && <StepGoals api={api} showError={showError} />}
@@ -157,7 +158,7 @@ export default function OnboardingModal({ profile, onComplete }: Props) {
             ) : (
               // Only reachable if an answer was cleared after passing step 2.
               <div className="text-center py-8">
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-white/80">
                   We are missing something needed for the calculation.
                 </p>
                 <button
@@ -169,6 +170,7 @@ export default function OnboardingModal({ profile, onComplete }: Props) {
                 </button>
               </div>
             ))}
+        </div>
         </div>
 
         {/* ── Footer controls (the result step carries its own CTA) ── */}

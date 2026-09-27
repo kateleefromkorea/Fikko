@@ -43,7 +43,7 @@ export default function StepWelcome({ name }: { name: string }) {
         ))}
       </div>
 
-      <p className="text-xs text-muted-foreground mt-5">
+      <p className="text-xs text-white/70 mt-5">
         Your answers stay in your own account and are only used to work out your targets.
       </p>
     </div>

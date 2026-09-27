@@ -84,7 +84,7 @@ export default function StepGoals({ api, showError }: { api: Api; showError: boo
                   aria-pressed={s.weeklyRate === r.kg}
                   className="rounded-xl border-2 px-3 py-2.5 text-center transition-all hover:opacity-90"
                   style={s.weeklyRate === r.kg
-                    ? { borderColor: "var(--primary)", background: "var(--muted)" }
+                    ? { borderColor: "var(--primary)", background: "var(--muted)", boxShadow: "0 0 0 3px #FFFFFF" }
                     : { borderColor: "var(--border)", background: "var(--card)" }}
                 >
                   <span className="block text-sm font-bold text-foreground">{r.label}</span>
@@ -95,7 +95,7 @@ export default function StepGoals({ api, showError }: { api: Api; showError: boo
           </Field>
 
           {direction === "loss" && s.weeklyRate != null && s.weeklyRate >= 0.75 && (
-            <p className="text-xs rounded-xl p-3" style={{ background: "rgba(245,166,35,0.1)", color: "#8a5a00" }}>
+            <p className="text-xs rounded-xl p-3" style={{ background: "#FFF3D6", color: "#8a5a00" }}>
               ⚠️ That is a fast pace. It is safe for many people short-term, but it is harder to
               sustain — you can ease off any time from your profile.
             </p>

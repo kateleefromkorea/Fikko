@@ -48,7 +48,7 @@ const COACHES: Coach[] = [
     specialities: ["Habit formation", "Accountability", "Mental fitness"],
     rating: 4.7, reviews: 139, sessions: "700+", availability: "Next: Fri",
     initials: "MW", price: "$65/session", languages: ["English"],
-    avatarColor: "rgba(30,64,175,0.18)",
+    avatarColor: "rgba(21,121,84,0.18)",
     bio: "Combines behavioural science with motivational coaching to help clients build sustainable daily routines that stick. ICF-certified coach and certified habit strategist.",
   },
   {
@@ -90,7 +90,7 @@ const SORT_OPTIONS = ["Top rated", "Most reviewed", "Price: low–high", "Price:
 
 const BADGE_STYLES: Record<string, { background: string; color: string }> = {
   "Top rated": { background: "rgba(245,166,35,0.18)", color: "#b06800" },
-  "Most booked": { background: "rgba(30,64,175,0.15)", color: "var(--primary)" },
+  "Most booked": { background: "rgba(21,121,84,0.15)", color: "var(--primary)" },
   "New": { background: "rgba(45,196,178,0.18)", color: "#1a8a7e" },
 };
 
@@ -197,7 +197,7 @@ export default function CoachView() {
             const booked = requested.has(coach.id);
             const open = expanded === coach.id;
             return (
-              <div key={coach.id} className="rounded-2xl border border-border bg-card flex flex-col overflow-hidden transition-all hover:shadow-md" style={{ boxShadow: "0 2px 12px rgba(30,64,175,0.06)" }}>
+              <div key={coach.id} className="rounded-2xl border border-border bg-card flex flex-col overflow-hidden transition-all hover:shadow-md" style={{ boxShadow: "0 2px 12px rgba(21,121,84,0.06)" }}>
                 {/* Card body */}
                 <div className="p-5 flex flex-col gap-4 flex-1">
                   {/* Avatar + badge + name */}

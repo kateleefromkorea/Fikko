@@ -1,6 +1,9 @@
 import { useState, type FormEvent } from "react";
 import { useAuth } from "./AuthProvider";
 
+const fieldCls =
+  "px-3 py-2 rounded-xl border border-gray-300 bg-white text-sm text-black placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-ring";
+
 export default function SignInScreen() {
   const { signInWithPassword, signUpWithPassword, signInWithGoogle } = useAuth();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
@@ -33,11 +36,10 @@ export default function SignInScreen() {
   return (
     <div className="min-h-screen app-bg flex items-center justify-center px-4">
       <div className="w-full max-w-sm bg-card border border-border rounded-2xl p-8 shadow-sm">
-        <div className="flex items-center gap-2 justify-center mb-6">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg font-bold text-primary-foreground bg-primary">
-            F
-          </div>
-          <span className="text-xl font-extrabold text-foreground">Fikko</span>
+        <div className="flex justify-center mb-6">
+          <span className="text-2xl font-bold tracking-wide text-foreground" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+            FIKKO
+          </span>
         </div>
 
         {checkEmail ? (
@@ -54,7 +56,7 @@ export default function SignInScreen() {
                 placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="px-3 py-2 rounded-xl border border-border bg-background text-sm"
+                className={fieldCls}
               />
               <input
                 type="password"
@@ -63,7 +65,7 @@ export default function SignInScreen() {
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="px-3 py-2 rounded-xl border border-border bg-background text-sm"
+                className={fieldCls}
               />
               {error && <p className="text-xs text-red-600">{error}</p>}
               <button
@@ -83,7 +85,7 @@ export default function SignInScreen() {
 
             <button
               onClick={handleGoogle}
-              className="w-full px-3 py-2 rounded-xl text-sm font-semibold border border-border bg-background"
+              className="w-full px-3 py-2 rounded-xl text-sm font-semibold border border-gray-300 bg-white text-black hover:bg-gray-50 transition-all"
             >
               Continue with Google
             </button>

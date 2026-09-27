@@ -42,10 +42,10 @@ export default function StepPreferences({ api }: { api: Api }) {
             aria-pressed={s.remindersEnabled}
             className="w-full rounded-2xl border-2 p-4 flex items-center gap-3.5 text-left transition-all hover:opacity-90"
             style={s.remindersEnabled
-              ? { borderColor: "var(--primary)", background: "var(--muted)" }
+              ? { borderColor: "var(--primary)", background: "var(--muted)", boxShadow: "0 0 0 3px #FFFFFF" }
               : { borderColor: "var(--border)", background: "var(--card)" }}
           >
-            <span className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ background: s.remindersEnabled ? "rgba(30,64,175,0.12)" : "var(--secondary)" }}>
+            <span className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ background: s.remindersEnabled ? "rgba(21,121,84,0.12)" : "var(--secondary)" }}>
               🔔
             </span>
             <span className="flex-1 min-w-0">

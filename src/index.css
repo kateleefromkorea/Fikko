@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Poppins:wght@500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@700&family=Nunito:wght@400;500;600;700;800;900&family=Poppins:wght@500;600;700;800;900&display=swap');
 @import 'tailwindcss';
 
 @theme inline {
@@ -24,26 +24,26 @@
 }
 
 :root {
-  --background: #E7EDF9;
-  --foreground: #0C1A38;
+  --background: #21263A;
+  --foreground: #0C342C;
   --card: #FFFFFF;
-  --card-foreground: #0C1A38;
-  --primary: #1E40AF;
+  --card-foreground: #0C342C;
+  --primary: #157954;
   --primary-foreground: #FFFFFF;
-  --secondary: #E9EFFA;
-  --secondary-foreground: #23407F;
-  --muted: #F1F5FE;
-  --muted-foreground: #5C7299;
+  --secondary: #EEF4E0;
+  --secondary-foreground: #0B4F42;
+  --muted: #F5F9EA;
+  --muted-foreground: #5B7A6F;
   --accent: #2DC4B2;
   --accent-foreground: #FFFFFF;
-  --border: #CFDCF2;
-  --ring: #1E40AF;
+  --border: #D5E4C7;
+  --ring: #157954;
   --radius: 16px;
 
   /* Chart + card accents. These stay multi-hue on purpose: the dashboard uses
      them to tell series apart (heart rate vs HRV vs calories), so collapsing
      them into the blue family would make the charts unreadable. The blue-family
-     ones below are tuned to sit with the navy primary. */
+     ones below are tuned to sit with the green primary. */
   --coral: #FF7575;
   --amber: #F5A623;
   --teal: #2DC4B2;
@@ -75,14 +75,20 @@ h1, h2 {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
 
-/* Dark blue → blue wash behind the app. Fixed so it stays put as the page
-   scrolls; the colour fallback covers browsers that ignore
-   background-attachment: fixed. */
+/* Green → dark slate wash behind the app, fixed to the viewport. Both ends
+   are dark, so text placed directly on it is white. The colour fallback
+   covers browsers that ignore background-attachment: fixed. */
 .app-bg {
-  background-color: #1E40AF;
-  background-image: linear-gradient(180deg, #0B1E5B 0%, #1E40AF 55%, #3B6FE0 100%);
+  background-color: #1B4F47;
+  background-image: linear-gradient(180deg, #157954 0%, #21263A 100%);
   background-attachment: fixed;
   background-repeat: no-repeat;
+}
+
+/* Same gradient, scoped to a dialog body so it scrolls with the content. */
+.modal-bg {
+  background-color: #1B4F47;
+  background-image: linear-gradient(180deg, #157954 0%, #21263A 100%);
 }
 
 /* Each onboarding step is remounted by key, so this plays on every advance

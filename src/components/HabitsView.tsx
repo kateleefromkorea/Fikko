@@ -713,7 +713,7 @@ function MoodCard({ data, onChange, activeDate, biometrics }: Props) {
           <button key={m.value} onClick={() => set(m.value)}
             className="flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all text-left flex-1"
             style={mood === m.value
-              ? { background: "#23407F", color: "#fff" }
+              ? { background: "#0B4F42", color: "#fff" }
               : { background: "var(--muted)", color: "var(--foreground)" }}>
             <span className="text-xl">{m.emoji}</span>
             <span className="text-xs font-bold">{m.label}</span>

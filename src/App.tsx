@@ -72,11 +72,10 @@ export default function App() {
         <div className="w-full px-3 sm:px-6 flex items-center gap-2 sm:gap-3 h-16">
 
           {/* Logo */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg font-bold text-primary-foreground bg-primary flex-shrink-0">
-              F
-            </div>
-            <span className="hidden sm:inline text-xl font-extrabold text-foreground">Fikko</span>
+          <div className="flex items-center flex-shrink-0">
+            <span className="text-xl font-bold tracking-wide text-foreground" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+              FIKKO
+            </span>
           </div>
 
           {/* Progress pill */}

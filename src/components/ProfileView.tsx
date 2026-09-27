@@ -405,7 +405,7 @@ export default function ProfileView({ email, profile, onUpdateProfile, habitData
                   className="rounded-xl border p-4 flex items-center gap-4 transition-all"
                   style={c.connected ? { borderColor: "var(--primary)", background: "var(--muted)" } : { borderColor: "var(--border)", background: "var(--card)" }}
                 >
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ background: c.connected ? "rgba(30,64,175,0.12)" : "var(--secondary)" }}>
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ background: c.connected ? "rgba(21,121,84,0.12)" : "var(--secondary)" }}>
                     {c.icon}
                   </div>
                   <div className="flex-1 min-w-0">

@@ -93,7 +93,7 @@ function groupByMonth(entries: (HabitEntry | BiometricEntry)[], agg: "avg" | "su
 
 const ttStyle = {
   fontSize: 12, borderRadius: 12,
-  border: "1px solid #D5E4C7",
+  border: "1px solid #E2E5EA",
   boxShadow: "0 4px 16px rgba(21,121,84,.1)",
   background: "#fff",
   color: "#0C342C",
@@ -383,7 +383,7 @@ export default function Dashboard({ data, biometrics, profile }: Props) {
             <p className="text-xs text-muted-foreground mb-2">Across 7 dimensions</p>
             <ResponsiveContainer width="100%" height={220}>
               <RadarChart data={radarData}>
-                <PolarGrid stroke="#D5E4C7" />
+                <PolarGrid stroke="#E2E5EA" />
                 <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fill: "#5B7A6F" }} />
                 <Radar dataKey="A" stroke="#157954" fill="#157954" fillOpacity={0.15} strokeWidth={2} />
                 <Tooltip contentStyle={ttStyle} formatter={(v: number) => [`${Math.round(v)}%`, "Score"]} />
@@ -398,7 +398,7 @@ export default function Dashboard({ data, biometrics, profile }: Props) {
               <div className="flex items-center gap-4">
                 <div className="relative w-20 h-20 flex-shrink-0">
                   <svg viewBox="0 0 36 36" className="w-20 h-20 -rotate-90">
-                    <circle cx="18" cy="18" r="15.9" fill="none" stroke="#EEF4E0" strokeWidth="3" />
+                    <circle cx="18" cy="18" r="15.9" fill="none" stroke="#ECEEF1" strokeWidth="3" />
                     <circle cx="18" cy="18" r="15.9" fill="none" stroke="#2DC4B2" strokeWidth="3"
                       strokeDasharray={`${recNow} 100`} strokeLinecap="round" />
                   </svg>
@@ -465,7 +465,7 @@ export default function Dashboard({ data, biometrics, profile }: Props) {
                     <stop offset="95%" stopColor="#FF7575" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#D5E4C7" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#E2E5EA" />
                 <XAxis dataKey="label" {...ax} interval="preserveStartEnd" />
                 <YAxis domain={["auto", "auto"]} {...ax} width={28} />
                 <Tooltip contentStyle={ttStyle} formatter={(v: number) => [`${v} bpm`, "Heart Rate"]} />
@@ -483,7 +483,7 @@ export default function Dashboard({ data, biometrics, profile }: Props) {
                     <stop offset="95%" stopColor="#2DC4B2" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#D5E4C7" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#E2E5EA" />
                 <XAxis dataKey="label" {...ax} interval="preserveStartEnd" />
                 <YAxis domain={["auto", "auto"]} {...ax} width={28} />
                 <Tooltip contentStyle={ttStyle} formatter={(v: number) => [`${v} ms`, "HRV"]} />
@@ -511,7 +511,7 @@ export default function Dashboard({ data, biometrics, profile }: Props) {
           <ChartCard title="Daily Steps">
             <ResponsiveContainer width="100%" height={160}>
               <BarChart data={chartData(stepsSlice, "avg")} barSize={period === "year" ? 14 : 20}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#D5E4C7" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#E2E5EA" vertical={false} />
                 <XAxis dataKey="label" {...ax} interval="preserveStartEnd" />
                 <YAxis {...ax} width={40} tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} />
                 <Tooltip contentStyle={ttStyle} formatter={(v: number) => [`${Math.round(v).toLocaleString()}`, "Steps"]} />
@@ -529,7 +529,7 @@ export default function Dashboard({ data, biometrics, profile }: Props) {
                     <stop offset="95%" stopColor="#FF7575" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#D5E4C7" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#E2E5EA" />
                 <XAxis dataKey="label" {...ax} interval="preserveStartEnd" />
                 <YAxis {...ax} width={36} />
                 <Tooltip contentStyle={ttStyle} formatter={(v: number) => [`${Math.round(v)} kcal`, "Active Cal"]} />
@@ -615,7 +615,7 @@ export default function Dashboard({ data, biometrics, profile }: Props) {
           <ChartCard title="Recovery Score" sub="0–100 · higher is better">
             <ResponsiveContainer width="100%" height={140}>
               <LineChart data={chartData(recSlice)}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#D5E4C7" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#E2E5EA" />
                 <XAxis dataKey="label" {...ax} interval="preserveStartEnd" />
                 <YAxis domain={[0, 100]} {...ax} width={24} />
                 <Tooltip contentStyle={ttStyle} formatter={(v: number) => [`${Math.round(v)}`, "Recovery"]} />
@@ -627,7 +627,7 @@ export default function Dashboard({ data, biometrics, profile }: Props) {
           <ChartCard title="Stress Score" sub="0–100 · lower is better">
             <ResponsiveContainer width="100%" height={140}>
               <LineChart data={chartData(stressSlice)}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#D5E4C7" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#E2E5EA" />
                 <XAxis dataKey="label" {...ax} interval="preserveStartEnd" />
                 <YAxis domain={[0, 100]} {...ax} width={24} />
                 <Tooltip contentStyle={ttStyle} formatter={(v: number) => [`${Math.round(v)}`, "Stress"]} />

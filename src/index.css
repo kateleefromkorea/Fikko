@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&family=Inter:wght@700&family=Nunito:wght@400;500;600;700;800;900&family=Poppins:wght@500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&family=Inter:wght@400;500;700&family=Nunito:wght@400;500;600;700;800;900&family=Poppins:wght@500;600;700;800;900&display=swap');
 @import 'tailwindcss';
 
 @theme inline {
@@ -30,13 +30,13 @@
   --card-foreground: #0C342C;
   --primary: #157954;
   --primary-foreground: #FFFFFF;
-  --secondary: #EEF4E0;
+  --secondary: #ECEEF1;
   --secondary-foreground: #0B4F42;
-  --muted: #F5F9EA;
+  --muted: #F4F5F7;
   --muted-foreground: #5B7A6F;
   --accent: #2DC4B2;
   --accent-foreground: #FFFFFF;
-  --border: #D5E4C7;
+  --border: #E2E5EA;
   --ring: #157954;
   --radius: 16px;
 
@@ -89,6 +89,47 @@ h1, h2 {
 .modal-bg {
   background-color: #1B4F47;
   background-image: linear-gradient(180deg, #157954 0%, #21263A 100%);
+}
+
+/* Login-page icon carousel: each icon spins and scales in as it appears. */
+@keyframes icon-spin-in {
+  from { opacity: 0; transform: rotate(-180deg) scale(0.4); }
+  to   { opacity: 1; transform: rotate(0deg) scale(1); }
+}
+
+.icon-spin-in {
+  display: inline-block;
+  animation: icon-spin-in 550ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .icon-spin-in { animation: none; }
+}
+
+/* Login-page testimonial loop. The track holds the list twice, so sliding it
+   left by half its width lands exactly where it started. Edges fade out;
+   hovering pauses it so a quote can be read. */
+@keyframes testimonial-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(calc(-50% - 0.5rem)); } /* half the gap between the two copies */
+}
+
+.testimonial-loop {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+
+.testimonial-track {
+  animation: testimonial-scroll 45s linear infinite;
+}
+
+.testimonial-loop:hover .testimonial-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .testimonial-track { animation: none; }
+  .testimonial-loop { overflow-x: auto; }
 }
 
 /* Each onboarding step is remounted by key, so this plays on every advance

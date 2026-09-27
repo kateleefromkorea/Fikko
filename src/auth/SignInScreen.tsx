@@ -34,8 +34,29 @@ export default function SignInScreen() {
   }
 
   return (
-    <div className="min-h-screen app-bg flex items-center justify-center px-4">
-      <div className="w-full max-w-sm bg-card border border-border rounded-2xl p-8 shadow-sm">
+    <div
+      className="relative overflow-hidden min-h-screen app-bg flex items-center justify-center px-4 pb-10"
+      // The greeting is absolutely positioned, so reserve its height as top
+      // padding: the card then centres in the space below it and can never
+      // overlap the text, however short the screen.
+      style={{ ["--welcome-size" as string]: "clamp(3rem, min(11vw, 15vh), 8rem)", paddingTop: "calc(var(--welcome-size) * 1.3 + 2.5rem)" }}
+    >
+      {/* Decorative handwritten greeting across the top. Sized by both viewport
+          width and height so it stays on one line on phones and short laptops. */}
+      <p
+        className="pointer-events-none select-none absolute inset-x-0 top-0 pt-8 px-4 text-center leading-none whitespace-nowrap"
+        style={{
+          fontFamily: "'Dancing Script', cursive",
+          fontWeight: 600,
+          fontSize: "var(--welcome-size)",
+          color: "rgba(255, 255, 255, 0.9)",
+          textShadow: "0 4px 24px rgba(0, 0, 0, 0.25)",
+        }}
+      >
+        Welcome to Fikko
+      </p>
+
+      <div className="relative z-10 w-full max-w-sm bg-card border border-border rounded-2xl p-8 shadow-sm">
         <div className="flex justify-center mb-6">
           <span className="text-2xl font-bold tracking-wide text-foreground" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
             FIKKO

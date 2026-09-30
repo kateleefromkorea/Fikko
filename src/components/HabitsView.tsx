@@ -16,6 +16,7 @@ import {
   CUSTOM_ICONS, CustomHabitIcon, DoneBadge, EmptyState, Figure, GroupLabel, HabitBar, HabitCard, Hint, HueStrip,
   SectionLabel, habitCardCls, useMounted,
 } from "./HabitCard";
+import CommunityPreview from "./CommunityPreview";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -1052,7 +1053,7 @@ function DateNavigator({ activeDate, onChange }: { activeDate: string; onChange:
 }
 
 /* ─── Layout ─── */
-export default function HabitsView({ data, onChange, biometrics, medications, userId, profileName }: Omit<Props, "activeDate">) {
+export default function HabitsView({ data, onChange, biometrics, medications, userId, profileName, onOpenCommunity }: Omit<Props, "activeDate"> & { onOpenCommunity?: () => void }) {
   const [activeDate, setActiveDate] = useState(TODAY);
   const cardProps = { data, onChange, activeDate, biometrics, medications, userId, profileName };
 
@@ -1083,6 +1084,8 @@ export default function HabitsView({ data, onChange, biometrics, medications, us
       </section>
 
       <CustomHabitsSection {...cardProps} />
+
+      {userId && onOpenCommunity && <CommunityPreview userId={userId} onOpen={onOpenCommunity} />}
     </div>
   );
 }

@@ -11,6 +11,9 @@ const USER_TABLES = [
   "medications",
   "food_log_items",
   "custom_foods",
+  "community_posts",
+  "community_comments",
+  "community_cheers",
 ] as const;
 
 /**

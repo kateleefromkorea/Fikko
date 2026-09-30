@@ -32,12 +32,14 @@ import {
 // slow down the first load of the Habits page.
 const Dashboard = lazy(() => import("./components/Dashboard"));
 const OnboardingModal = lazy(() => import("./onboarding/OnboardingModal"));
+const CommunityView = lazy(() => import("./components/CommunityView"));
 
-type Tab = "habits" | "dashboard" | "coaches" | "profile";
+type Tab = "habits" | "dashboard" | "community" | "coaches" | "profile";
 
 const NAV: { id: Tab; label: string; beta?: boolean }[] = [
   { id: "habits", label: "Habits" },
   { id: "dashboard", label: "Dashboard" },
+  { id: "community", label: "Community" },
   { id: "coaches", label: "Coach", beta: true },
 ];
 
@@ -171,11 +173,17 @@ export default function App() {
             medications={medications}
             userId={userId}
             profileName={profile.name}
+            onOpenCommunity={() => setTab("community")}
           />
         )}
         {tab === "dashboard" && (
           <Suspense fallback={<p className="py-10 text-center text-sm text-muted-foreground">Loading dashboard…</p>}>
             <Dashboard data={data} biometrics={biometrics} profile={profile} />
+          </Suspense>
+        )}
+        {tab === "community" && (
+          <Suspense fallback={<p className="py-10 text-center text-sm text-muted-foreground">Loading community…</p>}>
+            <CommunityView userId={session.user.id} profileName={profile.name} />
           </Suspense>
         )}
         {tab === "coaches" && <CoachView />}

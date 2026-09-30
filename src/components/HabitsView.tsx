@@ -188,7 +188,7 @@ function TodaySummary({ data, activeDate, onDateChange, profileName }: {
 interface MealCalories { breakfast: number; lunch: number; dinner: number; snacks: number; }
 
 // Amber shades, deepest first, so the ring reads breakfast → snacks.
-const MEALS: { key: MealKey; label: string; icon: LucideIcon; color: string }[] = [
+export const MEALS: { key: MealKey; label: string; icon: LucideIcon; color: string }[] = [
   { key: "breakfast", label: "Breakfast", icon: Sunrise, color: "#E08E0B" },
   { key: "lunch",     label: "Lunch",     icon: Sun,     color: "#F5A623" },
   { key: "dinner",    label: "Dinner",    icon: Sunset,  color: "#F8C063" },
@@ -564,7 +564,7 @@ function MedicationCard({ data, onChange, activeDate, medications }: Props) {
 }
 
 /* ─── Sleep ─── */
-const REST_SCALE = [
+export const REST_SCALE = [
   { value: 1, label: "Exhausted",    sub: "Felt no benefit" },
   { value: 2, label: "Still tired",  sub: "Needed more rest" },
   { value: 3, label: "Okay",         sub: "Somewhat refreshed" },
@@ -572,7 +572,7 @@ const REST_SCALE = [
   { value: 5, label: "Fully rested", sub: "Ready to go" },
 ];
 
-const SLEEP_FACTORS: { id: string; label: string; icon: LucideIcon }[] = [
+export const SLEEP_FACTORS: { id: string; label: string; icon: LucideIcon }[] = [
   { id: "caffeine",  label: "Caffeine",     icon: Coffee },
   { id: "screens",   label: "Late screens", icon: Smartphone },
   { id: "stress",    label: "Stress",       icon: Brain },
@@ -583,9 +583,9 @@ const SLEEP_FACTORS: { id: string; label: string; icon: LucideIcon }[] = [
   { id: "nap",       label: "Napped",       icon: BedDouble },
 ];
 
-interface SleepNote { bedtime?: string; wake?: string; factors?: string[]; }
+export interface SleepNote { bedtime?: string; wake?: string; factors?: string[]; }
 
-function parseSleepNote(raw?: string): SleepNote {
+export function parseSleepNote(raw?: string): SleepNote {
   if (!raw) return {};
   try { return JSON.parse(raw) as SleepNote; } catch { return {}; }
 }
@@ -732,7 +732,7 @@ function SleepCard({ data, onChange, activeDate, biometrics }: Props) {
 }
 
 /* ─── Mood ─── */
-const MOODS: { value: number; icon: LucideIcon; label: string; note: string }[] = [
+export const MOODS: { value: number; icon: LucideIcon; label: string; note: string }[] = [
   { value: 1, icon: Frown,   label: "Rough", note: "Rough days happen. Be gentle with yourself." },
   { value: 2, icon: Annoyed, label: "Meh",   note: "A so-so day. A short walk can help." },
   { value: 3, icon: Meh,     label: "Okay",  note: "Steady. That counts." },

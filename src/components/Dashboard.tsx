@@ -1,6 +1,5 @@
-import { useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import {
-  AreaChart, Area,
   BarChart, Bar,
   LineChart, Line,
   RadarChart, Radar, PolarGrid, PolarAngleAxis,
@@ -8,19 +7,26 @@ import {
   PieChart, Pie, Cell,
 } from "recharts";
 import {
-  ArrowDownRight, ArrowRight, ArrowUpRight, BatteryLow, BatteryFull, CheckCircle2, Droplet, Footprints, HeartPulse,
-  Moon, SmilePlus, Utensils, Watch, Wind, type LucideIcon,
+  BatteryLow, BatteryFull, CheckCircle2, Droplet, Footprints, HeartPulse, Moon, Watch, Wind, type LucideIcon,
 } from "lucide-react";
-import type { HabitData, BiometricData, HabitEntry, BiometricEntry, CustomHabit } from "../types";
+import type { HabitData, BiometricData, HabitEntry, BiometricEntry } from "../types";
 import PageHeader from "./PageHeader";
-import { CustomHabitIcon, HabitIcon, type HabitHue } from "./HabitCard";
 import type { ProfileRow } from "../hooks/useProfile";
 import { goalByKey } from "../lib/metabolics";
+import { CORE_HABITS } from "../lib/completion";
+import { PERIOD_DAYS, byDate, dayRange, habitStats, overview, type Period } from "../lib/dashboardStats";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { C, ChartCard, InsightRow, Section, TrendArea, VitalCard, ax, fmt, ttStyle } from "./dashboard/ui";
+import DashboardSummary from "./dashboard/DashboardSummary";
+import {
+  ConsistencySection, CustomHabitsSection, MoodMedsSection, MovementSection, NutritionSection, PatternsSection,
+  ScorecardSection, SleepSection,
+} from "./dashboard/DashboardSections";
+import type { DashCtx } from "./dashboard/context";
 
 interface Props {
   data: HabitData;
@@ -28,8 +34,6 @@ interface Props {
   /** Carries the baseline computed at the end of onboarding. */
   profile?: ProfileRow;
 }
-
-type Period = "week" | "month" | "year";
 
 const TODAY = new Date().toISOString().split("T")[0];
 
@@ -102,39 +106,6 @@ function groupByMonth(entries: (HabitEntry | BiometricEntry)[], agg: "avg" | "su
 
 // ── Shared UI ──────────────────────────────────────────────────────────────
 
-// Chart colours. SVG gradients need literal values, so these mirror the
-// habit hues and neutrals in index.css rather than reading the variables.
-const C = {
-  primary: "#157954",
-  teal: "#2DC4B2",
-  water: "#5BA9F0",
-  meds: "#8FA9E0",
-  food: "#F5A623",
-  exercise: "#FF7575",
-  sleep: "#7E6FD8",
-  mood: "#E9B92F",
-  grid: "#EBEBEB",
-  tick: "#737373",
-};
-
-const ttStyle = {
-  fontSize: 12,
-  borderRadius: 8,
-  border: "1px solid #E5E5E5",
-  boxShadow: "0 4px 12px rgba(0,0,0,.06)",
-  background: "#fff",
-  color: "#171717",
-};
-
-const ax = {
-  tick: { fontSize: 11, fill: C.tick },
-  axisLine: false as const,
-  tickLine: false as const,
-};
-
-/** Recharts hands formatters a loosely typed value; charts here only plot numbers. */
-const fmt = (f: (v: number) => [string, string?]) => (v: unknown) => f(Number(v)) as [string, string];
-
 function PeriodToggle({ period, onChange }: { period: Period; onChange: (p: Period) => void }) {
   return (
     <Tabs value={period} onValueChange={(v) => onChange(v as Period)}>
@@ -144,110 +115,6 @@ function PeriodToggle({ period, onChange }: { period: Period; onChange: (p: Peri
         ))}
       </TabsList>
     </Tabs>
-  );
-}
-
-function Section({ title, sub, children }: { title: string; sub?: string; children: ReactNode }) {
-  return (
-    <section className="space-y-5">
-      <div>
-        <h2 className="text-xl font-semibold">{title}</h2>
-        {sub && <p className="mt-1 text-sm text-muted-foreground">{sub}</p>}
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function ChartCard({ title, sub, action, children, className }: { title: string; sub?: string; action?: ReactNode; children: ReactNode; className?: string }) {
-  return (
-    <Card className={cn("gap-5 [--card-spacing:--spacing(6)]", className)}>
-      <CardHeader>
-        <CardTitle className="font-semibold">{title}</CardTitle>
-        {sub && <CardDescription>{sub}</CardDescription>}
-        {action && <CardAction>{action}</CardAction>}
-      </CardHeader>
-      <CardContent className="flex flex-1 flex-col">{children}</CardContent>
-    </Card>
-  );
-}
-
-function VitalCard({
-  label, value, unit, sub, trend, good,
-}: {
-  label: string; value: string; unit: string; sub: string; trend?: "up" | "down" | "stable"; good?: "up" | "down";
-}) {
-  const isPositive = trend === good;
-  const Arrow = trend === "up" ? ArrowUpRight : trend === "down" ? ArrowDownRight : ArrowRight;
-  return (
-    <Card className="gap-2 [--card-spacing:--spacing(5)]">
-      <CardContent className="space-y-2">
-        <p className="text-sm text-muted-foreground">{label}</p>
-        <p className="text-2xl font-semibold tabular-nums">
-          {value}
-          <span className="ml-1 text-sm font-normal text-muted-foreground">{unit}</span>
-        </p>
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          {trend && (
-            <Arrow
-              className={cn("size-3.5", trend !== "stable" && (isPositive ? "text-primary" : "text-destructive"))}
-              aria-hidden="true"
-            />
-          )}
-          {sub}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function MiniSparkline({ data, color = C.primary }: { data: { label: string; value: number }[]; color?: string }) {
-  const id = `spark-${color.replace("#", "")}`;
-  return (
-    <ResponsiveContainer width="100%" height={64}>
-      <AreaChart data={data} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
-        <defs>
-          <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor={color} stopOpacity={0.18} />
-            <stop offset="95%" stopColor={color} stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <Area type="monotone" dataKey="value" stroke={color} strokeWidth={1.75} fill={`url(#${id})`} dot={false} />
-        <Tooltip contentStyle={{ ...ttStyle, fontSize: 11 }} />
-      </AreaChart>
-    </ResponsiveContainer>
-  );
-}
-
-function TrendArea({ data, color, id, height = 180, domain, unit, name, width = 32 }: {
-  data: { label: string; value: number }[]; color: string; id: string; height?: number;
-  domain?: [number | "auto", number | "auto"]; unit: string; name: string; width?: number;
-}) {
-  return (
-    <ResponsiveContainer width="100%" height={height}>
-      <AreaChart data={data}>
-        <defs>
-          <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor={color} stopOpacity={0.18} />
-            <stop offset="95%" stopColor={color} stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke={C.grid} vertical={false} />
-        <XAxis dataKey="label" {...ax} interval="preserveStartEnd" />
-        <YAxis domain={domain ?? ["auto", "auto"]} {...ax} width={width} />
-        <Tooltip contentStyle={ttStyle} formatter={fmt((v) => [`${v}${unit}`, name])} />
-        <Area type="monotone" dataKey="value" stroke={color} strokeWidth={2} fill={`url(#${id})`} dot={false} />
-      </AreaChart>
-    </ResponsiveContainer>
-  );
-}
-
-function InsightRow({ text, icon: Icon }: { text: string; icon: LucideIcon }) {
-  return (
-    <li className="flex items-start gap-3 rounded-lg border px-4 py-3">
-      <Icon className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
-      <p className="text-sm">{text}</p>
-    </li>
   );
 }
 
@@ -321,7 +188,7 @@ function WearableComingSoon() {
           <p className="font-semibold">Heart, sleep and activity insights are coming soon</p>
           <p className="mt-1 text-sm text-muted-foreground">
             Once Apple Health and other wearables can sync, your vitals, sleep stages and recovery trends will appear
-            here. Everything below is from what you've logged in Fikko.
+            here. Everything above is from what you&apos;ve logged in Fikko.
           </p>
         </div>
       </CardContent>
@@ -332,7 +199,21 @@ function WearableComingSoon() {
 export default function Dashboard({ data, biometrics, profile }: Props) {
   const [period, setPeriod] = useState<Period>("week");
 
-  const days = period === "week" ? 7 : period === "month" ? 30 : 365;
+  const days = PERIOD_DAYS[period];
+
+  // Everything the logged-habit sections read, worked out once per period.
+  const ctx = useMemo<DashCtx>(() => {
+    const dates = dayRange(days);
+    const prevDates = dayRange(days, days);
+    const ov = overview(data, dates);
+    const prev = overview(data, prevDates);
+    const prevOv = prev.logged > 0 ? prev : null;
+    const m = Object.fromEntries(CORE_HABITS.map((k) => [k, byDate(data[k])])) as DashCtx["m"];
+    return {
+      data, profile, period, dates, prevDates, ov, prevOv, m,
+      stats: habitStats(data, dates, prevDates, prevOv != null),
+    };
+  }, [data, profile, period, days]);
 
   // Slices
   const bm = biometrics;
@@ -354,10 +235,6 @@ export default function Dashboard({ data, biometrics, profile }: Props) {
   const deepSlice    = last(bm.sleepDeep, days);
   const weightSlice  = last(bm.weight, days);
 
-  const waterSlice    = last(data.water, days);
-  const medSlice      = last(data.medication, days);
-  const foodSlice     = last(data.food, days);
-  const moodSlice     = last(data.mood, days);
 
   // Latest values
   const hrNow   = latest(bm.heartRate);
@@ -428,15 +305,6 @@ export default function Dashboard({ data, biometrics, profile }: Props) {
 
   const periodLabel = period === "week" ? "Last 7 days" : period === "month" ? "Last 30 days" : "Last 12 months";
 
-  const habitTrends: { title: string; sub: string; icon: LucideIcon; hue: HabitHue; color: string; slice: HabitEntry[]; note: string }[] = [
-    { title: "Water", sub: "glasses / day", icon: Droplet, hue: "water", color: C.water, slice: waterSlice, note: `Avg ${avg(waterSlice).toFixed(1)} · target 8` },
-    { title: "Mood", sub: "1–5 scale", icon: SmilePlus, hue: "mood", color: C.mood, slice: moodSlice, note: `Avg ${avg(moodSlice).toFixed(1)} / 5 this ${period}` },
-    {
-      title: "Calories", sub: "kcal / day", icon: Utensils, hue: "food", color: C.food, slice: foodSlice,
-      note: `Avg ${Math.round(avg(foodSlice)).toLocaleString()} kcal · ${medSlice.length ? Math.round((medSlice.filter(e => e.value === 1).length / medSlice.length) * 100) : 0}% med adherence`,
-    },
-  ];
-
   return (
     <div className="space-y-12">
 
@@ -447,12 +315,20 @@ export default function Dashboard({ data, biometrics, profile }: Props) {
         action={<PeriodToggle period={period} onChange={setPeriod} />}
       />
 
-      <div className="space-y-6">
-        {/* ── Baseline from onboarding (absent until the wizard is finished) ── */}
-        {profile?.bmr != null && profile.tdee != null && <BaselinePlan profile={profile} />}
+      <DashboardSummary ctx={ctx} />
+      <ConsistencySection ctx={ctx} />
+      <ScorecardSection ctx={ctx} />
+      <NutritionSection
+        ctx={ctx}
+        plan={profile?.bmr != null && profile.tdee != null ? <BaselinePlan profile={profile} /> : undefined}
+      />
+      <MovementSection ctx={ctx} />
+      <SleepSection ctx={ctx} />
+      <MoodMedsSection ctx={ctx} />
+      <CustomHabitsSection ctx={ctx} />
+      <PatternsSection ctx={ctx} />
 
-        {!hasWearableData && <WearableComingSoon />}
-      </div>
+      {!hasWearableData && <WearableComingSoon />}
 
       {hasWearableData && (<>
       {/* ── Today's overview ── */}
@@ -628,60 +504,6 @@ export default function Dashboard({ data, biometrics, profile }: Props) {
       </Section>
 
       </>)}
-
-      {/* ── Habit Trends ── */}
-      <Section title="Habit trends" sub="From what you've logged">
-        <div className={cn("grid gap-6", hasWearableData ? "lg:grid-cols-2 xl:grid-cols-4" : "md:grid-cols-3")}>
-          {habitTrends.map((h) => (
-            <Card key={h.title} className="gap-4 [--card-spacing:--spacing(6)]">
-              <CardHeader className="grid-cols-[auto_1fr] items-center gap-x-3">
-                <HabitIcon icon={h.icon} hue={h.hue} className="row-span-2 size-9" />
-                <CardTitle className="font-semibold">{h.title}</CardTitle>
-                <CardDescription className="col-start-2">{h.sub}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <MiniSparkline data={chartData(h.slice)} color={h.color} />
-                <p className="mt-3 text-sm text-muted-foreground">{h.note}</p>
-              </CardContent>
-            </Card>
-          ))}
-          {hasWearableData && (
-            <Card className="gap-4 [--card-spacing:--spacing(6)]">
-              <CardHeader className="grid-cols-[auto_1fr] items-center gap-x-3">
-                <HabitIcon icon={Footprints} hue="exercise" className="row-span-2 size-9" />
-                <CardTitle className="font-semibold">Activity</CardTitle>
-                <CardDescription className="col-start-2">steps</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <MiniSparkline data={chartData(stepsSlice)} color={C.exercise} />
-                <p className="mt-3 text-sm text-muted-foreground">{last(bm.steps, days).filter(e => e.value >= 10000).length} days hit goal</p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-
-        {data.custom.length > 0 && (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {data.custom.map((habit: CustomHabit) => {
-              const slice = last(habit.entries, days);
-              return (
-                <Card key={habit.id} className="gap-4 [--card-spacing:--spacing(6)]">
-                  <CardHeader className="grid-cols-[auto_1fr] items-center gap-x-3">
-                    <CustomHabitIcon icon={habit.icon} className="row-span-2 size-9" />
-                    <CardTitle className="truncate font-semibold">{habit.name}</CardTitle>
-                    <CardDescription className="col-start-2">{habit.unit} / day</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <MiniSparkline data={chartData(slice)} color={C.teal} />
-                    <p className="mt-3 text-sm text-muted-foreground">Avg {avg(slice).toFixed(1)} · target {habit.target}</p>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
-      </Section>
-
     </div>
   );
 }

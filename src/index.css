@@ -109,11 +109,12 @@
     linear-gradient(180deg, color-mix(in srgb, var(--teal) 6%, white), white);
 }
 
-/* The signed-in app stays flat: behind a full page of cards the glows only
-   peeked out in patches between them, and competed with the habit colours
-   and the Today panel's own gradient. */
+/* The signed-in app stays plain white: behind a full page of cards the
+   glows only peeked out in patches between them, and competed with the habit
+   colours and the Today panel's own gradient. Cards keep their outline ring
+   so they still read against white. */
 .app-wash {
-  background-color: #F1F7F3;
+  background-color: white;
 }
 
 /* Today summary card: the marketing site's closing panel — teal into sky,

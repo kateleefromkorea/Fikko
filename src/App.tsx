@@ -1,5 +1,5 @@
 import { Suspense, lazy, useState } from "react";
-import { ChartNoAxesColumn, HeartHandshake, ListChecks, LogOut, UserRound, Users, type LucideIcon } from "lucide-react";
+import { ChartNoAxesColumn, ChefHat, HeartHandshake, ListChecks, LogOut, UserRound, Users, type LucideIcon } from "lucide-react";
 import { EMPTY_BIOMETRICS } from "./types";
 import { completion } from "./lib/completion";
 import HabitsView from "./components/HabitsView";
@@ -33,14 +33,16 @@ import {
 const Dashboard = lazy(() => import("./components/Dashboard"));
 const OnboardingModal = lazy(() => import("./onboarding/OnboardingModal"));
 const CommunityView = lazy(() => import("./components/CommunityView"));
+const RecipesView = lazy(() => import("./components/RecipesView"));
 
-type Tab = "habits" | "dashboard" | "community" | "coaches" | "profile";
+type Tab = "habits" | "dashboard" | "recipes" | "community" | "coaches" | "profile";
 
 // Shown as tabs in the header on tablet and desktop, and as a bottom tab bar
-// on phones, where four labels don't fit across the top.
+// on phones, where the labels don't fit across the top.
 const NAV: { id: Tab; label: string; icon: LucideIcon; beta?: boolean }[] = [
   { id: "habits", label: "Habits", icon: ListChecks },
   { id: "dashboard", label: "Dashboard", icon: ChartNoAxesColumn },
+  { id: "recipes", label: "Recipes", icon: ChefHat },
   { id: "community", label: "Community", icon: Users },
   { id: "coaches", label: "Coach", icon: HeartHandshake, beta: true },
 ];
@@ -183,6 +185,11 @@ export default function App() {
             <Dashboard data={data} biometrics={biometrics} profile={profile} />
           </Suspense>
         )}
+        {tab === "recipes" && (
+          <Suspense fallback={<p className="py-10 text-center text-sm text-muted-foreground">Loading recipes…</p>}>
+            <RecipesView userId={session.user.id} profileName={profile.name} />
+          </Suspense>
+        )}
         {tab === "community" && (
           <Suspense fallback={<p className="py-10 text-center text-sm text-muted-foreground">Loading community…</p>}>
             <CommunityView userId={session.user.id} profileName={profile.name} />
@@ -225,7 +232,7 @@ export default function App() {
         aria-label="Main"
         className="fixed inset-x-0 bottom-0 z-40 border-t bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
       >
-        <ul className="grid h-16 grid-cols-4">
+        <ul className="grid h-16 grid-cols-5">
           {NAV.map(({ id, label, icon: Icon, beta }) => {
             const active = tab === id;
             return (

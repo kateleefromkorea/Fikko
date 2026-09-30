@@ -317,6 +317,7 @@ export default function Dashboard({ data, biometrics, profile }: Props) {
 
       <DashboardSummary ctx={ctx} />
       <ConsistencySection ctx={ctx} />
+      <PatternsSection ctx={ctx} />
       <ScorecardSection ctx={ctx} />
       <NutritionSection
         ctx={ctx}
@@ -326,7 +327,6 @@ export default function Dashboard({ data, biometrics, profile }: Props) {
       <SleepSection ctx={ctx} />
       <MoodMedsSection ctx={ctx} />
       <CustomHabitsSection ctx={ctx} />
-      <PatternsSection ctx={ctx} />
 
       {!hasWearableData && <WearableComingSoon />}
 

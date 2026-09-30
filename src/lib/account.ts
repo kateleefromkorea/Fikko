@@ -14,6 +14,8 @@ const USER_TABLES = [
   "community_posts",
   "community_comments",
   "community_cheers",
+  "recipes",
+  "recipe_saves",
 ] as const;
 
 /**

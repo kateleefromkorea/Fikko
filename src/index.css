@@ -109,17 +109,11 @@
     linear-gradient(180deg, color-mix(in srgb, var(--teal) 6%, white), white);
 }
 
-/* The same wash behind the signed-in app, pinned to the viewport so the glows
-   stay put while the page scrolls. The colour fallback covers browsers that
-   ignore background-attachment: fixed. */
+/* The signed-in app stays flat: behind a full page of cards the glows only
+   peeked out in patches between them, and competed with the habit colours
+   and the Today panel's own gradient. */
 .app-wash {
-  background-color: var(--background);
-  background-image:
-    radial-gradient(55% 70% at 88% 18%, color-mix(in srgb, var(--sky) 30%, transparent), transparent 70%),
-    radial-gradient(50% 65% at 8% 85%, color-mix(in srgb, var(--teal) 26%, transparent), transparent 70%),
-    linear-gradient(180deg, color-mix(in srgb, var(--teal) 6%, white), white);
-  background-attachment: fixed;
-  background-repeat: no-repeat;
+  background-color: #F1F7F3;
 }
 
 /* Today summary card: the marketing site's closing panel — teal into sky,

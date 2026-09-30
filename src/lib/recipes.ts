@@ -70,7 +70,20 @@ export interface Recipe {
   createdAt?: string;
 }
 
-export const fromCatalog = (c: CatalogRecipe): Recipe => ({ ...c, source: "fikko" });
+// Photos for Fikko's recipes: drop an image into src/assets/recipes/ named
+// after the recipe's key (e.g. fikko-lemon-herb-chicken.jpg) and it's picked
+// up at build time. Recipes without one keep their illustrated tile.
+const CATALOG_PHOTOS = new Map(
+  Object.entries(
+    import.meta.glob<string>("../assets/recipes/*.{jpg,jpeg,png,webp}", { eager: true, query: "?url", import: "default" }),
+  ).map(([path, url]) => [path.split("/").pop()!.replace(/\.[^.]+$/, ""), url]),
+);
+
+export const fromCatalog = (c: CatalogRecipe): Recipe => ({
+  ...c,
+  source: "fikko",
+  photoUrl: CATALOG_PHOTOS.get(c.key) ?? null,
+});
 
 export const LIMITS = { title: 80, description: 300, ingredients: 40, steps: 30 };
 

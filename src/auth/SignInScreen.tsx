@@ -60,8 +60,8 @@ export default function SignInScreen() {
           <h1 className="text-4xl leading-[1.1] font-semibold sm:text-5xl">
             {mode === "signin" ? "Welcome back" : "Start with Fikko"}
           </h1>
-          <p className="mt-4 text-lg text-muted-foreground">
-            Water, meds, food, exercise, sleep and mood in one daily check-in. No ads.
+          <p className="mt-4 text-base text-balance text-muted-foreground">
+            Your entire day, simplified into one check-in. Completely ad-free.
           </p>
         </div>
 

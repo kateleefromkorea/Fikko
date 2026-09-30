@@ -1,5 +1,5 @@
 import { Suspense, lazy, useState } from "react";
-import { LogOut, UserRound } from "lucide-react";
+import { ChartNoAxesColumn, HeartHandshake, ListChecks, LogOut, UserRound, Users, type LucideIcon } from "lucide-react";
 import { EMPTY_BIOMETRICS } from "./types";
 import { completion } from "./lib/completion";
 import HabitsView from "./components/HabitsView";
@@ -36,11 +36,13 @@ const CommunityView = lazy(() => import("./components/CommunityView"));
 
 type Tab = "habits" | "dashboard" | "community" | "coaches" | "profile";
 
-const NAV: { id: Tab; label: string; beta?: boolean }[] = [
-  { id: "habits", label: "Habits" },
-  { id: "dashboard", label: "Dashboard" },
-  { id: "community", label: "Community" },
-  { id: "coaches", label: "Coach", beta: true },
+// Shown as tabs in the header on tablet and desktop, and as a bottom tab bar
+// on phones, where four labels don't fit across the top.
+const NAV: { id: Tab; label: string; icon: LucideIcon; beta?: boolean }[] = [
+  { id: "habits", label: "Habits", icon: ListChecks },
+  { id: "dashboard", label: "Dashboard", icon: ChartNoAxesColumn },
+  { id: "community", label: "Community", icon: Users },
+  { id: "coaches", label: "Coach", icon: HeartHandshake, beta: true },
 ];
 
 const TODAY = new Date().toISOString().split("T")[0];
@@ -83,7 +85,7 @@ export default function App() {
   const pct = Math.round((done / total) * 100);
 
   return (
-    <div className="app-wash flex min-h-screen flex-col">
+    <div className="app-wash flex min-h-screen flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
       <header className="sticky top-0 z-40 border-b bg-white">
         <div className="mx-auto flex h-16 max-w-screen-2xl items-center gap-3 px-4 sm:gap-6 sm:px-6">
           <button
@@ -94,7 +96,7 @@ export default function App() {
             FIKKO
           </button>
 
-          <nav aria-label="Main" className="flex min-w-0 items-center gap-0.5 overflow-x-auto [scrollbar-width:none] sm:gap-1">
+          <nav aria-label="Main" className="hidden min-w-0 items-center gap-1 md:flex">
             {NAV.map(({ id, label, beta }) => (
               <Button
                 key={id}
@@ -102,13 +104,13 @@ export default function App() {
                 onClick={() => setTab(id)}
                 aria-current={tab === id ? "page" : undefined}
                 className={cn(
-                  "h-9 px-2 text-muted-foreground sm:px-3",
+                  "h-9 px-3 text-muted-foreground",
                   tab === id && "bg-primary/8 text-primary hover:bg-primary/10 hover:text-primary",
                 )}
               >
                 {label}
                 {beta && (
-                  <Badge variant="outline" className="hidden border-teal/40 bg-teal/5 text-primary sm:inline-flex">
+                  <Badge variant="outline" className="border-teal/40 bg-teal/5 text-primary">
                     Beta
                   </Badge>
                 )}
@@ -117,9 +119,9 @@ export default function App() {
           </nav>
 
           <div className="ml-auto flex items-center gap-4">
-            <div className="hidden items-center gap-3 md:flex" aria-label={`${done} of ${total} habits done today`}>
+            <div className="hidden items-center gap-3 lg:flex" aria-label={`${done} of ${total} habits done today`}>
               <Progress value={pct} className="h-1.5 w-24" />
-              <span className="text-sm text-muted-foreground tabular-nums">
+              <span className="whitespace-nowrap text-sm text-muted-foreground tabular-nums">
                 {done}/{total} today
               </span>
             </div>
@@ -217,6 +219,46 @@ export default function App() {
           Fikko · {new Date().getFullYear()} · Stay consistent, stay you.
         </div>
       </footer>
+
+      {/* Phone navigation. Sits above the home indicator on notched iPhones. */}
+      <nav
+        aria-label="Main"
+        className="fixed inset-x-0 bottom-0 z-40 border-t bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+      >
+        <ul className="grid h-16 grid-cols-4">
+          {NAV.map(({ id, label, icon: Icon, beta }) => {
+            const active = tab === id;
+            return (
+              <li key={id}>
+                <button
+                  onClick={() => {
+                    // Tapping the current tab again returns to its top, as in native apps.
+                    if (active) window.scrollTo({ top: 0, behavior: "smooth" });
+                    setTab(id);
+                  }}
+                  aria-current={active ? "page" : undefined}
+                  aria-label={beta ? `${label} (beta)` : label}
+                  className={cn(
+                    "flex h-full w-full flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors outline-none focus-visible:bg-muted",
+                    active ? "text-primary" : "text-muted-foreground",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "grid h-7 w-12 place-items-center rounded-full transition-colors",
+                      active && "bg-primary/10",
+                    )}
+                    aria-hidden="true"
+                  >
+                    <Icon className="size-5" strokeWidth={active ? 2.25 : 1.75} />
+                  </span>
+                  {label}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
     </div>
   );
 }

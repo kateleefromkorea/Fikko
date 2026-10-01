@@ -106,6 +106,8 @@ export default function RecipesView({ userId, profileName }: { userId: string; p
     });
   }, [recipes, saved, source, tags, query]);
 
+  // Only recipes that still exist: a saved member recipe may since have been deleted or hidden.
+  const savedCount = recipes.filter((r) => saved.has(r.key)).length;
   const toggleTag = (t: RecipeTag) => setTags((prev) => (prev.includes(t) ? prev.filter((k) => k !== t) : [...prev, t]));
   const filtered = tags.length > 0 || query.trim() !== "" || source !== "all";
 
@@ -187,7 +189,7 @@ export default function RecipesView({ userId, profileName }: { userId: string; p
               <TabsTrigger value="all" className="px-3">All</TabsTrigger>
               <TabsTrigger value="fikko" className="px-3">Fikko</TabsTrigger>
               <TabsTrigger value="member" className="px-3">Members</TabsTrigger>
-              <TabsTrigger value="saved" className="px-3">Saved{saved.size > 0 && ` (${saved.size})`}</TabsTrigger>
+              <TabsTrigger value="saved" className="px-3">Saved{savedCount > 0 && ` (${savedCount})`}</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>

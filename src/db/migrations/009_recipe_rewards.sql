@@ -19,6 +19,22 @@
 
 alter table public.recipes add column if not exists save_count int not null default 0;
 
+-- New recipes always start at zero saves, whatever the browser sends.
+create or replace function public.recipes_reset_save_count()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.save_count := 0;
+  return new;
+end;
+$$;
+
+drop trigger if exists recipes_reset_save_count on public.recipes;
+create trigger recipes_reset_save_count
+  before insert on public.recipes
+  for each row execute procedure public.recipes_reset_save_count();
+
 -- ── Points history ─────────────────────────────────────────────────────────
 
 create table if not exists public.points_events (
@@ -143,6 +159,7 @@ returns table (recipe_id uuid, saves int, week_start date)
 language plpgsql
 security definer set search_path = public
 as $$
+#variable_conflict use_column
 declare
   this_week date := date_trunc('week', now() at time zone 'utc')::date;
   winner uuid;

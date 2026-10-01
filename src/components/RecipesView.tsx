@@ -9,6 +9,7 @@ import FeaturedRecipe from "./recipes/FeaturedRecipe";
 import RewardsCard from "./recipes/RewardsCard";
 import { useRecipes } from "../hooks/useRecipes";
 import { RECIPE_TAGS, type Recipe, type RecipeTag } from "../lib/recipes";
+import { recipeClash } from "../lib/preferences";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -78,7 +79,13 @@ function Chip({ selected, onClick, children }: { selected: boolean; onClick: () 
   );
 }
 
-export default function RecipesView({ userId, profileName }: { userId: string; profileName: string }) {
+export default function RecipesView({ userId, profileName, diet, allergies }: {
+  userId: string;
+  profileName: string;
+  /** From the member's preferences; recipes that clash are hidden unless they choose to see all. */
+  diet: string | null;
+  allergies: string[];
+}) {
   const { recipes, saved, loading, error, setError, toggleSave, create, remove, report, rewards, featured } = useRecipes(userId);
   const [tags, setTags] = useState<RecipeTag[]>([]);
   const [query, setQuery] = useState("");
@@ -94,9 +101,15 @@ export default function RecipesView({ userId, profileName }: { userId: string; p
   const open = recipes.find((r) => r.key === openKey) ?? null;
   const featuredRecipe = featured ? recipes.find((r) => r.key === featured.recipeId) ?? null : null;
 
+  const [showAll, setShowAll] = useState(false);
+  const clashes = useMemo(() => new Map(recipes.map((r) => [r.key, recipeClash(r, diet, allergies)])), [recipes, diet, allergies]);
+  const hiddenCount = showAll ? 0 : recipes.filter((r) => clashes.get(r.key)).length;
+  const hasPrefs = !!diet || allergies.some((a) => a !== "None");
+
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
     return recipes.filter((r) => {
+      if (!showAll && clashes.get(r.key)) return false;
       if (source === "saved" && !saved.has(r.key)) return false;
       if ((source === "fikko" || source === "member") && r.source !== source) return false;
       // Every selected tag must match, so each chip narrows the list.
@@ -104,7 +117,7 @@ export default function RecipesView({ userId, profileName }: { userId: string; p
       if (!q) return true;
       return [r.title, r.description, ...r.ingredients].some((s) => s.toLowerCase().includes(q));
     });
-  }, [recipes, saved, source, tags, query]);
+  }, [recipes, saved, source, tags, query, showAll, clashes]);
 
   // Only recipes that still exist: a saved member recipe may since have been deleted or hidden.
   const savedCount = recipes.filter((r) => saved.has(r.key)).length;
@@ -198,6 +211,15 @@ export default function RecipesView({ userId, profileName }: { userId: string; p
           <p aria-live="polite">
             {shown.length} {shown.length === 1 ? "recipe" : "recipes"}
             {loading && <Loader2 className="ml-2 inline size-3.5 animate-spin" aria-label="Loading member recipes" />}
+            {hasPrefs && (hiddenCount > 0 || showAll) && (
+              <>
+                {" · "}
+                {showAll ? "showing everything" : `${hiddenCount} hidden for your diet and allergies`}{" "}
+                <button type="button" onClick={() => setShowAll((v) => !v)} className="font-medium text-primary underline-offset-2 hover:underline">
+                  {showAll ? "Hide them again" : "Show all"}
+                </button>
+              </>
+            )}
           </p>
           {filtered && (
             <button
@@ -226,6 +248,7 @@ export default function RecipesView({ userId, profileName }: { userId: string; p
               recipe={r}
               saved={saved.has(r.key)}
               featured={r.key === featuredRecipe?.key}
+              clash={clashes.get(r.key) ?? null}
               onOpen={() => setOpenKey(r.key)}
               onToggleSave={() => void toggleSave(r)}
             />
@@ -253,6 +276,7 @@ export default function RecipesView({ userId, profileName }: { userId: string; p
         userId={userId}
         saved={open ? saved.has(open.key) : false}
         featured={!!open && open.key === featuredRecipe?.key}
+        clash={open ? clashes.get(open.key) ?? null : null}
         onClose={() => setOpenKey(null)}
         onToggleSave={() => open && void toggleSave(open)}
         onDelete={() => open && setConfirmDelete(open)}

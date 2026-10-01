@@ -31,6 +31,9 @@ export interface FoodSearchHit {
   name: string;
   brand?: string;
   caloriesPer100g: number;
+  proteinPer100g: number | null;
+  carbsPer100g: number | null;
+  fatPer100g: number | null;
 }
 
 /** Lower-case and collapse whitespace, so equivalent queries share a cache entry. */
@@ -70,11 +73,19 @@ export async function GET(request: Request) {
       (n) => n.nutrientName === "Energy" && n.unitName?.toUpperCase() === "KCAL",
     );
     if (!energy) continue;
+    // Grams per 100 g, or null when USDA doesn't list it for this food.
+    const grams = (name: string) => {
+      const n = food.foodNutrients?.find((x) => x.nutrientName === name && x.unitName?.toUpperCase() === "G");
+      return n ? Math.round(n.value * 10) / 10 : null;
+    };
     foods.push({
       id: String(food.fdcId),
       name: food.description,
       brand: food.brandName || food.brandOwner || undefined,
       caloriesPer100g: energy.value,
+      proteinPer100g: grams("Protein"),
+      carbsPer100g: grams("Carbohydrate, by difference"),
+      fatPer100g: grams("Total lipid (fat)"),
     });
   }
 

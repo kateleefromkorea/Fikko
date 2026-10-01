@@ -36,7 +36,7 @@ export default function StepBiometrics({ api, showError }: { api: Api; showError
           />
         </Field>
 
-        <Field label="Biological sex" hint="Used only for the metabolic formula, which differs by sex.">
+        <Field label="Sex (for calorie maths)" hint="Used only for the metabolic formula, which differs by sex.">
           <div className="flex flex-wrap gap-2">
             {SEXES.map((x) => (
               <Chip key={x} label={x} selected={s.sex === x} onClick={() => set("sex", x)} />

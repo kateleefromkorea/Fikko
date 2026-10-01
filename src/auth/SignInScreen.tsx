@@ -21,8 +21,8 @@ function GoogleMark() {
 }
 
 export default function SignInScreen() {
-  const { signInWithPassword, signUpWithPassword, signInWithGoogle } = useAuth();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const { signInWithPassword, signUpWithPassword, signInWithGoogle, sendPasswordReset } = useAuth();
+  const [mode, setMode] = useState<"signin" | "signup" | "reset">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -34,11 +34,15 @@ export default function SignInScreen() {
     setError(null);
     setSubmitting(true);
     const { error } =
-      mode === "signin" ? await signInWithPassword(email, password) : await signUpWithPassword(email, password);
+      mode === "signin"
+        ? await signInWithPassword(email, password)
+        : mode === "signup"
+          ? await signUpWithPassword(email, password)
+          : await sendPasswordReset(email);
     setSubmitting(false);
     if (error) {
       setError(error);
-    } else if (mode === "signup") {
+    } else if (mode !== "signin") {
       setCheckEmail(true);
     }
   }
@@ -58,7 +62,7 @@ export default function SignInScreen() {
       <main className="flex flex-1 flex-col items-center justify-center px-4 py-12">
         <div className="mb-10 max-w-md text-center">
           <h1 className="text-4xl leading-[1.1] font-semibold sm:text-5xl">
-            {mode === "signin" ? "Welcome back" : "Start with Fikko"}
+            {mode === "signin" ? "Welcome back" : mode === "signup" ? "Start with Fikko" : "Forgot your password?"}
           </h1>
           <p className="mt-4 text-base text-balance text-muted-foreground">
             Your entire day, simplified into one check-in. Completely ad-free.
@@ -73,18 +77,30 @@ export default function SignInScreen() {
               </span>
               <p className="mt-4 font-semibold">Check your inbox</p>
               <p className="mt-2 text-sm text-muted-foreground">
-                We sent a confirmation link to <span className="font-medium text-foreground">{email}</span> to finish
-                signing up.
+                {mode === "reset" ? "We sent a password reset link to " : "We sent a confirmation link to "}
+                <span className="font-medium text-foreground">{email}</span>
+                {mode === "reset" ? ". It may take a minute to arrive." : " to finish signing up."}
               </p>
+              <Button
+                variant="link"
+                onClick={() => { setCheckEmail(false); setError(null); }}
+                className="mt-4 h-auto p-0"
+              >
+                Wrong email? Use a different one
+              </Button>
             </CardContent>
           ) : (
             <>
               <CardHeader>
                 <CardTitle className="text-lg font-semibold">
-                  {mode === "signin" ? "Sign in" : "Create your account"}
+                  {mode === "signin" ? "Sign in" : mode === "signup" ? "Create your account" : "Reset your password"}
                 </CardTitle>
                 <CardDescription>
-                  {mode === "signin" ? "Use your email and password." : "It's free, and takes a few seconds."}
+                  {mode === "signin"
+                    ? "Use your email and password."
+                    : mode === "signup"
+                      ? "It's free, and takes a few seconds."
+                      : "We'll email you a link to choose a new one."}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-5">
@@ -101,8 +117,21 @@ export default function SignInScreen() {
                       className="h-10"
                     />
                   </div>
+                  {mode !== "reset" && (
                   <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
+                    <div className="flex items-center justify-between gap-2">
+                      <Label htmlFor="password">Password</Label>
+                      {mode === "signin" && (
+                        <Button
+                          type="button"
+                          variant="link"
+                          onClick={() => { setMode("reset"); setError(null); }}
+                          className="h-auto p-0 text-xs text-muted-foreground"
+                        >
+                          Forgot password?
+                        </Button>
+                      )}
+                    </div>
                     <Input
                       id="password"
                       type="password"
@@ -114,26 +143,31 @@ export default function SignInScreen() {
                       className="h-10"
                     />
                   </div>
+                  )}
                   {error && <p className="text-sm text-destructive">{error}</p>}
                   <Button type="submit" disabled={submitting} className="h-10 w-full">
                     {submitting && <Loader2 className="animate-spin" />}
-                    {mode === "signin" ? "Sign in" : "Create account"}
+                    {mode === "signin" ? "Sign in" : mode === "signup" ? "Create account" : "Send reset link"}
                   </Button>
                 </form>
 
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                  <Separator className="flex-1" />
-                  or
-                  <Separator className="flex-1" />
-                </div>
+                {mode !== "reset" && (
+                  <>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <Separator className="flex-1" />
+                      or
+                      <Separator className="flex-1" />
+                    </div>
 
-                <Button variant="outline" onClick={handleGoogle} className="h-10 w-full">
-                  <GoogleMark />
-                  Continue with Google
-                </Button>
+                    <Button variant="outline" onClick={handleGoogle} className="h-10 w-full">
+                      <GoogleMark />
+                      Continue with Google
+                    </Button>
+                  </>
+                )}
 
                 <p className="text-center text-sm text-muted-foreground">
-                  {mode === "signin" ? "New to Fikko?" : "Already have an account?"}{" "}
+                  {mode === "signin" ? "New to Fikko?" : mode === "signup" ? "Already have an account?" : "Remembered it?"}{" "}
                   <Button
                     variant="link"
                     onClick={() => {
@@ -149,6 +183,11 @@ export default function SignInScreen() {
             </>
           )}
         </Card>
+        <p className="mt-6 max-w-sm text-center text-xs text-muted-foreground">
+          By continuing you agree to our{" "}
+          <a href="/terms.html" className="underline underline-offset-2 hover:text-foreground">Terms</a> and{" "}
+          <a href="/privacy.html" className="underline underline-offset-2 hover:text-foreground">Privacy Policy</a>.
+        </p>
       </main>
 
       {SHOW_TESTIMONIALS && <TestimonialLoop />}

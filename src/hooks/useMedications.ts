@@ -29,11 +29,13 @@ export function useMedications(userId: string | null) {
       });
   }, [userId]);
 
-  async function addMedication(name: string, timeOfDay: TimeOfDay) {
-    if (!userId) return;
-    const id = crypto.randomUUID();
-    setMedications((prev) => [...prev, { id, name, time_of_day: timeOfDay }]);
-    await supabase.from("medications").insert({ id, user_id: userId, name, time_of_day: timeOfDay });
+  /** Adds a medication and returns it straight away, so callers can use its id before the save lands. */
+  function addMedication(name: string, timeOfDay: TimeOfDay): Medication | null {
+    if (!userId) return null;
+    const med: Medication = { id: crypto.randomUUID(), name, time_of_day: timeOfDay };
+    setMedications((prev) => [...prev, med]);
+    void supabase.from("medications").insert({ ...med, user_id: userId });
+    return med;
   }
 
   async function removeMedication(id: string) {

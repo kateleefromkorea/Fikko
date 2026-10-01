@@ -5,11 +5,13 @@ import { tagLabel, type Recipe } from "../../lib/recipes";
 
 /** One pinboard tile: picture on top, title and a few facts underneath. */
 export default function RecipeTile({
-  recipe, saved, featured, onOpen, onToggleSave,
+  recipe, saved, featured, clash, onOpen, onToggleSave,
 }: {
   recipe: Recipe;
   saved: boolean;
   featured?: boolean;
+  /** Why it doesn't suit this member, shown only when they choose to see all recipes. */
+  clash?: string | null;
   onOpen: () => void;
   onToggleSave: () => void;
 }) {
@@ -46,6 +48,7 @@ export default function RecipeTile({
             )}
             {recipe.tags[0] && <span>{tagLabel(recipe.tags[0])}</span>}
           </p>
+          {clash && <p className="text-xs font-medium text-destructive">{clash}</p>}
           <p className="truncate text-xs text-muted-foreground/80">
             {recipe.source === "fikko" ? "Fikko recipe" : `By ${recipe.authorName}`}
           </p>

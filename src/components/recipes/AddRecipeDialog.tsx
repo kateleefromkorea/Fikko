@@ -7,6 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { LIMITS, RECIPE_TAGS, preparePhoto, type NewRecipe, type RecipeTag } from "../../lib/recipes";
+import { ALLERGENS, type Allergen } from "../../lib/preferences";
+
+const NONE = "none";
 
 const EMPTY = { title: "", description: "", ingredients: "", steps: "", minutes: "", servings: "", calories: "" };
 
@@ -43,6 +46,8 @@ export default function AddRecipeDialog(props: Props) {
 function AddRecipeForm({ onOpenChange, sharingAs, onCreate, busyRef }: Props & { busyRef: RefObject<boolean> }) {
   const [form, setForm] = useState(EMPTY);
   const [tags, setTags] = useState<RecipeTag[]>([]);
+  // null = not said; [] = none of the listed allergens.
+  const [contains, setContains] = useState<Allergen[] | null>(null);
   const [photo, setPhoto] = useState<Blob | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -90,7 +95,7 @@ function AddRecipeForm({ onOpenChange, sharingAs, onCreate, busyRef }: Props & {
     busyRef.current = true;
     setError(null);
     try {
-      await onCreate({ title: form.title, description: form.description, tags, ingredients, steps, minutes, servings, calories }, photo);
+      await onCreate({ title: form.title, description: form.description, tags, contains, ingredients, steps, minutes, servings, calories }, photo);
       onOpenChange(false);
     } catch (err) {
       setError((err as Error).message);
@@ -163,6 +168,38 @@ function AddRecipeForm({ onOpenChange, sharingAs, onCreate, busyRef }: Props & {
                   )}
                 >
                   {t.label}
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+
+        <fieldset className="space-y-2">
+          <legend className="text-sm font-medium">Contains</legend>
+          <p className="text-xs text-muted-foreground">Helps members with allergies. Pick &ldquo;None of these&rdquo; if it&apos;s free of all of them.</p>
+          <div className="flex flex-wrap gap-2">
+            {[...ALLERGENS.map((a) => ({ key: a.key as string, label: a.label })), { key: NONE, label: "None of these" }].map((a) => {
+              const on = a.key === NONE ? contains?.length === 0 : !!contains?.includes(a.key as Allergen);
+              return (
+                <button
+                  key={a.key}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() =>
+                    setContains((prev) => {
+                      if (a.key === NONE) return prev?.length === 0 ? null : [];
+                      const cur = prev ?? [];
+                      const k = a.key as Allergen;
+                      const next = cur.includes(k) ? cur.filter((x) => x !== k) : [...cur, k];
+                      return next.length ? next : null;
+                    })
+                  }
+                  className={cn(
+                    "h-8 rounded-full border px-3 text-sm transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+                    on ? "border-primary bg-primary/8 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  )}
+                >
+                  {a.label}
                 </button>
               );
             })}

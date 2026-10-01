@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import { fetchAllRows } from "./fetchAll";
+import { todayKey } from "./dates";
 
 // Every table holding a user's data. Row-level security scopes each query to
 // the signed-in user, so these reads can only ever return their own rows.
@@ -17,6 +18,7 @@ const USER_TABLES = [
   "recipes",
   "recipe_saves",
   "points_events",
+  "biometric_entries",
 ] as const;
 
 /**
@@ -36,7 +38,7 @@ export async function exportAllData(userId: string) {
   const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }));
   const a = document.createElement("a");
   a.href = url;
-  a.download = `fikko-export-${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = `fikko-export-${todayKey()}.json`;
   a.click();
   URL.revokeObjectURL(url);
 }

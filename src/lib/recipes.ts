@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import type { Allergen } from "./preferences";
 
 // Recipes come from two places: Fikko's own set, shipped in the app
 // (recipeCatalog.ts), and recipes members share, stored in Supabase
@@ -38,6 +39,8 @@ export interface CatalogRecipe {
   title: string;
   description: string;
   tags: RecipeTag[];
+  /** Allergens in the ingredients. */
+  contains: Allergen[];
   art: RecipeArtKey;
   minutes: number;
   servings: number;
@@ -55,6 +58,8 @@ export interface Recipe {
   title: string;
   description: string;
   tags: RecipeTag[];
+  /** Allergens it contains, or null when the author didn't say. */
+  contains: Allergen[] | null;
   ingredients: string[];
   steps: string[];
   minutes: number | null;
@@ -90,7 +95,7 @@ export const fromCatalog = (c: CatalogRecipe): Recipe => ({
 export const LIMITS = { title: 80, description: 300, ingredients: 40, steps: 30 };
 
 const BUCKET = "recipe-photos";
-const COLUMNS = "id, user_id, author_name, title, description, tags, ingredients, steps, minutes, servings, calories, photo_path, save_count, created_at";
+const COLUMNS = "id, user_id, author_name, title, description, tags, ingredients, steps, minutes, servings, calories, photo_path, save_count, contains, created_at";
 // Signed photo links last long enough for a browsing session; a reload renews them.
 const PHOTO_LINK_SECONDS = 60 * 60 * 6;
 // Member recipes shown at once. Plenty for now; add paging when it's outgrown.
@@ -110,6 +115,7 @@ interface RecipeRow {
   calories: number | null;
   photo_path: string | null;
   save_count: number;
+  contains: Allergen[] | null;
   created_at: string;
 }
 
@@ -120,6 +126,7 @@ function toRecipe(r: RecipeRow, photoUrl: string | null = null): Recipe {
     title: r.title,
     description: r.description,
     tags: r.tags ?? [],
+    contains: r.contains ?? null,
     ingredients: r.ingredients,
     steps: r.steps,
     minutes: r.minutes,
@@ -197,6 +204,7 @@ export interface NewRecipe {
   title: string;
   description: string;
   tags: RecipeTag[];
+  contains: Allergen[] | null;
   ingredients: string[];
   steps: string[];
   minutes: number | null;
@@ -219,6 +227,7 @@ export async function createRecipe(userId: string, input: NewRecipe, photo?: Blo
       title: input.title.trim(),
       description: input.description.trim(),
       tags: input.tags,
+      contains: input.contains,
       ingredients: input.ingredients,
       steps: input.steps,
       minutes: input.minutes,

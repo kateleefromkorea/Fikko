@@ -5,6 +5,11 @@ import type { CatalogRecipe } from "./recipes";
  * serving, worked out from typical values for the ingredients listed, and the
  * page labels it as approximate.
  *
+ * `contains` lists common allergens from the ingredients as written (soy
+ * sauce and most noodles, wraps and oats count as gluten; oyster sauce as
+ * shellfish). Optional add-ins count; serving suggestions like "bread, to
+ * serve" don't.
+ *
  * `art` picks the tile's illustration (see RecipeArt): these recipes have no
  * photos, so each tile gets a soft colour and an icon for its main ingredient.
  */
@@ -14,6 +19,7 @@ export const RECIPE_CATALOG: CatalogRecipe[] = [
     title: "Lemon herb chicken traybake",
     description: "Juicy chicken thighs roasted on one tray with peppers, red onion and cherry tomatoes.",
     tags: ["chicken", "high-protein", "low-carb"],
+    contains: [],
     art: "chicken",
     minutes: 40, servings: 4, calories: 390, macros: { protein: 36, carbs: 12, fat: 21 },
     ingredients: [
@@ -40,6 +46,7 @@ export const RECIPE_CATALOG: CatalogRecipe[] = [
     title: "15-minute chicken and veg stir-fry",
     description: "A fast, light weeknight stir-fry with a ginger and soy sauce.",
     tags: ["chicken", "high-protein", "low-fat", "quick"],
+    contains: ["gluten", "soy"],
     art: "chicken",
     minutes: 15, servings: 2, calories: 340, macros: { protein: 38, carbs: 24, fat: 9 },
     ingredients: [
@@ -67,6 +74,7 @@ export const RECIPE_CATALOG: CatalogRecipe[] = [
     title: "Greek chicken wraps with tzatziki",
     description: "Oregano chicken, crunchy salad and a quick garlicky yoghurt sauce.",
     tags: ["chicken", "high-protein"],
+    contains: ["dairy", "gluten"],
     art: "wrap",
     minutes: 25, servings: 4, calories: 420, macros: { protein: 35, carbs: 38, fat: 13 },
     ingredients: [
@@ -91,6 +99,7 @@ export const RECIPE_CATALOG: CatalogRecipe[] = [
     title: "Chicken, sweet potato and spinach curry",
     description: "A gentle, family-friendly curry made lighter with half-fat coconut milk.",
     tags: ["chicken"],
+    contains: [],
     art: "curry",
     minutes: 45, servings: 4, calories: 430, macros: { protein: 33, carbs: 34, fat: 17 },
     ingredients: [
@@ -115,6 +124,7 @@ export const RECIPE_CATALOG: CatalogRecipe[] = [
     title: "Beef and broccoli rice bowls",
     description: "Takeaway-style sticky beef with plenty of greens over rice.",
     tags: ["beef", "high-protein"],
+    contains: ["gluten", "shellfish", "soy"],
     art: "beef",
     minutes: 25, servings: 4, calories: 480, macros: { protein: 34, carbs: 52, fat: 14 },
     ingredients: [
@@ -142,6 +152,7 @@ export const RECIPE_CATALOG: CatalogRecipe[] = [
     title: "Lean beef and bean chilli",
     description: "A big batch of smoky chilli bulked out with beans and peppers. Freezes well.",
     tags: ["beef", "high-protein", "low-fat"],
+    contains: [],
     art: "stew",
     minutes: 60, servings: 6, calories: 360, macros: { protein: 31, carbs: 32, fat: 10 },
     ingredients: [
@@ -168,6 +179,7 @@ export const RECIPE_CATALOG: CatalogRecipe[] = [
     title: "Korean-style beef lettuce cups",
     description: "Sweet, savoury mince spooned into crisp lettuce: low-carb and ready fast.",
     tags: ["beef", "low-carb", "quick", "high-protein"],
+    contains: ["gluten", "soy"],
     art: "salad",
     minutes: 20, servings: 3, calories: 330, macros: { protein: 30, carbs: 10, fat: 19 },
     ingredients: [
@@ -191,6 +203,7 @@ export const RECIPE_CATALOG: CatalogRecipe[] = [
     title: "Pork and pineapple skewers",
     description: "Sticky, sweet-sour skewers for the grill or a hot griddle pan.",
     tags: ["pork", "low-fat", "high-protein"],
+    contains: ["gluten", "soy"],
     art: "pork",
     minutes: 30, servings: 4, calories: 290, macros: { protein: 31, carbs: 22, fat: 8 },
     ingredients: [
@@ -213,6 +226,7 @@ export const RECIPE_CATALOG: CatalogRecipe[] = [
     title: "Garlic ginger pork noodles",
     description: "Quick pork mince noodles with pak choi and a punchy sauce.",
     tags: ["pork", "quick"],
+    contains: ["eggs", "gluten", "soy"],
     art: "noodles",
     minutes: 20, servings: 2, calories: 520, macros: { protein: 32, carbs: 58, fat: 17 },
     ingredients: [
@@ -237,6 +251,7 @@ export const RECIPE_CATALOG: CatalogRecipe[] = [
     title: "Baked salmon with greens and quinoa",
     description: "Omega-3-rich salmon with a bright lemon and dill yoghurt.",
     tags: ["fish", "high-protein"],
+    contains: ["dairy"],
     art: "fish",
     minutes: 25, servings: 2, calories: 520, macros: { protein: 38, carbs: 34, fat: 24 },
     ingredients: [
@@ -261,6 +276,7 @@ export const RECIPE_CATALOG: CatalogRecipe[] = [
     title: "Tuna, white bean and tomato salad",
     description: "A no-cook lunch that keeps you full for hours.",
     tags: ["fish", "low-fat", "quick", "high-protein"],
+    contains: [],
     art: "salad",
     minutes: 10, servings: 2, calories: 330, macros: { protein: 33, carbs: 30, fat: 8 },
     ingredients: [
@@ -283,6 +299,7 @@ export const RECIPE_CATALOG: CatalogRecipe[] = [
     title: "Crispy cod tacos with lime slaw",
     description: "Oven-baked fish in a light crumb, with a zingy crunchy slaw.",
     tags: ["fish", "low-fat"],
+    contains: ["dairy", "eggs", "gluten"],
     art: "taco",
     minutes: 30, servings: 4, calories: 380, macros: { protein: 28, carbs: 45, fat: 9 },
     ingredients: [
@@ -308,6 +325,7 @@ export const RECIPE_CATALOG: CatalogRecipe[] = [
     title: "Garlic prawn and courgette linguine",
     description: "Half pasta, half courgette ribbons: all the comfort, fewer calories.",
     tags: ["fish", "quick", "high-protein"],
+    contains: ["gluten", "shellfish"],
     art: "shrimp",
     minutes: 20, servings: 2, calories: 450, macros: { protein: 32, carbs: 52, fat: 11 },
     ingredients: [
@@ -332,6 +350,7 @@ export const RECIPE_CATALOG: CatalogRecipe[] = [
     title: "Loaded veggie omelette",
     description: "A protein-packed breakfast in under 10 minutes.",
     tags: ["eggs", "vegetarian", "low-carb", "quick", "breakfast", "high-protein"],
+    contains: ["dairy", "eggs"],
     art: "egg",
     minutes: 10, servings: 1, calories: 310, macros: { protein: 24, carbs: 6, fat: 21 },
     ingredients: [
@@ -354,6 +373,7 @@ export const RECIPE_CATALOG: CatalogRecipe[] = [
     title: "Easy shakshuka",
     description: "Eggs poached in a spiced tomato and pepper sauce. Great for brunch.",
     tags: ["eggs", "vegetarian", "breakfast"],
+    contains: ["eggs"],
     art: "egg-pan",
     minutes: 30, servings: 2, calories: 330, macros: { protein: 18, carbs: 24, fat: 17 },
     ingredients: [
@@ -377,6 +397,7 @@ export const RECIPE_CATALOG: CatalogRecipe[] = [
     title: "Berry overnight oats",
     description: "Stir together the night before and breakfast is waiting.",
     tags: ["vegetarian", "breakfast", "low-fat"],
+    contains: ["dairy", "gluten"],
     art: "oats",
     minutes: 5, servings: 1, calories: 340, macros: { protein: 17, carbs: 52, fat: 7 },
     ingredients: [
@@ -398,6 +419,7 @@ export const RECIPE_CATALOG: CatalogRecipe[] = [
     title: "Greek yoghurt crunch pot",
     description: "Layers of creamy yoghurt, fruit and crunchy oats: a high-protein snack or breakfast.",
     tags: ["vegetarian", "breakfast", "quick", "high-protein"],
+    contains: ["dairy", "gluten", "nuts"],
     art: "cherry",
     minutes: 5, servings: 1, calories: 290, macros: { protein: 22, carbs: 34, fat: 7 },
     ingredients: [
@@ -417,6 +439,7 @@ export const RECIPE_CATALOG: CatalogRecipe[] = [
     title: "Chickpea and spinach stew",
     description: "A warming, budget-friendly stew with smoked paprika.",
     tags: ["vegan", "vegetarian", "low-fat"],
+    contains: [],
     art: "stew-green",
     minutes: 30, servings: 4, calories: 280, macros: { protein: 12, carbs: 38, fat: 7 },
     ingredients: [
@@ -440,6 +463,7 @@ export const RECIPE_CATALOG: CatalogRecipe[] = [
     title: "Lentil bolognese",
     description: "A plant-based take on the classic, rich with tomatoes and herbs.",
     tags: ["vegan", "vegetarian", "low-fat", "high-protein"],
+    contains: ["gluten"],
     art: "pasta",
     minutes: 40, servings: 4, calories: 470, macros: { protein: 22, carbs: 80, fat: 6 },
     ingredients: [
@@ -463,6 +487,7 @@ export const RECIPE_CATALOG: CatalogRecipe[] = [
     title: "Crispy tofu and vegetable stir-fry",
     description: "Golden tofu with crunchy veg in a sticky sauce.",
     tags: ["vegan", "vegetarian", "quick", "high-protein"],
+    contains: ["gluten", "soy"],
     art: "tofu",
     minutes: 20, servings: 2, calories: 390, macros: { protein: 24, carbs: 28, fat: 19 },
     ingredients: [
@@ -486,6 +511,7 @@ export const RECIPE_CATALOG: CatalogRecipe[] = [
     title: "Black bean and sweet potato bowls",
     description: "Roasted sweet potato, spiced beans, rice and a creamy avocado lime sauce.",
     tags: ["vegan", "vegetarian"],
+    contains: [],
     art: "bowl",
     minutes: 35, servings: 4, calories: 480, macros: { protein: 14, carbs: 78, fat: 13 },
     ingredients: [
@@ -510,6 +536,7 @@ export const RECIPE_CATALOG: CatalogRecipe[] = [
     title: "Roasted vegetable and halloumi traybake",
     description: "Colourful roasted veg topped with golden halloumi.",
     tags: ["vegetarian"],
+    contains: ["dairy"],
     art: "veg",
     minutes: 40, servings: 3, calories: 450, macros: { protein: 20, carbs: 30, fat: 27 },
     ingredients: [
@@ -534,6 +561,7 @@ export const RECIPE_CATALOG: CatalogRecipe[] = [
     title: "Banana oat pancakes",
     description: "Three-ingredient pancakes with no added sugar.",
     tags: ["vegetarian", "breakfast", "quick"],
+    contains: ["eggs", "gluten"],
     art: "pancake",
     minutes: 15, servings: 2, calories: 300, macros: { protein: 12, carbs: 42, fat: 9 },
     ingredients: [
@@ -555,6 +583,7 @@ export const RECIPE_CATALOG: CatalogRecipe[] = [
     title: "Egg-fried cauliflower rice",
     description: "All the flavour of egg-fried rice with a fraction of the carbs.",
     tags: ["eggs", "vegetarian", "low-carb", "quick"],
+    contains: ["eggs", "gluten", "soy"],
     art: "egg",
     minutes: 15, servings: 2, calories: 250, macros: { protein: 15, carbs: 14, fat: 15 },
     ingredients: [

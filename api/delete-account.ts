@@ -9,6 +9,7 @@
 // so those are removed first.
 
 import { createClient } from "@supabase/supabase-js";
+import { providerFor } from "./_lib/devices.js";
 
 function json(body: unknown, status = 200, headers: Record<string, string> = {}) {
   return new Response(JSON.stringify(body), {
@@ -32,6 +33,10 @@ export async function POST(request: Request) {
   // Asks Supabase to validate the token, so a forged or expired one is rejected.
   const { data, error } = await admin.auth.getUser(token);
   if (error || !data.user) return json({ error: "Your session has expired. Sign in again and retry." }, 401);
+
+  // Revoke Fikko's access at any connected wearable provider before the tokens are deleted.
+  const { data: conns } = await admin.from("device_connections").select("provider, access_token").eq("user_id", data.user.id);
+  for (const c of conns ?? []) await providerFor(c.provider)?.revoke(c.access_token);
 
   // Photos are stored under "<user id>/" in the recipe-photos bucket.
   const photos = await admin.storage.from("recipe-photos").list(data.user.id, { limit: 1000 });

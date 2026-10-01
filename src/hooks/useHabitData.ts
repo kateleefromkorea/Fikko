@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { fetchAllRows } from "../lib/fetchAll";
 import type { CustomHabit, HabitData, HabitEntry } from "../types";
+import { daysAgoKey } from "../lib/dates";
 
 const EMPTY_DATA: HabitData = {
   water: [],
@@ -24,9 +25,7 @@ type SimpleCategory = (typeof SIMPLE_CATEGORIES)[number];
 const HISTORY_DAYS = 400;
 
 function historyStart() {
-  const d = new Date();
-  d.setDate(d.getDate() - HISTORY_DAYS);
-  return d.toISOString().split("T")[0];
+  return daysAgoKey(HISTORY_DAYS);
 }
 
 async function fetchHabitData(userId: string): Promise<HabitData> {

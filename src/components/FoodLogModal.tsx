@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Loader2, Plus, Search, X } from "lucide-react";
 import { searchFoods, type FoodResult } from "../lib/usdaFoodSearch";
-import type { FoodLogItem, MealKey } from "../types";
+import type { FoodLogItem, MacrosPer100g, MealKey } from "../types";
+import { formatMacros, macrosFor, sumMacros } from "../lib/macros";
 import { DB_LIMITS, clamp } from "../lib/limits";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,11 +17,13 @@ interface Props {
   mealLabel: string;
   items: FoodLogItem[];
   savedFoods: FoodResult[];
-  onAdd: (food: { name: string; grams: number; caloriesPer100g: number }) => void;
+  onAdd: (food: { name: string; grams: number; caloriesPer100g: number } & MacrosPer100g) => void;
   onUpdateGrams: (itemId: string, grams: number) => void;
   onDelete: (itemId: string) => void;
-  onSaveFood: (name: string, caloriesPer100g: number) => void;
+  onSaveFood: (name: string, caloriesPer100g: number, macros?: MacrosPer100g) => void;
   onClose: () => void;
+  /** For members who track detailed macros: show protein, carbs and fat. */
+  showMacros?: boolean;
 }
 
 // Everything is stored in grams internally; these let people enter an amount
@@ -36,7 +39,7 @@ const UNITS: { key: string; label: string; grams: number }[] = [
 ];
 
 export default function FoodLogModal({
-  mealLabel, items, savedFoods, onAdd, onUpdateGrams, onDelete, onSaveFood, onClose,
+  mealLabel, items, savedFoods, onAdd, onUpdateGrams, onDelete, onSaveFood, onClose, showMacros,
 }: Props) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<FoodResult[]>([]);
@@ -46,9 +49,10 @@ export default function FoodLogModal({
   const [error, setError] = useState<string | null>(null);
   const [gramsByResult, setGramsByResult] = useState<Record<string, string>>({});
   const [manualMode, setManualMode] = useState(false);
-  const [manual, setManual] = useState({ name: "", amount: "100", unit: "g", calories: "" });
+  const [manual, setManual] = useState({ name: "", amount: "100", unit: "g", calories: "", protein: "", carbs: "", fat: "" });
 
   const total = items.reduce((sum, i) => sum + i.calories, 0);
+  const mealMacros = sumMacros(items);
 
   // The user's own saved foods rank above USDA results — they're already known-good.
   const savedMatches = query.trim()
@@ -77,7 +81,14 @@ export default function FoodLogModal({
 
   function addResult(result: FoodResult) {
     const grams = clamp(parseFloat(gramsByResult[result.id] ?? "100") || 100, DB_LIMITS.foodGrams);
-    onAdd({ name: result.name, grams, caloriesPer100g: result.caloriesPer100g });
+    onAdd({
+      name: result.name,
+      grams,
+      caloriesPer100g: result.caloriesPer100g,
+      proteinPer100g: result.proteinPer100g,
+      carbsPer100g: result.carbsPer100g,
+      fatPer100g: result.fatPer100g,
+    });
   }
 
   function addManual() {
@@ -88,9 +99,14 @@ export default function FoodLogModal({
     if (!manual.name.trim() || grams <= 0) return;
     const caloriesPer100g = clamp((calories / grams) * 100, DB_LIMITS.caloriesPer100g);
     const name = manual.name.trim().slice(0, DB_LIMITS.foodNameLength);
-    onAdd({ name, grams, caloriesPer100g });
-    onSaveFood(name, caloriesPer100g);
-    setManual({ name: "", amount: "100", unit: "g", calories: "" });
+    // Macros are typed for the amount eaten; stored per 100 g like calories. Left blank, they stay unknown.
+    const per100 = (v: string) => (v.trim() === "" ? null : Math.min(100, Math.max(0, ((parseFloat(v) || 0) / grams) * 100)));
+    const macros: MacrosPer100g = showMacros
+      ? { proteinPer100g: per100(manual.protein), carbsPer100g: per100(manual.carbs), fatPer100g: per100(manual.fat) }
+      : {};
+    onAdd({ name, grams, caloriesPer100g, ...macros });
+    onSaveFood(name, caloriesPer100g, macros);
+    setManual({ name: "", amount: "100", unit: "g", calories: "", protein: "", carbs: "", fat: "" });
   }
 
   return (
@@ -98,7 +114,10 @@ export default function FoodLogModal({
       <DialogContent className="max-h-[85vh] gap-6 overflow-y-auto p-6 sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold">{mealLabel}</DialogTitle>
-          <DialogDescription className="tabular-nums">{Math.round(total)} kcal logged</DialogDescription>
+          <DialogDescription className="tabular-nums">
+            {Math.round(total)} kcal logged
+            {showMacros && items.length > 0 && ` · ${formatMacros(mealMacros.total)}`}
+          </DialogDescription>
         </DialogHeader>
 
         {items.length > 0 && (
@@ -107,7 +126,10 @@ export default function FoodLogModal({
               <li key={item.id} className="flex items-center gap-3 px-4 py-3">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{item.name}</p>
-                  <p className="text-xs text-muted-foreground tabular-nums">{Math.round(item.calories)} kcal</p>
+                  <p className="text-xs text-muted-foreground tabular-nums">
+                    {Math.round(item.calories)} kcal
+                    {showMacros && (() => { const m = macrosFor(item); return m ? ` · ${formatMacros(m)}` : " · macros unknown"; })()}
+                  </p>
                 </div>
                 <Input
                   type="number"
@@ -158,6 +180,7 @@ export default function FoodLogModal({
                       <p className="text-xs text-muted-foreground">
                         {result.brand ? `${result.brand} · ` : ""}
                         {Math.round(result.caloriesPer100g)} kcal / 100g
+                        {showMacros && (() => { const m = macrosFor({ ...result, grams: 100 }); return m ? ` · ${formatMacros(m)}` : ""; })()}
                       </p>
                     </div>
                     <Input
@@ -236,6 +259,23 @@ export default function FoodLogModal({
                 />
               </div>
             </div>
+            {showMacros && (
+              <div className="grid grid-cols-3 gap-3">
+                {(["protein", "carbs", "fat"] as const).map((k) => (
+                  <div key={k} className="space-y-2">
+                    <Label htmlFor={`manual-${k}`} className="capitalize">{k} (g)</Label>
+                    <Input
+                      id={`manual-${k}`}
+                      type="number" min="0"
+                      value={manual[k]}
+                      onChange={(e) => setManual((p) => ({ ...p, [k]: e.target.value }))}
+                      placeholder="Optional"
+                      className="h-9"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
             <p className="text-sm text-muted-foreground">Saved to your foods so you can search for it next time.</p>
             <div className="flex gap-2">
               <Button onClick={addManual} className="h-9 px-4">Add food</Button>

@@ -28,6 +28,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { shiftDateKey, todayKey } from "../lib/dates";
+import { sleepHours } from "../lib/dashboardStats";
+import { sumMacros } from "../lib/macros";
 
 function timeGreeting() {
   const h = new Date().getHours();
@@ -58,9 +61,31 @@ interface Props {
   medications: Medications;
   userId: string | null;
   profileName: string;
+  /** The member's own daily goals from onboarding and Profile. */
+  goals: Goals;
+  /** True for members whose tracking style is "Detailed macros". */
+  trackMacros: boolean;
 }
 
-const TODAY = new Date().toISOString().split("T")[0];
+export interface Goals {
+  calories: number;
+  water: number;
+  sleepHours: number;
+}
+
+const TODAY = todayKey();
+
+/** 7.5 → "7h 30m". */
+function formatHours(h: number) {
+  const mins = Math.round(h * 60);
+  return mins % 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins / 60}h`;
+}
+
+/** Reads a habit entry's JSON note, or null if it's missing or damaged, so one bad entry can't break the page. */
+function parseNote<T>(raw?: string): T | null {
+  if (!raw) return null;
+  try { return JSON.parse(raw) as T; } catch { return null; }
+}
 
 function getEntry(entries: HabitEntry[], date: string): HabitEntry | undefined {
   return entries.find((e) => e.date === date);
@@ -122,10 +147,10 @@ function HabitChip({ icon: Icon, label, done, onClick }: { icon: LucideIcon; lab
   );
 }
 
-function TodaySummary({ data, activeDate, onDateChange, profileName }: {
-  data: HabitData; activeDate: string; onDateChange: (d: string) => void; profileName: string;
+function TodaySummary({ data, activeDate, onDateChange, profileName, waterGoal }: {
+  data: HabitData; activeDate: string; onDateChange: (d: string) => void; profileName: string; waterGoal: number;
 }) {
-  const { core, custom, done, total } = completion(data, activeDate);
+  const { core, custom, done, total } = completion(data, activeDate, waterGoal);
   const isToday = activeDate === TODAY;
   const dateLabel = new Date(activeDate + "T00:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
@@ -195,17 +220,15 @@ export const MEALS: { key: MealKey; label: string; icon: LucideIcon; color: stri
   { key: "snacks",    label: "Snacks",    icon: Apple,   color: "#FBD89C" },
 ];
 
-function FoodCard({ data, onChange, activeDate, userId }: Props) {
+function FoodCard({ data, onChange, activeDate, userId, goals, trackMacros }: Props) {
   const entry = getEntry(data.food, activeDate);
-  const meals: MealCalories = entry?.note
-    ? (JSON.parse(entry.note) as MealCalories)
-    : { breakfast: 0, lunch: 0, dinner: 0, snacks: 0 };
+  const meals: MealCalories = parseNote<MealCalories>(entry?.note) ?? { breakfast: 0, lunch: 0, dinner: 0, snacks: 0 };
 
   const foodLog = useFoodLog(userId, activeDate, data, onChange);
   const customFoods = useCustomFoods(userId);
   const [openMeal, setOpenMeal] = useState<MealKey | null>(null);
 
-  const target = 2000;
+  const target = Math.round(goals.calories);
   const total = meals.breakfast + meals.lunch + meals.dinner + meals.snacks;
   const overTarget = total > target;
   // Past the target the ring is scaled to the total, so it stays full and
@@ -216,7 +239,7 @@ function FoodCard({ data, onChange, activeDate, userId }: Props) {
     ? "Nothing logged yet. Pick a meal to get started."
     : overTarget
       ? `${Math.round(total - target).toLocaleString()} kcal over today's target.`
-      : `${Math.round(target - total).toLocaleString()} kcal left to reach your target.`;
+      : `${Math.round(target - total).toLocaleString()} kcal left in today's target.`;
 
   return (
     <HabitCard
@@ -224,7 +247,7 @@ function FoodCard({ data, onChange, activeDate, userId }: Props) {
       icon={Utensils}
       hue="food"
       title="Calories"
-      description={`Daily target ${target.toLocaleString()} kcal`}
+      description={`Done once you log a meal · target ${target.toLocaleString()} kcal`}
       done={total > 0}
     >
       <div className="grid items-center gap-8 sm:grid-cols-[auto_1fr]">
@@ -241,6 +264,15 @@ function FoodCard({ data, onChange, activeDate, userId }: Props) {
             </div>
           </ProgressRing>
           <p className={cn("max-w-48 text-center text-sm text-muted-foreground", overTarget && "text-amber-700")}>{foodComment}</p>
+          {trackMacros && foodLog.items.length > 0 && (() => {
+            const { total: m, missing } = sumMacros(foodLog.items);
+            return (
+              <p className="max-w-48 text-center text-xs text-muted-foreground tabular-nums">
+                Protein {Math.round(m.protein)} g · Carbs {Math.round(m.carbs)} g · Fat {Math.round(m.fat)} g
+                {missing > 0 && ` (${missing} item${missing === 1 ? "" : "s"} without macros)`}
+              </p>
+            );
+          })()}
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -279,6 +311,7 @@ function FoodCard({ data, onChange, activeDate, userId }: Props) {
           onDelete={foodLog.deleteItem}
           onSaveFood={customFoods.saveFood}
           onClose={() => setOpenMeal(null)}
+          showMacros={trackMacros}
         />
       )}
     </HabitCard>
@@ -295,6 +328,7 @@ function ExerciseCard({ data, onChange, activeDate, biometrics }: Props) {
   const standHours = biometrics?.standHours?.find((e) => e.date === activeDate)?.value ?? null;
   const vo2        = biometrics?.vo2max?.find((e) => e.date === activeDate)?.value ?? null;
 
+  const [customMinutes, setCustomMinutes] = useState("");
   const setMinutes = (n: number) =>
     onChange({ ...data, exercise: setDateValue(data.exercise, activeDate, clamp(n, DB_LIMITS.habitValue)) });
 
@@ -324,6 +358,27 @@ function ExerciseCard({ data, onChange, activeDate, biometrics }: Props) {
             </Button>
           ))}
         </div>
+        <form
+          className="flex gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const n = Math.round(Number(customMinutes));
+            if (n > 0) { setMinutes(minutes + n); setCustomMinutes(""); }
+          }}
+        >
+          <Input
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={600}
+            value={customMinutes}
+            onChange={(e) => setCustomMinutes(e.target.value)}
+            placeholder="Other amount (min)"
+            aria-label="Minutes to add"
+            className="h-9 flex-1"
+          />
+          <Button type="submit" variant="outline" className="h-9" disabled={!(Number(customMinutes) > 0)}>Add</Button>
+        </form>
         {minutes > 0 && (
           <Button variant="link" onClick={() => setMinutes(0)} className="h-auto p-0 text-muted-foreground">
             Clear today's minutes
@@ -341,7 +396,7 @@ function ExerciseCard({ data, onChange, activeDate, biometrics }: Props) {
       ) : (
         <p className="mt-auto flex items-center gap-2 pt-6 text-xs text-muted-foreground">
           <Watch className="size-3.5 shrink-0" aria-hidden="true" />
-          Steps and heart rate will show here once wearable sync arrives.
+          Connect Fitbit, Pixel Watch or Oura in Profile to see steps here.
         </p>
       )}
     </HabitCard>
@@ -349,13 +404,14 @@ function ExerciseCard({ data, onChange, activeDate, biometrics }: Props) {
 }
 
 /* ─── Water ─── */
-function WaterCard({ data, onChange, activeDate, biometrics }: Props) {
+function WaterCard({ data, onChange, activeDate, biometrics, goals }: Props) {
   const mounted = useMounted();
   const glasses = getEntry(data.water, activeDate)?.value ?? 0;
   const set = (n: number) => onChange({ ...data, water: setDateValue(data.water, activeDate, n) });
 
   const steps = biometrics?.steps?.find((e) => e.date === activeDate)?.value ?? null;
-  const nudgeTarget = steps !== null && steps > 10000 ? 10 : 8;
+  // A big step day (from a wearable, once sync exists) adds two glasses to the member's own goal.
+  const nudgeTarget = Math.round(goals.water) + (steps !== null && steps > 10000 ? 2 : 0);
   const nudgeMsg = steps !== null && steps > 10000
     ? `You walked ${steps.toLocaleString()} steps today, so aim for ${nudgeTarget} glasses.`
     : glasses >= nudgeTarget
@@ -372,7 +428,8 @@ function WaterCard({ data, onChange, activeDate, biometrics }: Props) {
       action={<Figure value={glasses} unit={`/ ${nudgeTarget}`} />}
       done={glasses >= nudgeTarget}
     >
-      <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${nudgeTarget}, minmax(0, 1fr))` }}>
+      {/* Up to 10 glasses a row; larger goals wrap onto more rows. */}
+      <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${Math.min(nudgeTarget, 10)}, minmax(0, 1fr))` }}>
         {Array.from({ length: nudgeTarget }).map((_, i) => {
           const filled = i < glasses;
           return (
@@ -420,7 +477,7 @@ function MedicationCard({ data, onChange, activeDate, medications }: Props) {
   const [adding, setAdding] = useState(false);
 
   const entry = getEntry(data.medication, activeDate);
-  const checkedRaw: Record<string, boolean> = entry?.note ? JSON.parse(entry.note) : {};
+  const checkedRaw: Record<string, boolean> = parseNote<Record<string, boolean>>(entry?.note) ?? {};
   const checkedCount = medList.filter((m) => checkedRaw[m.id]).length;
   const allTaken = medList.length > 0 && checkedCount === medList.length;
 
@@ -437,7 +494,9 @@ function MedicationCard({ data, onChange, activeDate, medications }: Props) {
   const addMed = () => {
     const name = newMed.trim();
     if (!name || medList.some((m) => m.name === name)) return;
-    addMedication(name, newSlot);
+    const med = addMedication(name, newSlot);
+    // A new, unticked medication means today is no longer "everything taken".
+    if (med && entry) save(checkedRaw, [...medList, med]);
     setNewMed("");
     setNewSlot("breakfast");
     setAdding(false);
@@ -590,7 +649,7 @@ export function parseSleepNote(raw?: string): SleepNote {
   try { return JSON.parse(raw) as SleepNote; } catch { return {}; }
 }
 
-function SleepCard({ data, onChange, activeDate, biometrics }: Props) {
+function SleepCard({ data, onChange, activeDate, biometrics, goals }: Props) {
   const entry     = getEntry(data.sleep, activeDate);
   const restScore = entry?.value ?? 0;
   const note      = parseSleepNote(entry?.note);
@@ -600,6 +659,7 @@ function SleepCard({ data, onChange, activeDate, biometrics }: Props) {
     onChange({ ...data, sleep: setDateValue(data.sleep, activeDate, newRestScore ?? restScore, JSON.stringify(merged)) });
   };
 
+  const sleptHours = sleepHours(note.bedtime, note.wake);
   const setRest  = (v: number) => saveNote({}, v);
   const setTime  = (field: "bedtime" | "wake", val: string) => saveNote({ [field]: val });
   const toggleFactor = (id: string) => {
@@ -669,7 +729,7 @@ function SleepCard({ data, onChange, activeDate, biometrics }: Props) {
             <EmptyState
               icon={Watch}
               title="No wearable data yet"
-              body="Sleep stages, HRV and recovery will show here once sync arrives."
+              body="Connect Fitbit, Pixel Watch or Oura in Profile to see sleep stages and HRV here."
             />
           )}
         </div>
@@ -710,6 +770,11 @@ function SleepCard({ data, onChange, activeDate, biometrics }: Props) {
               <Input id="wake" type="time" value={note.wake ?? ""} onChange={(e) => setTime("wake", e.target.value)} className="h-9" />
             </div>
           </div>
+          {sleptHours != null && (
+            <p className="text-sm text-muted-foreground">
+              {formatHours(sleptHours)} asleep · goal {formatHours(goals.sleepHours)}
+            </p>
+          )}
 
           <p className="mt-2 text-sm text-muted-foreground">What affected your sleep?</p>
           <div className="grid grid-cols-2 gap-2">
@@ -1000,16 +1065,13 @@ function DateNavigator({ activeDate, onChange }: { activeDate: string; onChange:
   const pickerRef = useRef<HTMLInputElement>(null);
 
   const shift = (days: number) => {
-    const d = new Date(activeDate + "T00:00:00");
-    d.setDate(d.getDate() + days);
-    const next = d.toISOString().split("T")[0];
+    const next = shiftDateKey(activeDate, days);
     if (next <= TODAY) onChange(next);
   };
 
   const label = (() => {
     if (activeDate === TODAY) return "Today";
-    const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
-    if (activeDate === yesterday.toISOString().split("T")[0]) return "Yesterday";
+    if (activeDate === shiftDateKey(TODAY, -1)) return "Yesterday";
     return new Date(activeDate + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
   })();
 
@@ -1052,13 +1114,13 @@ function DateNavigator({ activeDate, onChange }: { activeDate: string; onChange:
 }
 
 /* ─── Layout ─── */
-export default function HabitsView({ data, onChange, biometrics, medications, userId, profileName, onOpenCommunity }: Omit<Props, "activeDate"> & { onOpenCommunity?: () => void }) {
+export default function HabitsView({ data, onChange, biometrics, medications, userId, profileName, goals, trackMacros, onOpenCommunity }: Omit<Props, "activeDate"> & { onOpenCommunity?: () => void }) {
   const [activeDate, setActiveDate] = useState(TODAY);
-  const cardProps = { data, onChange, activeDate, biometrics, medications, userId, profileName };
+  const cardProps = { data, onChange, activeDate, biometrics, medications, userId, profileName, goals, trackMacros };
 
   return (
     <div className="space-y-12">
-      <TodaySummary data={data} activeDate={activeDate} onDateChange={setActiveDate} profileName={profileName} />
+      <TodaySummary data={data} activeDate={activeDate} onDateChange={setActiveDate} profileName={profileName} waterGoal={goals.water} />
 
       <section className="space-y-4">
         <SectionLabel>Nutrition & movement</SectionLabel>

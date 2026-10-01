@@ -1,17 +1,19 @@
-import { Suspense, lazy, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { ChartNoAxesColumn, ChefHat, HeartHandshake, ListChecks, LogOut, UserRound, Users, type LucideIcon } from "lucide-react";
-import { EMPTY_BIOMETRICS } from "./types";
 import { completion } from "./lib/completion";
 import HabitsView from "./components/HabitsView";
 import ProfileView from "./components/ProfileView";
+import type { DeviceOutcome } from "./components/profile/DevicesCard";
 import CoachView from "./components/CoachView";
 import { useAuth } from "./auth/AuthProvider";
 import SignInScreen from "./auth/SignInScreen";
+import SetNewPassword from "./auth/SetNewPassword";
 import SetupNeeded from "./auth/SetupNeeded";
 import { isSupabaseConfigured } from "./lib/supabase";
 import { useHabitData } from "./hooks/useHabitData";
 import { useProfile } from "./hooks/useProfile";
 import { useMedications } from "./hooks/useMedications";
+import { useBiometrics } from "./hooks/useBiometrics";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +28,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { todayKey } from "./lib/dates";
+import { tracksMacros } from "./lib/preferences";
 
 // Loaded on demand. The Dashboard carries the charting library (most of the
 // app's JavaScript) and onboarding only runs once per user, so neither should
@@ -39,24 +43,35 @@ type Tab = "habits" | "dashboard" | "recipes" | "community" | "coaches" | "profi
 
 // Shown as tabs in the header on tablet and desktop, and as a bottom tab bar
 // on phones, where the labels don't fit across the top.
-const NAV: { id: Tab; label: string; icon: LucideIcon; beta?: boolean }[] = [
+const NAV: { id: Tab; label: string; icon: LucideIcon; soon?: boolean }[] = [
   { id: "habits", label: "Habits", icon: ListChecks },
   { id: "dashboard", label: "Dashboard", icon: ChartNoAxesColumn },
   { id: "recipes", label: "Recipes", icon: ChefHat },
   { id: "community", label: "Community", icon: Users },
-  { id: "coaches", label: "Coach", icon: HeartHandshake, beta: true },
+  { id: "coaches", label: "Coach", icon: HeartHandshake, soon: true },
 ];
 
-const TODAY = new Date().toISOString().split("T")[0];
 
 export default function App() {
-  const { session, loading, signOut } = useAuth();
+  const { session, loading, signOut, recovering } = useAuth();
   const userId = session?.user.id ?? null;
-  const [tab, setTab] = useState<Tab>("habits");
+  // Returning from a device's sign-in lands on /?device=<provider>&result=<outcome>:
+  // open Profile to show how it went.
+  const [deviceOutcome] = useState<DeviceOutcome | null>(() => {
+    const q = new URLSearchParams(window.location.search);
+    const result = q.get("result");
+    const provider = q.get("device");
+    if (result !== "connected" && result !== "declined" && result !== "failed") return null;
+    return { provider: provider === "oura" || provider === "google" ? provider : null, result };
+  });
+  const [tab, setTab] = useState<Tab>(deviceOutcome ? "profile" : "habits");
+  useEffect(() => {
+    if (deviceOutcome) window.history.replaceState(null, "", window.location.pathname);
+  }, [deviceOutcome]);
   const { data, setData } = useHabitData(userId);
   const { profile, updateProfile, loading: profileLoading } = useProfile(userId);
   const medications = useMedications(userId);
-  const biometrics = EMPTY_BIOMETRICS;
+  const { biometrics, reload: reloadBiometrics } = useBiometrics(userId);
 
   if (!isSupabaseConfigured) {
     return <SetupNeeded />;
@@ -68,6 +83,10 @@ export default function App() {
 
   if (!session) {
     return <SignInScreen />;
+  }
+
+  if (recovering) {
+    return <SetNewPassword />;
   }
 
   const email = session.user.email ?? "";
@@ -83,7 +102,7 @@ export default function App() {
   // user never sees it flash.
   const needsOnboarding = !profileLoading && !profile.onboarding_completed_at;
 
-  const { done, total } = completion(data, TODAY);
+  const { done, total } = completion(data, todayKey(), profile.water_goal);
   const pct = Math.round((done / total) * 100);
 
   return (
@@ -99,7 +118,7 @@ export default function App() {
           </button>
 
           <nav aria-label="Main" className="hidden min-w-0 items-center gap-1 md:flex">
-            {NAV.map(({ id, label, beta }) => (
+            {NAV.map(({ id, label, soon }) => (
               <Button
                 key={id}
                 variant="ghost"
@@ -111,9 +130,9 @@ export default function App() {
                 )}
               >
                 {label}
-                {beta && (
+                {soon && (
                   <Badge variant="outline" className="border-teal/40 bg-teal/5 text-primary">
-                    Beta
+                    Soon
                   </Badge>
                 )}
               </Button>
@@ -177,6 +196,8 @@ export default function App() {
             medications={medications}
             userId={userId}
             profileName={profile.name}
+            goals={{ calories: profile.calorie_goal, water: profile.water_goal, sleepHours: profile.sleep_goal }}
+            trackMacros={tracksMacros(profile.tracking_style)}
             onOpenCommunity={() => setTab("community")}
           />
         )}
@@ -187,7 +208,7 @@ export default function App() {
         )}
         {tab === "recipes" && (
           <Suspense fallback={<p className="py-10 text-center text-sm text-muted-foreground">Loading recipes…</p>}>
-            <RecipesView userId={session.user.id} profileName={profile.name} />
+            <RecipesView userId={session.user.id} profileName={profile.name} diet={profile.dietary_pattern} allergies={profile.allergies ?? []} />
           </Suspense>
         )}
         {tab === "community" && (
@@ -203,6 +224,8 @@ export default function App() {
             onUpdateProfile={updateProfile}
             userId={session.user.id}
             onSignOut={signOut}
+            deviceOutcome={deviceOutcome}
+            onDevicesSynced={() => void reloadBiometrics()}
           />
         )}
       </main>
@@ -222,8 +245,13 @@ export default function App() {
       )}
 
       <footer className="border-t">
-        <div className="mx-auto max-w-screen-2xl px-4 py-8 text-sm text-muted-foreground sm:px-6">
-          Fikko · {new Date().getFullYear()} · Stay consistent, stay you.
+        <div className="mx-auto flex max-w-screen-2xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-8 text-sm text-muted-foreground sm:px-6">
+          <span>Fikko · {new Date().getFullYear()} · Stay consistent, stay you.</span>
+          <nav aria-label="Legal" className="flex gap-4">
+            <a href="/privacy.html" className="hover:text-foreground">Privacy</a>
+            <a href="/terms.html" className="hover:text-foreground">Terms</a>
+            <a href="mailto:hello@fikko.io" className="hover:text-foreground">Contact</a>
+          </nav>
         </div>
       </footer>
 
@@ -233,7 +261,7 @@ export default function App() {
         className="fixed inset-x-0 bottom-0 z-40 border-t bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
       >
         <ul className="grid h-16 grid-cols-5">
-          {NAV.map(({ id, label, icon: Icon, beta }) => {
+          {NAV.map(({ id, label, icon: Icon, soon }) => {
             const active = tab === id;
             return (
               <li key={id}>
@@ -244,7 +272,7 @@ export default function App() {
                     setTab(id);
                   }}
                   aria-current={active ? "page" : undefined}
-                  aria-label={beta ? `${label} (beta)` : label}
+                  aria-label={soon ? `${label} (coming soon)` : label}
                   className={cn(
                     "flex h-full w-full flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors outline-none focus-visible:bg-muted",
                     active ? "text-primary" : "text-muted-foreground",

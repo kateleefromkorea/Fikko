@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import RecipeArt from "./RecipeArt";
 import { tagLabel, type Recipe } from "../../lib/recipes";
+import { allergenLabel } from "../../lib/preferences";
 import { timeAgo } from "../../lib/community";
 
 /** Ingredients to tick off while shopping or cooking. Keyed by recipe, so ticks reset per recipe. */
@@ -39,12 +40,13 @@ function IngredientList({ items }: { items: string[] }) {
 
 /** The full recipe: picture, facts, ingredients to tick off, and the method. */
 export default function RecipeDetail({
-  recipe, userId, saved, featured, onClose, onToggleSave, onDelete, onReport,
+  recipe, userId, saved, featured, clash, onClose, onToggleSave, onDelete, onReport,
 }: {
   recipe: Recipe | null;
   userId: string;
   saved: boolean;
   featured?: boolean;
+  clash?: string | null;
   onClose: () => void;
   onToggleSave: () => void;
   onDelete: () => void;
@@ -148,6 +150,18 @@ export default function RecipeDetail({
 
               <section className="space-y-3">
                 <h3 className="text-lg font-semibold">Ingredients</h3>
+                {clash && (
+                  <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                    {clash}, so it doesn&apos;t fit the diet or allergies in your preferences.
+                  </p>
+                )}
+                <p className="text-sm text-muted-foreground">
+                  {r.contains == null
+                    ? "Allergens not listed. Check the ingredients."
+                    : r.contains.length
+                      ? `Contains: ${r.contains.map(allergenLabel).join(", ")}. Check labels on packaged ingredients too.`
+                      : "No dairy, eggs, gluten, nuts, shellfish or soy in the ingredients as listed. Check labels on packaged ingredients like stock or sauces."}
+                </p>
                 <IngredientList key={r.key} items={r.ingredients} />
               </section>
 

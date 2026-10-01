@@ -30,7 +30,14 @@ export type MealKey = "breakfast" | "lunch" | "dinner" | "snacks";
 
 export type TimeOfDay = "breakfast" | "midday" | "night";
 
-export interface FoodLogItem {
+/** Protein, carbs and fat in grams per 100 g. Null or missing when unknown. */
+export interface MacrosPer100g {
+  proteinPer100g?: number | null;
+  carbsPer100g?: number | null;
+  fatPer100g?: number | null;
+}
+
+export interface FoodLogItem extends MacrosPer100g {
   id: string;
   meal: MealKey;
   name: string;

@@ -1,16 +1,12 @@
-import { Bell, Calculator, Camera, Hash } from "lucide-react";
+import { Bell } from "lucide-react";
 import type { useOnboardingState } from "../useOnboardingState";
 import { Field, SelectCard, StepHeading } from "../ui";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { TRACKING_STYLES } from "../../lib/preferences";
 
 type Api = ReturnType<typeof useOnboardingState>;
 
-const TRACKING_STYLES = [
-  { key: "Detailed macros", icon: Calculator, description: "Protein, carbs and fats broken out for every meal" },
-  { key: "Simple calories", icon: Hash, description: "Just the calorie total. Quick to log, easy to keep up" },
-  { key: "Visual meals", icon: Camera, description: "Log meals by photo and portion, numbers stay in the background" },
-];
 
 export default function StepPreferences({ api }: { api: Api }) {
   const { state: s, set } = api;
@@ -45,7 +41,9 @@ export default function StepPreferences({ api }: { api: Api }) {
             </span>
             <Label htmlFor="reminders" className="block min-w-0 flex-1 cursor-pointer">
               <span className="block text-sm font-medium">Daily nudges</span>
-              <span className="mt-0.5 block text-sm font-normal text-muted-foreground">A gentle reminder to log meals and weigh in</span>
+              <span className="mt-0.5 block text-sm font-normal text-muted-foreground">
+                A gentle reminder to log meals and weigh in. Reminders are coming soon; we&apos;ll start once they launch.
+              </span>
             </Label>
             <Switch
               id="reminders"

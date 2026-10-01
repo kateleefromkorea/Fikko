@@ -2,7 +2,7 @@ import { Activity, Droplet, Moon, Pill, SmilePlus, Utensils, type LucideIcon } f
 import type { HabitData, HabitEntry } from "../../types";
 import type { ProfileRow } from "../../hooks/useProfile";
 import type { HabitHue } from "../HabitCard";
-import { EXERCISE_TARGET_MIN, WATER_TARGET, type CoreHabit } from "../../lib/completion";
+import { EXERCISE_TARGET_MIN, type CoreHabit } from "../../lib/completion";
 import type { HabitStat, Overview, Period } from "../../lib/dashboardStats";
 import { MOODS, REST_SCALE } from "../HabitsView";
 
@@ -17,6 +17,8 @@ export interface DashCtx {
   /** The period before, or null when nothing was logged in it. */
   prevOv: Overview | null;
   stats: HabitStat[];
+  /** The member's daily water goal, in glasses. */
+  waterTarget: number;
   /** Each built-in habit's entries by date. */
   m: Record<CoreHabit, Map<string, HabitEntry>>;
 }
@@ -24,7 +26,8 @@ export interface DashCtx {
 export const HABIT_INFO: Record<CoreHabit, { label: string; icon: LucideIcon; hue: HabitHue; target: string }> = {
   food:       { label: "Calories",    icon: Utensils,  hue: "food",     target: "Any food logged" },
   exercise:   { label: "Activity",    icon: Activity,  hue: "exercise", target: `${EXERCISE_TARGET_MIN}+ minutes` },
-  water:      { label: "Water",       icon: Droplet,   hue: "water",    target: `${WATER_TARGET}+ glasses` },
+  // The scorecard fills in the member's own water goal.
+  water:      { label: "Water",       icon: Droplet,   hue: "water",    target: "Daily water goal" },
   mood:       { label: "Mood",        icon: SmilePlus, hue: "mood",     target: "Checked in" },
   medication: { label: "Medications", icon: Pill,      hue: "meds",     target: "Everything taken" },
   sleep:      { label: "Sleep",       icon: Moon,      hue: "sleep",    target: "Rested “Okay” or better" },

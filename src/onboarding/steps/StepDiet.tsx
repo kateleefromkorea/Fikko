@@ -1,14 +1,9 @@
 import type { useOnboardingState } from "../useOnboardingState";
 import { Chip, Field, StepHeading } from "../ui";
+import { ALLERGY_CHOICES, DIET_PATTERNS } from "../../lib/preferences";
 
 type Api = ReturnType<typeof useOnboardingState>;
 
-const PATTERNS = [
-  "Omnivore", "Keto", "Low-carb", "Plant-based / Vegan",
-  "Vegetarian", "Mediterranean", "Halal", "Gluten-free",
-];
-
-const ALLERGENS = ["Dairy", "Nuts", "Shellfish", "Soy", "Eggs", "None"];
 
 export default function StepDiet({ api }: { api: Api }) {
   const { state: s, set, toggleAllergy } = api;
@@ -17,13 +12,13 @@ export default function StepDiet({ api }: { api: Api }) {
     <div>
       <StepHeading
         title="How do you eat?"
-        subtitle="We use this to filter food search and meal ideas. Skip it if nothing applies."
+        subtitle="We use this to hide recipes that don't suit you. Skip it if nothing applies."
       />
 
       <div className="flex flex-col gap-8">
         <Field label="Dietary pattern" hint="Pick the one closest to how you usually eat.">
           <div className="flex flex-wrap gap-2">
-            {PATTERNS.map((p) => (
+            {DIET_PATTERNS.map((p) => (
               <Chip
                 key={p}
                 label={p}
@@ -37,7 +32,7 @@ export default function StepDiet({ api }: { api: Api }) {
 
         <Field label="Allergies & intolerances" hint="Choose as many as apply.">
           <div className="flex flex-wrap gap-2">
-            {ALLERGENS.map((a) => (
+            {ALLERGY_CHOICES.map((a) => (
               <Chip key={a} label={a} selected={s.allergies.includes(a)} onClick={() => toggleAllergy(a)} />
             ))}
           </div>

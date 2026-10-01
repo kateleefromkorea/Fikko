@@ -5,7 +5,7 @@ import {
 import ProgressRing from "../ProgressRing";
 import { CustomHabitIcon, EmptyState, HabitBar, HabitIcon } from "../HabitCard";
 import { MEALS, MOODS, SLEEP_FACTORS, type SleepNote } from "../HabitsView";
-import { EXERCISE_TARGET_MIN, WATER_TARGET, completion, type CoreHabit } from "../../lib/completion";
+import { EXERCISE_TARGET_MIN, completion, type CoreHabit } from "../../lib/completion";
 import {
   avgOf, buildSeries, byDate, currentStreak, dateKey, loggedOn, mealAverages, parseJSON, sleepHours, averageClock,
   split, valuesIn,
@@ -33,7 +33,7 @@ function StatRow({ children, narrow }: { children: ReactNode; narrow?: boolean }
 const HEATMAP_WEEKS = 16;
 
 /** Sixteen weeks of days, Monday at the top, shaded by how much got done. */
-function ConsistencyCalendar({ data }: { data: DashCtx["data"] }) {
+function ConsistencyCalendar({ data, waterTarget }: { data: DashCtx["data"]; waterTarget: number }) {
   const today = new Date(dateKey(0) + "T00:00:00");
   const weekday = (today.getDay() + 6) % 7; // Monday = 0
   const firstDaysAgo = weekday + (HEATMAP_WEEKS - 1) * 7;
@@ -41,7 +41,7 @@ function ConsistencyCalendar({ data }: { data: DashCtx["data"] }) {
     const daysAgo = firstDaysAgo - i;
     if (daysAgo < 0) return null;
     const date = dateKey(daysAgo);
-    const { done, total } = completion(data, date);
+    const { done, total } = completion(data, date, waterTarget);
     return { date, done, total, logged: loggedOn(data, date) };
   });
 
@@ -109,7 +109,7 @@ export function ConsistencySection({ ctx }: { ctx: DashCtx }) {
           <BarTrend data={series} color={C.primary} name="Completed" format={(v) => `${v}%`} domain={[0, 100]} width={40} />
         </ChartCard>
         <ChartCard title="Consistency calendar" sub={`The last ${HEATMAP_WEEKS} weeks`} className="lg:col-span-2">
-          <ConsistencyCalendar data={data} />
+          <ConsistencyCalendar data={data} waterTarget={ctx.waterTarget} />
         </ChartCard>
       </div>
     </Section>
@@ -119,7 +119,7 @@ export function ConsistencySection({ ctx }: { ctx: DashCtx }) {
 // ── Scorecard ──────────────────────────────────────────────────────────────
 
 export function ScorecardSection({ ctx }: { ctx: DashCtx }) {
-  const { stats, period, dates } = ctx;
+  const { stats, period, dates, waterTarget } = ctx;
   return (
     <Section title="Habit scorecard" sub={`Every habit over ${PERIOD_PHRASE[period]}, most consistent first`}>
       <Card className="[--card-spacing:--spacing(2)]">
@@ -134,7 +134,7 @@ export function ScorecardSection({ ctx }: { ctx: DashCtx }) {
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">{habitLabel(s)}</p>
                       <p className="truncate text-xs text-muted-foreground">
-                        {core ? core.target : `${s.custom!.target} ${s.custom!.unit} a day`}
+                        {core ? (s.key === "water" ? `${waterTarget}+ glasses` : core.target) : `${s.custom!.target} ${s.custom!.unit} a day`}
                       </p>
                     </div>
                   </div>
@@ -244,7 +244,7 @@ export function NutritionSection({ ctx, plan }: { ctx: DashCtx; plan?: ReactNode
 // ── Activity and water ─────────────────────────────────────────────────────
 
 export function MovementSection({ ctx }: { ctx: DashCtx }) {
-  const { data, period, dates, m } = ctx;
+  const { data, period, dates, m, waterTarget } = ctx;
   const weeks = dates.length / 7;
 
   const exAll = valuesIn(data.exercise, dates);
@@ -254,7 +254,7 @@ export function MovementSection({ ctx }: { ctx: DashCtx }) {
 
   const water = valuesIn(data.water, dates, (e) => e.value > 0);
   const waterAvg = avgOf(water);
-  const waterHit = water.filter((v) => v >= WATER_TARGET).length;
+  const waterHit = water.filter((v) => v >= waterTarget).length;
   const waterTotal = water.reduce((s, v) => s + v, 0);
   const waterSeries = buildSeries(dates, period, (d) => val(m.water, d));
 
@@ -280,10 +280,10 @@ export function MovementSection({ ctx }: { ctx: DashCtx }) {
         <ChartCard title="Water" sub={byMonth(period) ? "Monthly average glasses on days logged" : "Glasses per day"}>
           {water.length ? (
             <>
-              <BarTrend data={waterSeries} color={C.water} name="Water" format={(v) => `${one(v)} glasses`} target={WATER_TARGET} targetLabel={`Target: ${WATER_TARGET} glasses`} width={28} />
+              <BarTrend data={waterSeries} color={C.water} name="Water" format={(v) => `${one(v)} glasses`} target={waterTarget} targetLabel={`Target: ${waterTarget} glasses`} width={28} />
               <StatRow narrow>
                 <Stat label="Daily average" value={waterAvg != null ? one(waterAvg) : "—"} unit="glasses" />
-                <Stat label="Days on target" value={`${waterHit}/${dates.length}`} sub={`${WATER_TARGET}+ glasses`} />
+                <Stat label="Days on target" value={`${waterHit}/${dates.length}`} sub={`${waterTarget}+ glasses`} />
                 <Stat label="Total" value={kcal(waterTotal)} unit="glasses" sub={`about ${one(waterTotal * 0.25)} litres`} />
                 <Stat label="Streak" value={plural(ctx.stats.find((s) => s.key === "water")?.streak ?? 0, "day")} sub="on target" />
               </StatRow>
@@ -490,7 +490,7 @@ const WEEKDAYS = ["Sundays", "Mondays", "Tuesdays", "Wednesdays", "Thursdays", "
 
 /** Plain-language connections between habits, only where the data backs them. */
 export function PatternsSection({ ctx }: { ctx: DashCtx }) {
-  const { data, profile, period, dates, ov, prevOv, m } = ctx;
+  const { data, profile, period, dates, ov, prevOv, m, waterTarget } = ctx;
   const items: { icon: typeof Lightbulb; text: string }[] = [];
 
   if (prevOv) {
@@ -517,7 +517,7 @@ export function PatternsSection({ ctx }: { ctx: DashCtx }) {
     items.push({ icon: Moon, text: `After nights you woke up rested, your mood averaged ${one(sleepMood.withAvg)} vs ${one(sleepMood.withoutAvg)} otherwise.` });
   }
 
-  const waterMood = split(dates, (d) => (val(m.water, d) ?? 0) >= WATER_TARGET, moodOf);
+  const waterMood = split(dates, (d) => (val(m.water, d) ?? 0) >= waterTarget, moodOf);
   if (waterMood && waterMood.withAvg - waterMood.withoutAvg >= 0.3) {
     items.push({ icon: GlassWater, text: `Days you hit your water target came with a better mood: ${one(waterMood.withAvg)} vs ${one(waterMood.withoutAvg)}.` });
   }

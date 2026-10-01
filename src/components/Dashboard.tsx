@@ -13,7 +13,7 @@ import type { HabitData, BiometricData, HabitEntry, BiometricEntry } from "../ty
 import PageHeader from "./PageHeader";
 import type { ProfileRow } from "../hooks/useProfile";
 import { goalByKey } from "../lib/metabolics";
-import { CORE_HABITS } from "../lib/completion";
+import { CORE_HABITS, WATER_TARGET } from "../lib/completion";
 import { PERIOD_DAYS, byDate, dayRange, habitStats, overview, type Period } from "../lib/dashboardStats";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +27,7 @@ import {
   ScorecardSection, SleepSection,
 } from "./dashboard/DashboardSections";
 import type { DashCtx } from "./dashboard/context";
+import { daysAgoKey, todayKey } from "../lib/dates";
 
 interface Props {
   data: HabitData;
@@ -35,13 +36,8 @@ interface Props {
   profile?: ProfileRow;
 }
 
-const TODAY = new Date().toISOString().split("T")[0];
-
-function dateString(daysAgo: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() - daysAgo);
-  return d.toISOString().split("T")[0];
-}
+const TODAY = todayKey();
+const dateString = daysAgoKey;
 
 // ── Aggregation ────────────────────────────────────────────────────────────
 
@@ -185,10 +181,10 @@ function WearableComingSoon() {
           <Watch className="size-5 text-muted-foreground" />
         </span>
         <div className="min-w-0">
-          <p className="font-semibold">Heart, sleep and activity insights are coming soon</p>
+          <p className="font-semibold">See heart, sleep and recovery trends here</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Once Apple Health and other wearables can sync, your vitals, sleep stages and recovery trends will appear
-            here. Everything above is from what you&apos;ve logged in Fikko.
+            Connect Fitbit, Pixel Watch or Oura in Profile and your vitals, sleep stages and recovery will appear here.
+            Apple Health and other wearables are on the way. Everything above is from what you&apos;ve logged in Fikko.
           </p>
         </div>
       </CardContent>
@@ -205,13 +201,14 @@ export default function Dashboard({ data, biometrics, profile }: Props) {
   const ctx = useMemo<DashCtx>(() => {
     const dates = dayRange(days);
     const prevDates = dayRange(days, days);
-    const ov = overview(data, dates);
-    const prev = overview(data, prevDates);
+    const waterTarget = profile?.water_goal ?? WATER_TARGET;
+    const ov = overview(data, dates, waterTarget);
+    const prev = overview(data, prevDates, waterTarget);
     const prevOv = prev.logged > 0 ? prev : null;
     const m = Object.fromEntries(CORE_HABITS.map((k) => [k, byDate(data[k])])) as DashCtx["m"];
     return {
-      data, profile, period, dates, prevDates, ov, prevOv, m,
-      stats: habitStats(data, dates, prevDates, prevOv != null),
+      data, profile, period, dates, prevDates, ov, prevOv, m, waterTarget,
+      stats: habitStats(data, dates, prevDates, prevOv != null, waterTarget),
     };
   }, [data, profile, period, days]);
 

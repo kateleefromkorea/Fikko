@@ -1,6 +1,8 @@
 import { useState } from "react";
 import type { ProfileRow } from "../hooks/useProfile";
 import PageHeader from "./PageHeader";
+import PreferencesCard from "./profile/PreferencesCard";
+import DevicesCard, { type DeviceOutcome } from "./profile/DevicesCard";
 import { computeBaseline, LIMITS, inRange } from "../lib/metabolics";
 import { DB_LIMITS, clamp } from "../lib/limits";
 import { deleteAccount, exportAllData } from "../lib/account";
@@ -33,35 +35,22 @@ interface Props {
   onUpdateProfile: (patch: Partial<ProfileRow>) => void;
   userId: string;
   onSignOut: () => void;
-}
-
-// Integrations Fikko plans to support. None can connect yet, so they are
-// listed as "coming soon" rather than pretending to sync.
-interface Connector {
-  id: string;
-  name: string;
-  description: string;
+  /** Outcome of returning from a device's sign-in, if the member just did. */
+  deviceOutcome: DeviceOutcome | null;
+  /** Reload synced readings after a device sync or disconnect. */
+  onDevicesSynced: () => void;
 }
 
 const ACTIVITY_LEVELS = ["Sedentary", "Lightly active", "Moderately active", "Very active", "Extra active"];
-const GENDERS = ["Male", "Female", "Non-binary", "Prefer not to say"];
+// Same options and wording as onboarding. Only used for the calorie formula.
+const SEXES = ["Male", "Female", "Prefer not to say"];
 
-const CONNECTORS: Connector[] = [
-  { id: "apple-watch", name: "Apple Watch", description: "Sync heart rate, steps, workouts & sleep" },
-  { id: "apple-health", name: "Apple Health", description: "Pull nutrition, body measurements & activity" },
-  { id: "google-fit", name: "Google Fit", description: "Sync activity, heart points & workouts" },
-  { id: "fitbit", name: "Fitbit", description: "Import steps, sleep stages & heart rate" },
-  { id: "garmin", name: "Garmin Connect", description: "Import GPS workouts, VO2 max & body battery" },
-  { id: "whoop", name: "WHOOP", description: "Sync recovery score, strain & sleep performance" },
-  { id: "oura", name: "Oura Ring", description: "Import readiness, sleep quality & activity" },
-  { id: "samsung", name: "Samsung Health", description: "Sync steps, workouts & sleep from Galaxy Watch" },
-];
 
 function toDraft(profile: ProfileRow): Draft {
   return {
     name: profile.name,
     dob: profile.date_of_birth ?? "",
-    gender: profile.gender ?? GENDERS[3],
+    gender: profile.gender ?? SEXES[2],
     height: profile.height_cm != null ? String(profile.height_cm) : "",
     weight: profile.weight_kg != null ? String(profile.weight_kg) : "",
     activityLevel: profile.activity_level ?? ACTIVITY_LEVELS[2],
@@ -119,7 +108,7 @@ function SectionHeader({ title, description, onEdit }: { title: string; descript
 
 const cardCls = "gap-6 [--card-spacing:--spacing(6)]";
 
-export default function ProfileView({ email, profile, onUpdateProfile, userId, onSignOut }: Props) {
+export default function ProfileView({ email, profile, onUpdateProfile, userId, onSignOut, deviceOutcome, onDevicesSynced }: Props) {
   const [editingInfo, setEditingInfo] = useState(false);
   const [editingGoals, setEditingGoals] = useState(false);
   const [draft, setDraft] = useState<Draft>(toDraft(profile));
@@ -251,7 +240,7 @@ export default function ProfileView({ email, profile, onUpdateProfile, userId, o
     { label: "Full name", value: profile.name || "—" },
     { label: "Email", value: email },
     { label: "Date of birth", value: profile.date_of_birth ? new Date(profile.date_of_birth + "T00:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "—" },
-    { label: "Gender", value: profile.gender ?? "—" },
+    { label: "Sex (for calorie maths)", value: profile.gender ?? "—" },
     { label: "Height", value: profile.height_cm ? `${profile.height_cm} cm` : "—" },
     { label: "Weight", value: profile.weight_kg ? `${profile.weight_kg} kg` : "—" },
   ];
@@ -380,13 +369,16 @@ export default function ProfileView({ email, profile, onUpdateProfile, userId, o
                     <Field label="Date of birth" htmlFor="info-dob">
                       <Input id="info-dob" value={draft.dob} onChange={set("dob")} type="date" className="h-9" />
                     </Field>
-                    <Field label="Gender" htmlFor="info-gender">
+                    <Field label="Sex (for calorie maths)" htmlFor="info-gender">
                       <Select value={draft.gender} onValueChange={(gender) => setDraft((p) => ({ ...p, gender }))}>
                         <SelectTrigger id="info-gender" className="h-9 w-full">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {GENDERS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                          {/* Keeps an older saved value (e.g. "Non-binary") selectable rather than blanking it. */}
+                          {(SEXES.includes(draft.gender) ? SEXES : [...SEXES, draft.gender]).map((g) => (
+                            <SelectItem key={g} value={g}>{g}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </Field>
@@ -423,28 +415,9 @@ export default function ProfileView({ email, profile, onUpdateProfile, userId, o
             </CardContent>
           </Card>
 
-          <Card className={cardCls}>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <CardTitle className="text-base font-semibold">Connected devices</CardTitle>
-                <Badge variant="outline" className="border-teal/40 bg-teal/5 text-primary">Coming soon</Badge>
-              </div>
-              <CardDescription>Wearable sync isn't available yet. These are the integrations we're planning.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="grid gap-3 sm:grid-cols-2">
-                {CONNECTORS.map((c) => (
-                  <li key={c.id} className="flex items-center gap-4 rounded-lg border px-4 py-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{c.name}</p>
-                      <p className="truncate text-sm text-muted-foreground">{c.description}</p>
-                    </div>
-                    <Badge variant="secondary" className="shrink-0">Soon</Badge>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
+          <PreferencesCard profile={profile} onUpdateProfile={onUpdateProfile} />
+
+          <DevicesCard outcome={deviceOutcome} onSynced={onDevicesSynced} />
         </div>
       </div>
 
@@ -480,8 +453,9 @@ export default function ProfileView({ email, profile, onUpdateProfile, userId, o
               <AlertTitle>Permanently delete your account?</AlertTitle>
               <AlertDescription className="space-y-4">
                 <p>
-                  This deletes your profile, every habit you've logged, your food log, medications and saved foods. It
-                  can't be undone. Export your data first if you want a copy.
+                  This deletes your profile, every habit you've logged, your food log, medications and saved foods,
+                  your Community posts and comments, the recipes and photos you've shared, and your points. It can't be
+                  undone. Export your data first if you want a copy.
                 </p>
                 <div className="space-y-2">
                   <Label htmlFor="delete-confirm" className="text-foreground">

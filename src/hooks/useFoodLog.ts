@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
-import type { FoodLogItem, HabitData, MealKey } from "../types";
+import type { FoodLogItem, HabitData, MacrosPer100g, MealKey } from "../types";
 
 const MEAL_KEYS: MealKey[] = ["breakfast", "lunch", "dinner", "snacks"];
 
@@ -26,7 +26,7 @@ export function useFoodLog(
     setLoading(true);
     supabase
       .from("food_log_items")
-      .select("id, meal, name, grams, calories_per_100g, calories")
+      .select("id, meal, name, grams, calories_per_100g, calories, protein_per_100g, carbs_per_100g, fat_per_100g")
       .eq("user_id", userId)
       .eq("date", date)
       .then(({ data: rows }) => {
@@ -38,6 +38,9 @@ export function useFoodLog(
             grams: Number(r.grams),
             caloriesPer100g: Number(r.calories_per_100g),
             calories: Number(r.calories),
+            proteinPer100g: r.protein_per_100g == null ? null : Number(r.protein_per_100g),
+            carbsPer100g: r.carbs_per_100g == null ? null : Number(r.carbs_per_100g),
+            fatPer100g: r.fat_per_100g == null ? null : Number(r.fat_per_100g),
           })),
         );
         setLoading(false);
@@ -59,7 +62,12 @@ export function useFoodLog(
     onChange({ ...data, food });
   }
 
-  async function addItem(meal: MealKey, food: { name: string; grams: number; caloriesPer100g: number }) {
+  async function addItem(meal: MealKey, food: { name: string; grams: number; caloriesPer100g: number } & MacrosPer100g) {
+    const macros = {
+      proteinPer100g: food.proteinPer100g ?? null,
+      carbsPer100g: food.carbsPer100g ?? null,
+      fatPer100g: food.fatPer100g ?? null,
+    };
     if (!userId) return;
     const calories = round((food.caloriesPer100g * food.grams) / 100);
     const { data: inserted } = await supabase
@@ -72,6 +80,9 @@ export function useFoodLog(
         grams: food.grams,
         calories_per_100g: food.caloriesPer100g,
         calories,
+        protein_per_100g: macros.proteinPer100g,
+        carbs_per_100g: macros.carbsPer100g,
+        fat_per_100g: macros.fatPer100g,
       })
       .select("id")
       .single();
@@ -83,6 +94,7 @@ export function useFoodLog(
       grams: food.grams,
       caloriesPer100g: food.caloriesPer100g,
       calories,
+      ...macros,
     };
     const next = [...items, newItem];
     setItems(next);

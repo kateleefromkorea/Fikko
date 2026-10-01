@@ -1,5 +1,6 @@
 import type { CustomHabit, HabitData, HabitEntry, MealKey } from "../types";
 import { CORE_HABITS, completion, coreDone, type CoreHabit } from "./completion";
+import { daysAgoKey } from "./dates";
 
 /**
  * Everything the Dashboard works out from what a member has logged. Pure
@@ -12,12 +13,8 @@ export const PERIOD_DAYS: Record<Period, number> = { week: 7, month: 30, year: 3
 // How far back a streak is looked for. useHabitData loads 400 days.
 const HISTORY_DAYS = 400;
 
-/** YYYY-MM-DD `daysAgo` days before today, keyed the same way as the rest of the app. */
-export function dateKey(daysAgo: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() - daysAgo);
-  return d.toISOString().split("T")[0];
-}
+/** YYYY-MM-DD `daysAgo` days before today, in local time like the rest of the app. */
+export const dateKey = daysAgoKey;
 
 /** The `n` days ending `offset` days ago, oldest first. */
 export function dayRange(n: number, offset = 0): string[] {
@@ -62,9 +59,9 @@ export interface Overview {
   perDay: { date: string; done: number; total: number }[];
 }
 
-export function overview(data: HabitData, dates: string[]): Overview {
+export function overview(data: HabitData, dates: string[], waterTarget?: number): Overview {
   const perDay = dates.map((date) => {
-    const { done, total } = completion(data, date);
+    const { done, total } = completion(data, date, waterTarget);
     return { date, done, total };
   });
   const done = perDay.reduce((s, d) => s + d.done, 0);
@@ -111,7 +108,7 @@ export interface HabitStat {
   streak: number;
 }
 
-export function habitStats(data: HabitData, dates: string[], prevDates: string[], prevLogged: boolean): HabitStat[] {
+export function habitStats(data: HabitData, dates: string[], prevDates: string[], prevLogged: boolean, waterTarget?: number): HabitStat[] {
   const stat = (key: string, test: (date: string) => boolean, custom?: CustomHabit): HabitStat => {
     const done = dates.filter(test).length;
     return {
@@ -124,7 +121,7 @@ export function habitStats(data: HabitData, dates: string[], prevDates: string[]
     };
   };
   return [
-    ...CORE_HABITS.map((k) => stat(k, (d) => coreDone(data, k, d))),
+    ...CORE_HABITS.map((k) => stat(k, (d) => coreDone(data, k, d, waterTarget))),
     ...data.custom.map((h) => stat(h.id, (d) => customDone(h, d), h)),
   ];
 }

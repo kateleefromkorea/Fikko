@@ -1,4 +1,6 @@
-export interface FoodResult {
+import type { MacrosPer100g } from "../types";
+
+export interface FoodResult extends MacrosPer100g {
   id: string;
   name: string;
   brand?: string;

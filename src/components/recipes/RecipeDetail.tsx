@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Clock, Flag, Flame, Heart, MoreHorizontal, Trash2, Users } from "lucide-react";
+import { Clock, Crown, Flag, Flame, Heart, MoreHorizontal, Trash2, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -39,11 +39,12 @@ function IngredientList({ items }: { items: string[] }) {
 
 /** The full recipe: picture, facts, ingredients to tick off, and the method. */
 export default function RecipeDetail({
-  recipe, userId, saved, onClose, onToggleSave, onDelete, onReport,
+  recipe, userId, saved, featured, onClose, onToggleSave, onDelete, onReport,
 }: {
   recipe: Recipe | null;
   userId: string;
   saved: boolean;
+  featured?: boolean;
   onClose: () => void;
   onToggleSave: () => void;
   onDelete: () => void;
@@ -76,9 +77,17 @@ export default function RecipeDetail({
                 <DialogDescription className="text-base">
                   {r.description || (r.source === "fikko" ? "A Fikko recipe." : "Shared by a Fikko member.")}
                 </DialogDescription>
-                <p className="text-sm text-muted-foreground">
+                <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
                   {r.source === "fikko" ? "Fikko recipe" : `Shared by ${r.authorName}${r.createdAt ? ` · ${timeAgo(r.createdAt)}` : ""}`}
+                  {r.source === "member" && (r.saves ?? 0) > 0 && (
+                    <span className="inline-flex items-center gap-1">· <Heart className="size-3.5" aria-hidden="true" />Saved by {r.saves} {r.saves === 1 ? "member" : "members"}</span>
+                  )}
                 </p>
+                {featured && (
+                  <p className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground">
+                    <Crown className="size-3.5" aria-hidden="true" />Featured recipe of the week
+                  </p>
+                )}
               </div>
 
               <div className="flex flex-wrap items-center gap-2">

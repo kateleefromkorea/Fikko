@@ -1,14 +1,15 @@
-import { Clock, Flame, Heart } from "lucide-react";
+import { Clock, Crown, Flame, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import RecipeArt, { shapeFor } from "./RecipeArt";
 import { tagLabel, type Recipe } from "../../lib/recipes";
 
 /** One pinboard tile: picture on top, title and a few facts underneath. */
 export default function RecipeTile({
-  recipe, saved, onOpen, onToggleSave,
+  recipe, saved, featured, onOpen, onToggleSave,
 }: {
   recipe: Recipe;
   saved: boolean;
+  featured?: boolean;
   onOpen: () => void;
   onToggleSave: () => void;
 }) {
@@ -19,11 +20,16 @@ export default function RecipeTile({
         onClick={onOpen}
         className="group block w-full rounded-2xl text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
       >
-        <div className="overflow-hidden rounded-2xl ring-1 ring-foreground/5 transition-[filter,box-shadow] duration-200 group-hover:shadow-lg group-hover:shadow-foreground/10 group-hover:brightness-[0.97]">
+        <div className="relative overflow-hidden rounded-2xl ring-1 ring-foreground/5 transition-[filter,box-shadow] duration-200 group-hover:shadow-lg group-hover:shadow-foreground/10 group-hover:brightness-[0.97]">
           {recipe.photoUrl ? (
             <img src={recipe.photoUrl} alt="" loading="lazy" className="block max-h-[26rem] w-full bg-muted object-cover" />
           ) : (
             <RecipeArt art={recipe.art} className={cn("w-full", shapeFor(recipe.key))} />
+          )}
+          {featured && (
+            <span className="absolute bottom-2.5 left-2.5 inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground shadow-sm">
+              <Crown className="size-3" aria-hidden="true" />Featured
+            </span>
           )}
         </div>
         <div className="space-y-1 px-1 pt-2.5">
@@ -34,6 +40,9 @@ export default function RecipeTile({
             )}
             {recipe.calories != null && (
               <span className="inline-flex items-center gap-1"><Flame className="size-3" aria-hidden="true" />{recipe.calories} kcal</span>
+            )}
+            {recipe.source === "member" && (recipe.saves ?? 0) > 0 && (
+              <span className="inline-flex items-center gap-1"><Heart className="size-3" aria-hidden="true" />{recipe.saves}</span>
             )}
             {recipe.tags[0] && <span>{tagLabel(recipe.tags[0])}</span>}
           </p>

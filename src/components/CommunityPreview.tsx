@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, Heart, MessageCircle, Users } from "lucide-react";
-import { SectionLabel } from "./HabitCard";
+import { SectionLabel, softCardCls } from "./HabitCard";
 import { fetchPosts, initialsOf, timeAgo, topicInfo, type Post } from "../lib/community";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,7 @@ export default function CommunityPreview({ userId, onOpen }: { userId: string; o
   return (
     <section className="space-y-4">
       <SectionLabel>From the community</SectionLabel>
-      <Card>
+      <Card className={softCardCls}>
         <CardContent className="space-y-4">
           {posts === null ? (
             <p className="text-sm text-muted-foreground">Loading…</p>

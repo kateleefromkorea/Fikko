@@ -87,7 +87,7 @@ export default function App() {
   const pct = Math.round((done / total) * 100);
 
   return (
-    <div className="app-wash flex min-h-screen flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
+    <div data-page={tab} className="app-wash flex min-h-screen flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
       <header className="sticky top-0 z-40 border-b bg-white">
         <div className="mx-auto flex h-16 max-w-screen-2xl items-center gap-3 px-4 sm:gap-6 sm:px-6">
           <button

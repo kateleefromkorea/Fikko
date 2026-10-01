@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
-import { ChefHat, Loader2, Plus, Search, X } from "lucide-react";
+import { ChefHat, Loader2, Plus, Search, Sparkles, X } from "lucide-react";
 import PageHeader from "./PageHeader";
 import { EmptyState } from "./HabitCard";
 import RecipeTile from "./recipes/RecipeTile";
 import RecipeDetail from "./recipes/RecipeDetail";
 import AddRecipeDialog from "./recipes/AddRecipeDialog";
+import FeaturedRecipe from "./recipes/FeaturedRecipe";
+import RewardsCard from "./recipes/RewardsCard";
 import { useRecipes } from "../hooks/useRecipes";
 import { RECIPE_TAGS, type Recipe, type RecipeTag } from "../lib/recipes";
 import { cn } from "@/lib/utils";
@@ -24,6 +26,42 @@ function displayName(name: string) {
   return `${parts[0]} ${parts[parts.length - 1][0].toUpperCase()}.`;
 }
 
+const NOTE_KEY = "fikko.recipes.earlyNoteDismissed";
+
+/** A note to early members about the recipe photos. Stays dismissed on this device once closed. */
+function EarlyUsersNote() {
+  const [hidden, setHidden] = useState(() => {
+    try { return localStorage.getItem(NOTE_KEY) === "1"; } catch { return false; }
+  });
+  if (hidden) return null;
+  const dismiss = () => {
+    setHidden(true);
+    try { localStorage.setItem(NOTE_KEY, "1"); } catch { /* private mode: just hide it for now */ }
+  };
+  return (
+    <aside className="fresh-panel relative flex flex-col gap-4 rounded-2xl border border-teal/20 p-5 pr-12 sm:flex-row sm:items-center sm:p-6 sm:pr-14">
+      <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white/80" aria-hidden="true">
+        <Sparkles className="size-5 text-primary" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="font-semibold">Hi early users!</p>
+        <p className="mt-1 text-sm text-foreground/75">
+          Yes, the images on the Fikko recipes are indeed AI-generated, as we aren&apos;t the best cooks. But hopefully
+          you are. Upload your healthy recipes and earn points!
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={dismiss}
+        aria-label="Dismiss note"
+        className="absolute top-3 right-3 grid size-8 place-items-center rounded-full text-foreground/60 transition-colors outline-none hover:bg-white/70 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
+        <X className="size-4" />
+      </button>
+    </aside>
+  );
+}
+
 function Chip({ selected, onClick, children }: { selected: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
@@ -41,7 +79,7 @@ function Chip({ selected, onClick, children }: { selected: boolean; onClick: () 
 }
 
 export default function RecipesView({ userId, profileName }: { userId: string; profileName: string }) {
-  const { recipes, saved, loading, error, setError, toggleSave, create, remove, report } = useRecipes(userId);
+  const { recipes, saved, loading, error, setError, toggleSave, create, remove, report, rewards, featured } = useRecipes(userId);
   const [tags, setTags] = useState<RecipeTag[]>([]);
   const [query, setQuery] = useState("");
   const [source, setSource] = useState<Source>("all");
@@ -54,6 +92,7 @@ export default function RecipesView({ userId, profileName }: { userId: string; p
   const [notice, setNotice] = useState<string | null>(null);
 
   const open = recipes.find((r) => r.key === openKey) ?? null;
+  const featuredRecipe = featured ? recipes.find((r) => r.key === featured.recipeId) ?? null : null;
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -108,6 +147,15 @@ export default function RecipesView({ userId, profileName }: { userId: string; p
         subtitle="Healthy ideas from Fikko and the community."
         action={<Button onClick={() => setAdding(true)}><Plus />Share a recipe</Button>}
       />
+
+      <EarlyUsersNote />
+
+      <div className={cn("grid gap-4", featuredRecipe && "lg:grid-cols-[minmax(0,1fr)_20rem]")}>
+        {featuredRecipe && featured && (
+          <FeaturedRecipe recipe={featuredRecipe} saves={featured.saves} onOpen={() => setOpenKey(featuredRecipe.key)} />
+        )}
+        <RewardsCard rewards={rewards} recipes={recipes} className={cn(!featuredRecipe && "lg:max-w-md")} />
+      </div>
 
       <div className="space-y-4">
         {/* Ingredient and diet tags. One scrolling row on phones, wrapping on larger screens. */}
@@ -175,6 +223,7 @@ export default function RecipesView({ userId, profileName }: { userId: string; p
               key={r.key}
               recipe={r}
               saved={saved.has(r.key)}
+              featured={r.key === featuredRecipe?.key}
               onOpen={() => setOpenKey(r.key)}
               onToggleSave={() => void toggleSave(r)}
             />
@@ -201,6 +250,7 @@ export default function RecipesView({ userId, profileName }: { userId: string; p
         recipe={open}
         userId={userId}
         saved={open ? saved.has(open.key) : false}
+        featured={!!open && open.key === featuredRecipe?.key}
         onClose={() => setOpenKey(null)}
         onToggleSave={() => open && void toggleSave(open)}
         onDelete={() => open && setConfirmDelete(open)}

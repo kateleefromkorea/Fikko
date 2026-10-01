@@ -23,15 +23,18 @@ export function useMounted() {
   return mounted;
 }
 
-/** A lucide icon in a soft square tinted with the habit's hue. */
+/**
+ * A white lucide icon on a solid square of the habit's hue. The badge and the
+ * progress bar are where a habit's colour lives; the card itself stays white.
+ */
 export function HabitIcon({ icon: Icon, hue, className }: { icon: LucideIcon; hue: HabitHue; className?: string }) {
   return (
     <span
-      className={cn("grid size-10 shrink-0 place-items-center rounded-lg", className)}
-      style={{ background: `color-mix(in srgb, var(--${hue}) 12%, white)` }}
+      className={cn("grid size-10 shrink-0 place-items-center rounded-xl shadow-sm", className)}
+      style={{ background: `var(--${hue})` }}
       aria-hidden="true"
     >
-      <Icon className="size-5" style={{ color: `var(--${hue})` }} />
+      <Icon className="size-5 text-white" strokeWidth={2.25} />
     </span>
   );
 }
@@ -51,23 +54,23 @@ export function DoneBadge({ className }: { className?: string }) {
   );
 }
 
-/** Shared card surface: white, a thin hue strip on top, lifts on hover, green outline when done. */
+/**
+ * Card surface for the Habits page: white, no outline, lifted by a soft
+ * shadow off the grey page. Completed habits get a green outline.
+ */
+export const softCardCls = "ring-0 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-8px_rgba(16,24,40,0.10)]";
+
+/** Shared habit card surface: soft card that lifts on hover, green outline when done. */
 export function habitCardCls(done?: boolean) {
   return cn(
-    "relative h-full transition-[translate,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-teal/10 motion-reduce:transition-none motion-reduce:hover:translate-y-0",
-    done && "ring-primary/45",
+    "relative h-full transition-[translate,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[0_2px_4px_rgba(16,24,40,0.04),0_16px_32px_-8px_rgba(16,24,40,0.14)] motion-reduce:transition-none motion-reduce:hover:translate-y-0",
+    softCardCls,
+    done && "ring-2 ring-primary/40",
   );
 }
 
-export function HueStrip({ hue }: { hue: HabitHue }) {
-  return (
-    <span
-      className="absolute inset-x-0 top-0 h-1 opacity-70"
-      style={{ background: `var(--${hue})` }}
-      aria-hidden="true"
-    />
-  );
-}
+/** A flat inner panel inside a card: light grey, no outline. */
+export const panelCls = "rounded-xl bg-foreground/[0.035]";
 
 /**
  * The frame every habit on the Habits page shares: icon, title and a short
@@ -88,7 +91,6 @@ export function HabitCard({
 }) {
   return (
     <Card id={id} className={cn(habitCardCls(done), "scroll-mt-24 gap-6 [--card-spacing:--spacing(6)]", className)}>
-      <HueStrip hue={hue} />
       <CardHeader className="grid-cols-[auto_1fr] items-center gap-x-4 has-data-[slot=card-action]:grid-cols-[auto_1fr_auto]">
         <HabitIcon icon={icon} hue={hue} className="row-span-2" />
         <CardTitle className="flex items-center gap-2 text-base font-semibold">
@@ -143,11 +145,11 @@ export function GroupLabel({ children, className }: { children: ReactNode; class
   return <p className={cn("text-xs font-medium tracking-wide text-muted-foreground uppercase", className)}>{children}</p>;
 }
 
-/** Green eyebrow with a hairline, heading a group of cards on the page. */
+/** Section heading with a faint green hairline, heading a group of cards on the page. */
 export function SectionLabel({ children }: { children: ReactNode }) {
   return (
     <div className="flex items-center gap-3">
-      <h2 className="text-xs font-semibold tracking-wider text-primary uppercase">{children}</h2>
+      <h2 className="text-[15px] font-semibold text-[#3F4A45]">{children}</h2>
       <span className="h-px flex-1 bg-gradient-to-r from-primary/25 to-transparent" aria-hidden="true" />
     </div>
   );
@@ -164,8 +166,8 @@ export function EmptyState({
   className?: string;
 }) {
   return (
-    <div className={cn("flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed px-6 py-8 text-center", className)}>
-      <span className="grid size-14 place-items-center rounded-full bg-muted" aria-hidden="true">
+    <div className={cn("flex flex-1 flex-col items-center justify-center rounded-xl bg-foreground/[0.03] px-6 py-8 text-center", className)}>
+      <span className="grid size-14 place-items-center rounded-full bg-white shadow-sm" aria-hidden="true">
         <Icon className="size-7 text-muted-foreground/60" strokeWidth={1.5} />
       </span>
       <p className="mt-4 text-sm font-medium">{title}</p>
@@ -194,14 +196,15 @@ export const CUSTOM_ICONS: Record<string, LucideIcon> = {
 };
 
 export function CustomHabitIcon({ icon, className }: { icon: string; className?: string }) {
-  const Icon = CUSTOM_ICONS[icon];
+  const Icon = CUSTOM_ICONS[icon] as LucideIcon | undefined;
   return (
     <span
-      className={cn("grid size-10 shrink-0 place-items-center rounded-lg text-lg", className)}
-      style={{ background: "color-mix(in srgb, var(--custom) 12%, white)" }}
+      className={cn("grid size-10 shrink-0 place-items-center rounded-xl text-lg", Icon && "shadow-sm", className)}
+      // Older habits store an emoji, which reads better on a pale square than on solid colour.
+      style={{ background: Icon ? "var(--custom)" : "color-mix(in srgb, var(--custom) 12%, white)" }}
       aria-hidden="true"
     >
-      {Icon ? <Icon className="size-5" style={{ color: "var(--custom)" }} /> : icon}
+      {Icon ? <Icon className="size-5 text-white" strokeWidth={2.25} /> : icon}
     </span>
   );
 }

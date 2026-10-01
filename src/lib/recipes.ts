@@ -65,6 +65,8 @@ export interface Recipe {
   photoPath?: string | null;
   /** Short-lived signed link to the photo. */
   photoUrl?: string | null;
+  /** Member recipes: how many other members have saved it. */
+  saves?: number;
   userId?: string;
   authorName?: string;
   createdAt?: string;
@@ -88,7 +90,7 @@ export const fromCatalog = (c: CatalogRecipe): Recipe => ({
 export const LIMITS = { title: 80, description: 300, ingredients: 40, steps: 30 };
 
 const BUCKET = "recipe-photos";
-const COLUMNS = "id, user_id, author_name, title, description, tags, ingredients, steps, minutes, servings, calories, photo_path, created_at";
+const COLUMNS = "id, user_id, author_name, title, description, tags, ingredients, steps, minutes, servings, calories, photo_path, save_count, created_at";
 // Signed photo links last long enough for a browsing session; a reload renews them.
 const PHOTO_LINK_SECONDS = 60 * 60 * 6;
 // Member recipes shown at once. Plenty for now; add paging when it's outgrown.
@@ -107,6 +109,7 @@ interface RecipeRow {
   servings: number | null;
   calories: number | null;
   photo_path: string | null;
+  save_count: number;
   created_at: string;
 }
 
@@ -124,6 +127,7 @@ function toRecipe(r: RecipeRow, photoUrl: string | null = null): Recipe {
     calories: r.calories,
     photoPath: r.photo_path,
     photoUrl,
+    saves: r.save_count ?? 0,
     userId: r.user_id,
     authorName: r.author_name,
     createdAt: r.created_at,

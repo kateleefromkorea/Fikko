@@ -117,6 +117,11 @@
   background-color: white;
 }
 
+/* The Habits page sits on a soft grey so its white cards lift off it. */
+.app-wash[data-page="habits"] {
+  background-color: #F6F7F8;
+}
+
 /* Today summary card: the marketing site's closing panel — teal into sky,
    left to right — with a soft glow in the corner. */
 .fresh-panel {

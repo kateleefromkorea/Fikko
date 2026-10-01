@@ -16,6 +16,7 @@ const USER_TABLES = [
   "community_cheers",
   "recipes",
   "recipe_saves",
+  "points_events",
 ] as const;
 
 /**

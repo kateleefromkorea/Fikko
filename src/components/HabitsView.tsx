@@ -13,7 +13,7 @@ import { useCustomFoods } from "../hooks/useCustomFoods";
 import FoodLogModal from "./FoodLogModal";
 import ProgressRing from "./ProgressRing";
 import {
-  CUSTOM_ICONS, CustomHabitIcon, DoneBadge, EmptyState, Figure, GroupLabel, HabitBar, HabitCard, Hint, HueStrip,
+  CUSTOM_ICONS, CustomHabitIcon, DoneBadge, EmptyState, Figure, GroupLabel, HabitBar, HabitCard, Hint, panelCls, softCardCls,
   SectionLabel, habitCardCls, useMounted,
 } from "./HabitCard";
 import CommunityPreview from "./CommunityPreview";
@@ -74,11 +74,11 @@ function setDateValue(entries: HabitEntry[], date: string, value: number, note?:
 
 /** Shared look for a selectable option: neutral at rest, Fikko green when chosen. */
 const optionCls =
-  "rounded-lg border bg-card text-left transition-colors hover:bg-muted/60 aria-pressed:border-primary aria-pressed:bg-primary/5 aria-pressed:text-primary";
+  "rounded-lg border border-transparent bg-foreground/[0.04] text-left transition-colors hover:bg-foreground/[0.07] aria-pressed:border-primary aria-pressed:bg-primary/8 aria-pressed:text-primary";
 
 function Stat({ value, label }: { value: string | number; label: string }) {
   return (
-    <div className="rounded-lg border bg-muted/40 p-3 text-center">
+    <div className={cn(panelCls, "p-3 text-center")}>
       <p className="text-lg font-semibold tabular-nums">{value}</p>
       <p className="mt-0.5 text-xs text-muted-foreground">{label}</p>
     </div>
@@ -248,7 +248,7 @@ function FoodCard({ data, onChange, activeDate, userId }: Props) {
             const val = meals[key] ?? 0;
             const itemCount = foodLog.items.filter((i) => i.meal === key).length;
             return (
-              <div key={key} className="flex flex-col gap-3 rounded-lg border bg-muted/20 p-4">
+              <div key={key} className={cn(panelCls, "flex flex-col gap-3 p-4")}>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <span className="size-2 rounded-full" style={{ background: color }} aria-hidden="true" />
                   <Icon className="size-4" aria-hidden="true" />
@@ -807,7 +807,6 @@ function CustomHabitTile({ habit, activeDate, logValue, onLogValue, onLog, onDel
   const done = todayVal >= habit.target;
   return (
     <Card className={cn(habitCardCls(done), "[--card-spacing:--spacing(5)]")}>
-      <HueStrip hue="custom" />
       <CardContent className="flex h-full flex-col gap-4">
         <div className="flex items-center gap-3">
           <CustomHabitIcon icon={habit.icon} className="size-9" />
@@ -881,7 +880,7 @@ function CustomHabitsSection({ data, onChange, activeDate }: Props) {
       <SectionLabel>Your own habits</SectionLabel>
 
       {data.custom.length === 0 ? (
-        <Card className="[--card-spacing:--spacing(6)]">
+        <Card className={cn(softCardCls, "[--card-spacing:--spacing(6)]")}>
           <CardContent>
             <EmptyState
               icon={Sparkles}

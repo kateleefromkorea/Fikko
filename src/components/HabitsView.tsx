@@ -396,7 +396,7 @@ function ExerciseCard({ data, onChange, activeDate, biometrics }: Props) {
       ) : (
         <p className="mt-auto flex items-center gap-2 pt-6 text-xs text-muted-foreground">
           <Watch className="size-3.5 shrink-0" aria-hidden="true" />
-          Connect Fitbit, Pixel Watch or Oura in Profile to see steps here.
+          Steps and heart rate will show here once wearable sync arrives.
         </p>
       )}
     </HabitCard>
@@ -729,7 +729,7 @@ function SleepCard({ data, onChange, activeDate, biometrics, goals }: Props) {
             <EmptyState
               icon={Watch}
               title="No wearable data yet"
-              body="Connect Fitbit, Pixel Watch or Oura in Profile to see sleep stages and HRV here."
+              body="Sleep stages and HRV will show here once wearable sync arrives."
             />
           )}
         </div>

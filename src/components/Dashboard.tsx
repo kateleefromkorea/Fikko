@@ -181,10 +181,10 @@ function WearableComingSoon() {
           <Watch className="size-5 text-muted-foreground" />
         </span>
         <div className="min-w-0">
-          <p className="font-semibold">See heart, sleep and recovery trends here</p>
+          <p className="font-semibold">Heart, sleep and activity insights are coming soon</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Connect Fitbit, Pixel Watch or Oura in Profile and your vitals, sleep stages and recovery will appear here.
-            Apple Health and other wearables are on the way. Everything above is from what you&apos;ve logged in Fikko.
+            Wearable sync is on the way, starting with Apple Health and Garmin. Once it&apos;s here, your vitals, sleep
+            stages and recovery trends will appear in this space. Everything above is from what you&apos;ve logged in Fikko.
           </p>
         </div>
       </CardContent>

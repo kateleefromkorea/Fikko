@@ -1,51 +1,80 @@
-// Permanently deletes the signed-in user's account and all of their data.
+// Account deletion, with a 30-day grace period.
+//   POST, from the app: schedules the signed-in member's account for deletion
+//   30 days out and signs them out everywhere. Signing back in before then
+//   offers to restore it. Optionally records an anonymous reason for leaving.
+//   GET, from Vercel's nightly cron: permanently deletes every account whose
+//   date has passed. Vercel sends "Authorization: Bearer <CRON_SECRET>", which
+//   is checked before anything runs.
 //
 // Runs on the server because it needs the Supabase secret key, which bypasses
 // row-level security and must never reach the browser. The caller proves who
-// they are with their own session token; the function only ever deletes that
-// user. Every table references auth.users with ON DELETE CASCADE, so removing
-// the auth user removes their profile, habits, food log, medications and
-// saved foods with it. Recipe photos live in storage, which doesn't cascade,
-// so those are removed first.
+// they are with their own session token; POST only ever touches that user.
+// Every table references auth.users with ON DELETE CASCADE, so removing the
+// auth user removes their profile, habits, food log, medications and saved
+// foods with it. Recipe photos live in storage, which doesn't cascade, so
+// those are removed first.
 
-import { createClient } from "@supabase/supabase-js";
-import { providerFor } from "./_lib/devices.js";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { admin, json, memberFrom, providerFor, supabaseReady } from "./_lib/devices.js";
 
-function json(body: unknown, status = 200, headers: Record<string, string> = {}) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json", "Cache-Control": "no-store", ...headers },
-  });
-}
+const GRACE_DAYS = 30;
 
 export async function POST(request: Request) {
-  const token = request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
-  if (!token) return json({ error: "You need to be signed in to delete your account." }, 401);
+  if (!supabaseReady()) return json({ error: "Account deletion isn't configured on the server." }, 500);
+  const db = admin();
+  const member = await memberFrom(request, db);
+  if (!member) return json({ error: "Your session has expired. Sign in again and retry." }, 401);
 
-  const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
-  const secretKey = process.env.SUPABASE_SECRET_KEY;
-  if (!url || !secretKey) return json({ error: "Account deletion isn't configured on the server." }, 500);
+  const body = (await request.json().catch(() => ({}))) as { reason?: unknown; details?: unknown };
+  const reason = typeof body.reason === "string" ? body.reason.trim().slice(0, 60) : "";
+  const details = typeof body.details === "string" ? body.details.trim().slice(0, 1000) : "";
 
-  const admin = createClient(url, secretKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+  const scheduledFor = new Date(Date.now() + GRACE_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  const { error } = await db.from("profiles").update({ deletion_scheduled_for: scheduledFor }).eq("user_id", member.id);
+  if (error) return json({ error: "We couldn't delete your account. Please try again." }, 500);
 
-  // Asks Supabase to validate the token, so a forged or expired one is rejected.
-  const { data, error } = await admin.auth.getUser(token);
-  if (error || !data.user) return json({ error: "Your session has expired. Sign in again and retry." }, 401);
+  // Feedback is anonymous and optional; failing to save it shouldn't block leaving.
+  if (reason) await db.from("account_deletion_feedback").insert({ reason, details: details || null });
 
+  // End sessions on every device, not just this one.
+  const token = request.headers.get("authorization")!.replace(/^Bearer\s+/i, "");
+  await db.auth.admin.signOut(token, "global");
+
+  return json({ scheduledFor });
+}
+
+export async function GET(request: Request) {
+  const secret = process.env.CRON_SECRET;
+  if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) return json({ error: "Not allowed." }, 401);
+  if (!supabaseReady()) return json({ error: "Not configured." }, 503);
+
+  const db = admin();
+  const { data: due } = await db
+    .from("profiles")
+    .select("user_id")
+    .not("deletion_scheduled_for", "is", null)
+    .lte("deletion_scheduled_for", new Date().toISOString());
+
+  let deleted = 0;
+  let failed = 0;
+  for (const { user_id } of due ?? []) {
+    try { await purgeAccount(db, user_id); deleted++; } catch { failed++; }
+  }
+  return json({ deleted, failed });
+}
+
+/** Permanently deletes one account and everything that belongs to it. */
+async function purgeAccount(db: SupabaseClient, userId: string) {
   // Revoke Fikko's access at any connected wearable provider before the tokens are deleted.
-  const { data: conns } = await admin.from("device_connections").select("provider, access_token").eq("user_id", data.user.id);
+  const { data: conns } = await db.from("device_connections").select("provider, access_token").eq("user_id", userId);
   for (const c of conns ?? []) await providerFor(c.provider)?.revoke(c.access_token);
 
   // Photos are stored under "<user id>/" in the recipe-photos bucket.
-  const photos = await admin.storage.from("recipe-photos").list(data.user.id, { limit: 1000 });
+  const photos = await db.storage.from("recipe-photos").list(userId, { limit: 1000 });
   if (photos.data?.length) {
-    await admin.storage.from("recipe-photos").remove(photos.data.map((f) => `${data.user.id}/${f.name}`));
+    await db.storage.from("recipe-photos").remove(photos.data.map((f) => `${userId}/${f.name}`));
   }
 
-  const { error: deleteError } = await admin.auth.admin.deleteUser(data.user.id);
-  if (deleteError) return json({ error: "We couldn't delete your account. Please try again." }, 500);
-
-  return json({ deleted: true });
+  const { error } = await db.auth.admin.deleteUser(userId);
+  if (error) throw error;
 }

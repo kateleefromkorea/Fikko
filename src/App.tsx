@@ -8,6 +8,7 @@ import CoachView from "./components/CoachView";
 import { useAuth } from "./auth/AuthProvider";
 import SignInScreen from "./auth/SignInScreen";
 import SetNewPassword from "./auth/SetNewPassword";
+import RestoreAccount from "./auth/RestoreAccount";
 import SetupNeeded from "./auth/SetupNeeded";
 import { isSupabaseConfigured } from "./lib/supabase";
 import { useHabitData } from "./hooks/useHabitData";
@@ -87,6 +88,18 @@ export default function App() {
 
   if (recovering) {
     return <SetNewPassword />;
+  }
+
+  // An account waiting out its deletion grace period opens on the restore
+  // screen instead of the app.
+  if (!profileLoading && profile.deletion_scheduled_for) {
+    return (
+      <RestoreAccount
+        userId={session.user.id}
+        scheduledFor={profile.deletion_scheduled_for}
+        onRestored={() => updateProfile({ deletion_scheduled_for: null })}
+      />
+    );
   }
 
   const email = session.user.email ?? "";

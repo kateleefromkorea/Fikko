@@ -28,6 +28,11 @@ export interface ProfileRow {
   weight_unit: string;
   bmr: number | null;
   tdee: number | null;
+
+  // ── Added by migration 013 (deletion grace period) ──
+  /** Set when the member has asked to delete their account: the date it will
+   *  be permanently deleted. Null for an active account. */
+  deletion_scheduled_for: string | null;
 }
 
 const EMPTY_PROFILE: ProfileRow = {
@@ -53,6 +58,7 @@ const EMPTY_PROFILE: ProfileRow = {
   weight_unit: "kg",
   bmr: null,
   tdee: null,
+  deletion_scheduled_for: null,
 };
 
 /**

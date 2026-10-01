@@ -35,6 +35,10 @@
     {
       "path": "/api/device-sync",
       "schedule": "0 20 * * *"
+    },
+    {
+      "path": "/api/delete-account",
+      "schedule": "0 4 * * *"
     }
   ]
 }

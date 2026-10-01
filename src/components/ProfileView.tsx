@@ -4,11 +4,12 @@ import PageHeader from "./PageHeader";
 import PreferencesCard from "./profile/PreferencesCard";
 import DevicesCard, { type DeviceOutcome } from "./profile/DevicesCard";
 import ChangePassword from "./profile/ChangePassword";
+import DeleteAccountDialog from "./profile/DeleteAccountDialog";
+import ExportDialog from "./profile/ExportDialog";
 import { computeBaseline, LIMITS, inRange } from "../lib/metabolics";
 import { DB_LIMITS, clamp } from "../lib/limits";
-import { deleteAccount, exportAllData } from "../lib/account";
+import { exportAllData, type ExportFormat } from "../lib/account";
 import { Activity, Download, Droplet, KeyRound, Loader2, LogOut, Moon, Pencil, Utensils, type LucideIcon } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -114,9 +115,9 @@ export default function ProfileView({ email, profile, onUpdateProfile, userId, o
   const [editingGoals, setEditingGoals] = useState(false);
   const [draft, setDraft] = useState<Draft>(toDraft(profile));
   const [infoError, setInfoError] = useState<string | null>(null);
+  const [exportOpen, setExportOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deleteText, setDeleteText] = useState("");
-  const [accountBusy, setAccountBusy] = useState<"export" | "delete" | null>(null);
+  const [accountBusy, setAccountBusy] = useState<"export" | null>(null);
   const [accountError, setAccountError] = useState<string | null>(null);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [passwordChanged, setPasswordChanged] = useState(false);
@@ -185,29 +186,14 @@ export default function ProfileView({ email, profile, onUpdateProfile, userId, o
   const cancelInfo = () => { setDraft(toDraft(profile)); setInfoError(null); setEditingInfo(false); };
   const cancelGoals = () => { setDraft(toDraft(profile)); setEditingGoals(false); };
 
-  const exportData = async () => {
+  const exportData = async (format: ExportFormat) => {
     setAccountBusy("export");
     setAccountError(null);
     try {
-      await exportAllData(userId);
+      await exportAllData(userId, format);
     } catch (err) {
       setAccountError(err instanceof Error ? err.message : "Export failed. Please try again.");
     } finally {
-      setAccountBusy(null);
-    }
-  };
-
-  // Deletion is irreversible, so it needs the word typed out rather than a
-  // second click that is easy to hit by accident.
-  const confirmDelete = async () => {
-    if (deleteText !== "DELETE") return;
-    setAccountBusy("delete");
-    setAccountError(null);
-    try {
-      await deleteAccount();
-      // Signing out returns the app to the login screen.
-    } catch (err) {
-      setAccountError(err instanceof Error ? err.message : "We couldn't delete your account. Please try again.");
       setAccountBusy(null);
     }
   };
@@ -432,7 +418,7 @@ export default function ProfileView({ email, profile, onUpdateProfile, userId, o
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={exportData} disabled={accountBusy !== null} className="h-9 px-4">
+            <Button variant="outline" onClick={() => setExportOpen(true)} disabled={accountBusy !== null} className="h-9 px-4">
               {accountBusy === "export" ? <Loader2 className="animate-spin" /> : <Download />}
               {accountBusy === "export" ? "Preparing export…" : "Export my data"}
             </Button>
@@ -446,15 +432,6 @@ export default function ProfileView({ email, profile, onUpdateProfile, userId, o
               <LogOut />
               Sign out
             </Button>
-            {!deleteOpen && (
-              <Button
-                variant="destructive"
-                onClick={() => { setDeleteOpen(true); setAccountError(null); }}
-                className="h-9 px-4 sm:ml-auto"
-              >
-                Delete account
-              </Button>
-            )}
           </div>
 
           {passwordOpen && (
@@ -466,49 +443,30 @@ export default function ProfileView({ email, profile, onUpdateProfile, userId, o
             </p>
           )}
 
-          {deleteOpen && (
-            <Alert variant="destructive" className="p-5">
-              <AlertTitle>Permanently delete your account?</AlertTitle>
-              <AlertDescription className="space-y-4">
-                <p>
-                  This deletes your profile, every habit you've logged, your food log, medications and saved foods,
-                  your Community posts and comments, the recipes and photos you've shared, and your points. It can't be
-                  undone. Export your data first if you want a copy.
-                </p>
-                <div className="space-y-2">
-                  <Label htmlFor="delete-confirm" className="text-foreground">
-                    Type <span className="font-mono">DELETE</span> to confirm
-                  </Label>
-                  <div className="flex flex-wrap gap-2">
-                    <Input
-                      id="delete-confirm"
-                      value={deleteText}
-                      onChange={(e) => setDeleteText(e.target.value)}
-                      autoComplete="off"
-                      className="h-9 w-40 bg-background"
-                    />
-                    <Button
-                      onClick={confirmDelete}
-                      disabled={deleteText !== "DELETE" || accountBusy !== null}
-                      className="h-9 bg-destructive px-4 text-white hover:bg-destructive/90"
-                    >
-                      {accountBusy === "delete" ? "Deleting…" : "Delete my account"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => { setDeleteOpen(false); setDeleteText(""); setAccountError(null); }}
-                      disabled={accountBusy === "delete"}
-                      className="h-9 px-4"
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              </AlertDescription>
-            </Alert>
-          )}
 
           {accountError && <p className="text-sm text-destructive">{accountError}</p>}
+
+          {/* Deliberately low-key, but always here: app stores and privacy law
+              require deletion to be easy to find. */}
+          <Separator />
+          <button
+            type="button"
+            onClick={() => { setDeleteOpen(true); setAccountError(null); }}
+            className="text-sm text-muted-foreground underline-offset-4 hover:text-destructive hover:underline"
+          >
+            Delete account
+          </button>
+          {exportOpen && <ExportDialog userId={userId} onClose={() => setExportOpen(false)} />}
+          {deleteOpen && (
+            <DeleteAccountDialog
+              profile={profile}
+              onUpdateProfile={onUpdateProfile}
+              onExport={exportData}
+              exporting={accountBusy === "export"}
+              onSignOut={onSignOut}
+              onClose={() => setDeleteOpen(false)}
+            />
+          )}
         </CardContent>
       </Card>
     </div>

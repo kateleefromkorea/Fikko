@@ -3,10 +3,11 @@ import type { ProfileRow } from "../hooks/useProfile";
 import PageHeader from "./PageHeader";
 import PreferencesCard from "./profile/PreferencesCard";
 import DevicesCard, { type DeviceOutcome } from "./profile/DevicesCard";
+import ChangePassword from "./profile/ChangePassword";
 import { computeBaseline, LIMITS, inRange } from "../lib/metabolics";
 import { DB_LIMITS, clamp } from "../lib/limits";
 import { deleteAccount, exportAllData } from "../lib/account";
-import { Activity, Download, Droplet, Loader2, LogOut, Moon, Pencil, Utensils, type LucideIcon } from "lucide-react";
+import { Activity, Download, Droplet, KeyRound, Loader2, LogOut, Moon, Pencil, Utensils, type LucideIcon } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -117,6 +118,8 @@ export default function ProfileView({ email, profile, onUpdateProfile, userId, o
   const [deleteText, setDeleteText] = useState("");
   const [accountBusy, setAccountBusy] = useState<"export" | "delete" | null>(null);
   const [accountError, setAccountError] = useState<string | null>(null);
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [passwordChanged, setPasswordChanged] = useState(false);
 
   const set = (k: keyof Draft) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setDraft((p) => ({ ...p, [k]: e.target.value }));
@@ -425,7 +428,7 @@ export default function ProfileView({ email, profile, onUpdateProfile, userId, o
       <Card className={cardCls}>
         <CardHeader>
           <CardTitle className="text-base font-semibold">Account</CardTitle>
-          <CardDescription>Export or delete your data, or sign out.</CardDescription>
+          <CardDescription>Change your password, export or delete your data, or sign out.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="flex flex-wrap gap-2">
@@ -433,6 +436,12 @@ export default function ProfileView({ email, profile, onUpdateProfile, userId, o
               {accountBusy === "export" ? <Loader2 className="animate-spin" /> : <Download />}
               {accountBusy === "export" ? "Preparing export…" : "Export my data"}
             </Button>
+            {!passwordOpen && (
+              <Button variant="outline" onClick={() => { setPasswordOpen(true); setPasswordChanged(false); }} className="h-9 px-4">
+                <KeyRound />
+                Change password
+              </Button>
+            )}
             <Button variant="outline" onClick={onSignOut} className="h-9 px-4">
               <LogOut />
               Sign out
@@ -447,6 +456,15 @@ export default function ProfileView({ email, profile, onUpdateProfile, userId, o
               </Button>
             )}
           </div>
+
+          {passwordOpen && (
+            <ChangePassword email={email} onClose={(changed) => { setPasswordOpen(false); setPasswordChanged(changed); }} />
+          )}
+          {passwordChanged && (
+            <p role="status" className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm">
+              Your password has been changed. Use the new one next time you sign in.
+            </p>
+          )}
 
           {deleteOpen && (
             <Alert variant="destructive" className="p-5">

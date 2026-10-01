@@ -10,18 +10,15 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 
-// Devices that connect for real, in display order.
-// Empty for now: Fikko is prioritising Apple Health and Garmin, so the built
-// Fitbit/Pixel ("google") and Oura connections are switched off. Add a
-// provider back here to let members connect it again; the server side is ready.
-const LIVE: Provider[] = [];
+// Devices that connect for real, in display order. Oura's connection is built
+// but switched off; add "oura" here to let members connect it.
+const LIVE: Provider[] = ["google"];
 
 // Integrations members can't connect yet, in priority order. "Up next" are
 // the two being built first; the rest are planned.
 const PLANNED: { id: string; name: string; description: string; next?: boolean }[] = [
   { id: "apple-health", name: "Apple Health", description: "Steps, workouts, sleep & heart rate from iPhone and Apple Watch", next: true },
   { id: "garmin", name: "Garmin Connect", description: "Workouts, sleep, heart rate, VO2 max & body battery", next: true },
-  { id: "google", name: "Fitbit & Pixel Watch", description: "Steps, sleep stages, resting heart rate & HRV" },
   { id: "oura", name: "Oura Ring", description: "Sleep, readiness, HRV & SpO₂" },
   { id: "whoop", name: "WHOOP", description: "Recovery score, strain & sleep performance" },
   { id: "samsung", name: "Samsung Health", description: "Steps, workouts & sleep from Galaxy Watch" },
@@ -49,8 +46,8 @@ function ago(iso: string) {
 }
 
 /**
- * Wearable connections. Fitbit & Pixel Watch (via Google) and Oura connect
- * for real; the rest are listed as planned. After a sync or disconnect,
+ * Wearable connections. Fitbit & Pixel Watch (via Google) connect for real;
+ * the rest are listed as planned. After a sync or disconnect,
  * `onSynced` lets the app reload the readings.
  */
 export default function DevicesCard({ outcome, onSynced }: { outcome: DeviceOutcome | null; onSynced: () => void }) {
@@ -85,7 +82,7 @@ export default function DevicesCard({ outcome, onSynced }: { outcome: DeviceOutc
     <Card className="gap-6 [--card-spacing:--spacing(6)]">
       <CardHeader>
         <CardTitle className="text-base font-semibold">Connected devices</CardTitle>
-        <CardDescription>Wearable sync is coming soon, starting with Apple Health and Garmin.</CardDescription>
+        <CardDescription>Connect Fitbit or Pixel Watch now. Apple Health and Garmin are coming next.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         {(message || error) && (

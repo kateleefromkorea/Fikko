@@ -93,7 +93,7 @@ export function Delta({ value, suffix, goodWhen = "up", tolerance = 0.5, classNa
   return (
     <span className={cn("inline-flex items-center gap-1 text-xs", flat ? "text-muted-foreground" : good ? "text-primary" : "text-destructive", className)}>
       <Arrow className="size-3.5" aria-hidden="true" />
-      {flat ? (tolerance > 0.5 ? "On track" : "No change") : `${value > 0 ? "+" : "−"}${Math.abs(Math.round(value))}`}{flat ? "" : suffix}
+      {flat ? (tolerance > 0.5 ? "On track" : "No change") : `${value > 0 ? "+" : "−"}${Math.abs(Math.round(value)).toLocaleString()}`}{flat ? "" : suffix}
     </span>
   );
 }

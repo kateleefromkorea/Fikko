@@ -488,15 +488,22 @@ export function CustomHabitsSection({ ctx }: { ctx: DashCtx }) {
 
 const WEEKDAYS = ["Sundays", "Mondays", "Tuesdays", "Wednesdays", "Thursdays", "Fridays", "Saturdays"];
 
-/** Plain-language connections between habits, only where the data backs them. */
-export function PatternsSection({ ctx }: { ctx: DashCtx }) {
-  const { data, profile, period, dates, ov, prevOv, m, waterTarget } = ctx;
-  const items: { icon: typeof Lightbulb; text: string }[] = [];
+export interface Pattern { id: string; icon: typeof Lightbulb; text: string }
 
-  if (prevOv) {
+/**
+ * Plain-language connections between habits, only where the data backs them.
+ * Shared with the weekly report, which leaves out the ones about today
+ * (`relative: false`) because a report describes a finished week.
+ */
+export function patternItems(ctx: DashCtx, { relative = true } = {}): Pattern[] {
+  const { data, profile, period, dates, ov, prevOv, m, waterTarget } = ctx;
+  const items: Pattern[] = [];
+
+  if (relative && prevOv) {
     const diff = Math.round((ov.rate - prevOv.rate) * 100);
     if (Math.abs(diff) >= 5) {
       items.push({
+        id: "consistency",
         icon: TrendingUp,
         text: diff > 0
           ? `Your consistency is up ${diff} points on ${PREV_PHRASE[period]}. Whatever you changed is working.`
@@ -509,17 +516,17 @@ export function PatternsSection({ ctx }: { ctx: DashCtx }) {
 
   const exMood = split(dates, (d) => (val(m.exercise, d) ?? 0) >= EXERCISE_TARGET_MIN, moodOf);
   if (exMood && exMood.withAvg - exMood.withoutAvg >= 0.3) {
-    items.push({ icon: Dumbbell, text: `On days you exercised ${EXERCISE_TARGET_MIN}+ minutes, your mood averaged ${one(exMood.withAvg)} vs ${one(exMood.withoutAvg)} on other days.` });
+    items.push({ id: "exercise-mood", icon: Dumbbell, text: `On days you exercised ${EXERCISE_TARGET_MIN}+ minutes, your mood averaged ${one(exMood.withAvg)} vs ${one(exMood.withoutAvg)} on other days.` });
   }
 
   const sleepMood = split(dates, (d) => { const r = val(m.sleep, d); return r && r > 0 ? r >= 4 : null; }, moodOf);
   if (sleepMood && sleepMood.withAvg - sleepMood.withoutAvg >= 0.3) {
-    items.push({ icon: Moon, text: `After nights you woke up rested, your mood averaged ${one(sleepMood.withAvg)} vs ${one(sleepMood.withoutAvg)} otherwise.` });
+    items.push({ id: "sleep-mood", icon: Moon, text: `After nights you woke up rested, your mood averaged ${one(sleepMood.withAvg)} vs ${one(sleepMood.withoutAvg)} otherwise.` });
   }
 
   const waterMood = split(dates, (d) => (val(m.water, d) ?? 0) >= waterTarget, moodOf);
   if (waterMood && waterMood.withAvg - waterMood.withoutAvg >= 0.3) {
-    items.push({ icon: GlassWater, text: `Days you hit your water target came with a better mood: ${one(waterMood.withAvg)} vs ${one(waterMood.withoutAvg)}.` });
+    items.push({ id: "water-mood", icon: GlassWater, text: `Days you hit your water target came with a better mood: ${one(waterMood.withAvg)} vs ${one(waterMood.withoutAvg)}.` });
   }
 
   // Worst sleep factor, when it clearly lowers rest.
@@ -535,7 +542,7 @@ export function PatternsSection({ ctx }: { ctx: DashCtx }) {
     }
   }
   if (worst) {
-    items.push({ icon: BedDouble, text: `Nights with ${worst.label} averaged a rest score of ${one(worst.with)}, against ${one(worst.without)} without.` });
+    items.push({ id: "sleep-factor", icon: BedDouble, text: `Nights with ${worst.label} averaged a rest score of ${one(worst.with)}, against ${one(worst.without)} without.` });
   }
 
   // Best and worst weekday, once there are a few of each.
@@ -546,7 +553,7 @@ export function PatternsSection({ ctx }: { ctx: DashCtx }) {
     const hi = avgs.indexOf(Math.max(...avgs));
     const lo = avgs.indexOf(Math.min(...avgs));
     if (avgs[hi] - avgs[lo] >= 0.15) {
-      items.push({ icon: CalendarDays, text: `You're most consistent on ${WEEKDAYS[hi]} (${pct(avgs[hi])}) and least on ${WEEKDAYS[lo]} (${pct(avgs[lo])}).` });
+      items.push({ id: "weekday", icon: CalendarDays, text: `You're most consistent on ${WEEKDAYS[hi]} (${pct(avgs[hi])}) and least on ${WEEKDAYS[lo]} (${pct(avgs[lo])}).` });
     }
   }
 
@@ -554,21 +561,28 @@ export function PatternsSection({ ctx }: { ctx: DashCtx }) {
   const goal = profile?.calorie_goal;
   if (cal != null && goal && Math.abs(cal - goal) > goal * 0.1) {
     items.push({
+      id: "calories",
       icon: Utensils,
       text: `You averaged ${kcal(cal)} kcal on days you logged food, about ${kcal(Math.abs(cal - goal))} ${cal > goal ? "above" : "below"} your ${kcal(goal)} target.`,
     });
   }
 
-  const streak = currentStreak((d) => loggedOn(data, d));
-  if (streak >= 3) items.push({ icon: Flame, text: `You've checked in ${streak} days in a row. Keep it going.` });
+  if (relative) {
+    const streak = currentStreak((d) => loggedOn(data, d));
+    if (streak >= 3) items.push({ id: "streak", icon: Flame, text: `You've checked in ${streak} days in a row. Keep it going.` });
+  }
+  return items;
+}
 
+export function PatternsSection({ ctx }: { ctx: DashCtx }) {
+  const items = patternItems(ctx);
   return (
     <Section title="What we noticed" sub="Connections in your own data. These are patterns, not medical advice.">
       <Card className="[--card-spacing:--spacing(6)]">
         <CardContent>
           {items.length ? (
             <ul className="grid gap-3 md:grid-cols-2">
-              {items.map((it, i) => <InsightRow key={i} icon={it.icon} text={it.text} />)}
+              {items.map((it) => <InsightRow key={it.id} icon={it.icon} text={it.text} />)}
             </ul>
           ) : (
             <EmptyState icon={Lightbulb} title="Nothing to point out yet" body="Keep logging. Patterns show up after a week or two of check-ins." />

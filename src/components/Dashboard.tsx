@@ -21,6 +21,7 @@ import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle }
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { C, ChartCard, InsightRow, Section, TrendArea, VitalCard, ax, fmt, ttStyle } from "./dashboard/ui";
+import WeeklyReportCard from "./dashboard/WeeklyReport";
 import DashboardSummary from "./dashboard/DashboardSummary";
 import {
   ConsistencySection, CustomHabitsSection, MoodMedsSection, MovementSection, NutritionSection, PatternsSection,
@@ -312,6 +313,7 @@ export default function Dashboard({ data, biometrics, profile }: Props) {
         action={<PeriodToggle period={period} onChange={setPeriod} />}
       />
 
+      <WeeklyReportCard data={data} biometrics={biometrics} profile={profile} />
       <DashboardSummary ctx={ctx} />
       <ConsistencySection ctx={ctx} />
       <PatternsSection ctx={ctx} />

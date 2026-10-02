@@ -85,6 +85,21 @@ export default defineConfig(({ mode }) => {
         '@': path.resolve(__dirname, './src'),
       },
     },
+    build: {
+      rolldownOptions: {
+        output: {
+          // Libraries that rarely change get their own files, so after a Fikko
+          // update returning members only re-download the app code, not React
+          // and Supabase (about 1 MB unminified) again.
+          codeSplitting: {
+            groups: [
+              { name: 'react', test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/, priority: 20 },
+              { name: 'supabase', test: /node_modules[\\/]@supabase[\\/]/, priority: 20 },
+            ],
+          },
+        },
+      },
+    },
     server: {
       port: parseInt(process.env.PORT || '5173'),
     },

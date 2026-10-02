@@ -4,6 +4,14 @@
 //
 // Responses are cached at Vercel's CDN for a day, keyed on the normalised
 // query, so "banana" searched by a thousand users costs one USDA request.
+//
+// Only signed-in members can trigger a USDA request, so outsiders can't use up
+// the key's hourly quota. The session token comes in X-Fikko-Session rather
+// than Authorization, because Vercel's CDN won't cache requests that carry an
+// Authorization header. Cached answers are served without the check, which is
+// fine: they cost nothing and are public nutrition data.
+
+import { admin, supabaseReady } from "./_lib/devices.js";
 
 
 function json(body: unknown, status = 200, headers: Record<string, string> = {}) {
@@ -45,6 +53,11 @@ export async function GET(request: Request) {
   const query = normalizeQuery(new URL(request.url).searchParams.get("q") ?? "");
   if (!query) return json({ error: "Enter a food to search for." }, 400);
   if (query.length > MAX_QUERY_LENGTH) return json({ error: "That search is too long." }, 400);
+
+  const token = request.headers.get("x-fikko-session");
+  if (!token || !supabaseReady()) return json({ error: "Sign in to search foods." }, 401);
+  const { data: member, error: authError } = await admin().auth.getUser(token);
+  if (authError || !member.user) return json({ error: "Sign in to search foods." }, 401);
 
   // USDA_API_KEY is the server-only name. VITE_USDA_API_KEY is accepted as a
   // fallback so the existing Vercel variable keeps working during the switch.

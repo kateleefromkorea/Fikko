@@ -2,7 +2,6 @@ import { Suspense, lazy, useEffect, useState } from "react";
 import { ChartNoAxesColumn, ChefHat, HeartHandshake, ListChecks, LogOut, UserRound, Users, type LucideIcon } from "lucide-react";
 import { completion } from "./lib/completion";
 import HabitsView from "./components/HabitsView";
-import ProfileView from "./components/ProfileView";
 import type { DeviceOutcome } from "./components/profile/DevicesCard";
 import CoachView from "./components/CoachView";
 import { useAuth } from "./auth/AuthProvider";
@@ -31,6 +30,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { todayKey } from "./lib/dates";
 import { tracksMacros } from "./lib/preferences";
+import { hasDraft } from "./onboarding/draft";
 
 // Loaded on demand. The Dashboard carries the charting library (most of the
 // app's JavaScript) and onboarding only runs once per user, so neither should
@@ -39,6 +39,7 @@ const Dashboard = lazy(() => import("./components/Dashboard"));
 const OnboardingModal = lazy(() => import("./onboarding/OnboardingModal"));
 const CommunityView = lazy(() => import("./components/CommunityView"));
 const RecipesView = lazy(() => import("./components/RecipesView"));
+const ProfileView = lazy(() => import("./components/ProfileView"));
 
 type Tab = "habits" | "dashboard" | "recipes" | "community" | "coaches" | "profile";
 
@@ -65,7 +66,8 @@ export default function App() {
     if (result !== "connected" && result !== "declined" && result !== "failed") return null;
     return { provider: provider === "oura" || provider === "google" ? provider : null, result };
   });
-  const [tab, setTab] = useState<Tab>(deviceOutcome ? "profile" : "habits");
+  // Unless the sign-in was started from onboarding, which picks up where it left off.
+  const [tab, setTab] = useState<Tab>(deviceOutcome && !hasDraft() ? "profile" : "habits");
   useEffect(() => {
     if (deviceOutcome) window.history.replaceState(null, "", window.location.pathname);
   }, [deviceOutcome]);
@@ -231,6 +233,7 @@ export default function App() {
         )}
         {tab === "coaches" && <CoachView />}
         {tab === "profile" && (
+          <Suspense fallback={<p className="py-10 text-center text-sm text-muted-foreground">Loading profile…</p>}>
           <ProfileView
             email={email}
             profile={profile}
@@ -240,6 +243,7 @@ export default function App() {
             deviceOutcome={deviceOutcome}
             onDevicesSynced={() => void reloadBiometrics()}
           />
+          </Suspense>
         )}
       </main>
 
@@ -247,6 +251,8 @@ export default function App() {
         <Suspense fallback={null}>
           <OnboardingModal
             profile={profile}
+            userId={session.user.id}
+            deviceOutcome={deviceOutcome}
             onComplete={async (patch) => {
               await updateProfile(patch);
               // Instant gratification: land on the dashboard, where the numbers

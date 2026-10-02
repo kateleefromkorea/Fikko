@@ -3,6 +3,8 @@ import type { ProfileRow } from "../hooks/useProfile";
 import { computeBaseline } from "../lib/metabolics";
 import type { Baseline } from "../lib/metabolics";
 import { useOnboardingState } from "./useOnboardingState";
+import { clearDraft, readDraft } from "./draft";
+import type { DeviceOutcome } from "../components/profile/DevicesCard";
 import StepWelcome from "./steps/StepWelcome";
 import StepBiometrics from "./steps/StepBiometrics";
 import StepGoals from "./steps/StepGoals";
@@ -23,15 +25,20 @@ const SKIPPABLE = new Set([4, 6]);
 
 interface Props {
   profile: ProfileRow;
+  userId: string;
+  /** Set when the member is back from a device's sign-in started on step 5. */
+  deviceOutcome: DeviceOutcome | null;
   /** Persists the answers; the modal closes once this resolves. */
   onComplete: (patch: Partial<ProfileRow>, baseline: Baseline) => Promise<void>;
 }
 
-export default function OnboardingModal({ profile, onComplete }: Props) {
-  const api = useOnboardingState(profile);
+export default function OnboardingModal({ profile, userId, deviceOutcome, onComplete }: Props) {
+  // Answers parked before leaving for a device's sign-in, if this is the way back.
+  const [draft] = useState(() => readDraft(userId));
+  const api = useOnboardingState(profile, draft);
   const { state: s, derived, errors } = api;
 
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(draft?.step ?? 1);
   // Errors stay hidden until the user actually tries to move on, so a
   // half-filled step is never scolded mid-typing.
   const [showError, setShowError] = useState(false);
@@ -95,6 +102,7 @@ export default function OnboardingModal({ profile, onComplete }: Props) {
         },
         baseline,
       );
+      clearDraft();
     } finally {
       setSaving(false);
     }
@@ -130,7 +138,9 @@ export default function OnboardingModal({ profile, onComplete }: Props) {
             {step === 2 && <StepBiometrics api={api} showError={showError} />}
             {step === 3 && <StepGoals api={api} showError={showError} />}
             {step === 4 && <StepDiet api={api} />}
-            {step === 5 && <StepLifestyle api={api} showError={showError} />}
+            {step === 5 && (
+              <StepLifestyle api={api} showError={showError} userId={userId} outcome={draft ? deviceOutcome : null} />
+            )}
             {step === 6 && <StepPreferences api={api} />}
             {onResult &&
               (baseline ? (

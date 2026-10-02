@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import type { ProfileRow } from "../hooks/useProfile";
+import type { OnboardingDraft } from "./draft";
 import {
   cmToFtIn, ftInToCm, kgToLb, lbToKg,
   LIMITS, inRange, ageFromDob, goalByKey,
@@ -153,8 +154,8 @@ function stepErrors(s: OnboardingState, d: OnboardingDerived): Record<number, st
   };
 }
 
-export function useOnboardingState(profile: ProfileRow) {
-  const [state, setState] = useState<OnboardingState>(() => initialState(profile));
+export function useOnboardingState(profile: ProfileRow, draft: OnboardingDraft | null = null) {
+  const [state, setState] = useState<OnboardingState>(() => (draft ? { ...initialState(profile), ...draft.state } : initialState(profile)));
 
   const derived = useMemo(() => derive(state), [state]);
   const errors = useMemo(() => stepErrors(state, derived), [state, derived]);

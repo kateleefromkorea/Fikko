@@ -1,4 +1,5 @@
 import type { MacrosPer100g } from "../types";
+import { supabase } from "./supabase";
 
 export interface FoodResult extends MacrosPer100g {
   id: string;
@@ -38,7 +39,10 @@ export async function searchFoods(query: string): Promise<FoodResult[]> {
   const q = query.trim().toLowerCase().replace(/\s+/g, " ");
   if (!q) return [];
 
-  const res = await fetch(`/api/food-search?q=${encodeURIComponent(q)}`);
+  const { data: auth } = await supabase.auth.getSession();
+  const res = await fetch(`/api/food-search?q=${encodeURIComponent(q)}`, {
+    headers: { "X-Fikko-Session": auth.session?.access_token ?? "" },
+  });
   const data: { foods?: FoodResult[]; error?: string } = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error ?? `Food search failed (${res.status})`);
 

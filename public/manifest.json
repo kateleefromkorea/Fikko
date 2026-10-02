@@ -1,7 +1,7 @@
 {
   "name": "Fikko",
   "short_name": "Fikko",
-  "description": "Track your daily habits including water intake, medication, food, exercise, sleep, and mood.",
+  "description": "Your entire day, simplified into one check-in. Completely ad-free.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

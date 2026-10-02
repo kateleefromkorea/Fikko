@@ -1,39 +1,62 @@
-import { useState } from "react";
-import { Activity, Check, Heart, Loader2, Watch, type LucideIcon } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Check, Heart, Loader2, Watch, type LucideIcon } from "lucide-react";
 import type { useOnboardingState } from "../useOnboardingState";
+import { saveDraft } from "../draft";
 import { ACTIVITY_LEVELS } from "../../lib/metabolics";
+import { PROVIDER_INFO, connectDevice, fetchConnections } from "../../lib/devices";
+import type { DeviceOutcome } from "../../components/profile/DevicesCard";
 import { ACTIVITY_ICONS, ErrorText, FALLBACK_ICON, Field, SelectCard, StepHeading } from "../ui";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type Api = ReturnType<typeof useOnboardingState>;
 
-const SOURCES: { key: string; icon: LucideIcon; scopes: string[] }[] = [
-  { key: "Apple Health", icon: Heart, scopes: ["Steps & activity", "Heart rate", "Sleep analysis", "Body measurements"] },
-  { key: "Google Fit", icon: Activity, scopes: ["Steps & activity", "Heart points", "Workouts"] },
-  { key: "Fitbit", icon: Watch, scopes: ["Steps & activity", "Sleep stages", "Heart rate"] },
+const FITBIT = PROVIDER_INFO.google.name;
+
+// Listed so members know they're on the way; they connect from Profile once built.
+const SOON: { name: string; icon: LucideIcon }[] = [
+  { name: "Apple Health", icon: Heart },
+  { name: "Garmin Connect", icon: Watch },
 ];
 
-export default function StepLifestyle({ api, showError }: { api: Api; showError: boolean }) {
+export default function StepLifestyle({ api, showError, userId, outcome }: {
+  api: Api;
+  showError: boolean;
+  userId: string;
+  /** How the Fitbit sign-in went, when the member has just come back from it. */
+  outcome: DeviceOutcome | null;
+}) {
   const { state: s, errors, set } = api;
-  // Which source's permission sheet is open, and which is mid-"connect".
-  const [asking, setAsking] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
+  const [error, setError] = useState<string | null>(
+    outcome?.result === "declined" ? `${FITBIT} wasn't connected because access wasn't approved.`
+      : outcome?.result === "failed" ? `We couldn't connect ${FITBIT}. You can try again, or later from your Profile.`
+        : null,
+  );
 
-  const sheet = SOURCES.find((x) => x.key === asking);
-  const connected = SOURCES.find((x) => x.key === s.wearable);
-  const ConnectedIcon = connected?.icon ?? Watch;
+  // The real connection decides what's shown, not just what was saved in the answers.
+  useEffect(() => {
+    let live = true;
+    void fetchConnections().then((conns) => {
+      if (!live) return;
+      const active = conns.some((c) => c.provider === "google" && c.status === "active");
+      set("wearable", active ? FITBIT : null);
+    });
+    return () => { live = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on arrival at this step
+  }, []);
 
-  function allow() {
-    if (!sheet) return;
+  async function connect() {
     setConnecting(true);
-    // Stands in for the real permission round trip, which needs a native
-    // shell — HealthKit is not reachable from a browser.
-    setTimeout(() => {
-      set("wearable", sheet.key);
+    setError(null);
+    // Park the answers so far; the sign-in leaves this page and brings the member back to this step.
+    saveDraft({ userId, step: 5, state: s });
+    try {
+      await connectDevice("google");
+    } catch (err) {
       setConnecting(false);
-      setAsking(null);
-    }, 900);
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+    }
   }
 
   return (
@@ -60,73 +83,39 @@ export default function StepLifestyle({ api, showError }: { api: Api; showError:
 
       <div className="mt-8 border-t pt-8">
         <Field
-          label="Sync a health app"
-          hint="Optional, and a demo for now: the connection is simulated, no real data leaves or enters your account yet."
+          label="Sync a wearable"
+          hint="Optional. You'll sign in with Google to approve read-only access, then come straight back here. Manage it any time in Profile."
         >
-          {s.wearable ? (
+          {s.wearable === FITBIT ? (
             <div className="flex items-center gap-4 rounded-lg border border-primary bg-primary/5 p-4">
               <span className="grid size-10 place-items-center rounded-lg bg-primary/10 text-primary" aria-hidden="true">
-                <ConnectedIcon className="size-5" />
+                <Check className="size-5" />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium">{s.wearable} connected</p>
-                <p className="text-sm text-muted-foreground">Permission granted · demo data</p>
+                <p className="text-sm font-medium">{FITBIT} connected</p>
+                <p className="text-sm text-muted-foreground">Your last 30 days are synced, and new data syncs every night.</p>
               </div>
-              <Button variant="outline" size="sm" onClick={() => set("wearable", null)} className="h-8 px-3">
-                Disconnect
-              </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-              {SOURCES.map((x) => (
-                <Button
-                  key={x.key}
-                  type="button"
-                  variant="outline"
-                  onClick={() => setAsking(x.key)}
-                  className="h-11 justify-start px-4"
-                >
-                  <x.icon className="text-muted-foreground" />
-                  {x.key}
-                </Button>
-              ))}
+            <div className="flex flex-col gap-2">
+              <Button type="button" variant="outline" onClick={connect} disabled={connecting} className="h-11 justify-start px-4">
+                {connecting ? <Loader2 className="animate-spin" /> : <Watch className="text-muted-foreground" />}
+                {connecting ? "Opening Google sign-in…" : `Connect ${FITBIT}`}
+              </Button>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {SOON.map((x) => (
+                  <div key={x.name} className="flex h-11 items-center gap-2 rounded-md border px-4 text-sm text-muted-foreground">
+                    <x.icon className="size-4" aria-hidden="true" />
+                    <span className="flex-1">{x.name}</span>
+                    <Badge variant="secondary">Soon</Badge>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
+          {error && <ErrorText>{error}</ErrorText>}
         </Field>
       </div>
-
-      {/* Simulated OS permission sheet. */}
-      <Dialog open={!!sheet} onOpenChange={(open) => !open && !connecting && setAsking(null)}>
-        {sheet && (
-          <DialogContent showCloseButton={false} className="gap-6 p-6 sm:max-w-sm">
-            <DialogHeader className="items-center text-center">
-              <span className="grid size-12 place-items-center rounded-xl bg-muted" aria-hidden="true">
-                <sheet.icon className="size-6" />
-              </span>
-              <DialogTitle className="text-lg font-semibold">Allow Fikko to read {sheet.key}?</DialogTitle>
-              <DialogDescription>Fikko would like access to:</DialogDescription>
-            </DialogHeader>
-            <ul className="space-y-2">
-              {sheet.scopes.map((sc) => (
-                <li key={sc} className="flex items-center gap-2 text-sm">
-                  <Check className="size-4 text-primary" aria-hidden="true" />
-                  {sc}
-                </li>
-              ))}
-            </ul>
-            <p className="text-sm text-muted-foreground">You can turn this off at any time from your profile.</p>
-            <div className="flex flex-col gap-2">
-              <Button onClick={allow} disabled={connecting} className="h-9">
-                {connecting && <Loader2 className="animate-spin" />}
-                {connecting ? "Connecting…" : "Allow"}
-              </Button>
-              <Button variant="ghost" onClick={() => setAsking(null)} disabled={connecting} className="h-9">
-                Not now
-              </Button>
-            </div>
-          </DialogContent>
-        )}
-      </Dialog>
     </div>
   );
 }

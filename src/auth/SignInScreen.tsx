@@ -20,9 +20,15 @@ function GoogleMark() {
   );
 }
 
+/** Links can open the sign-up form directly with ?mode=signup (the marketing
+ *  site's "Start" buttons do); anything else opens sign-in as before. */
+function initialMode(): "signin" | "signup" {
+  return new URLSearchParams(window.location.search).get("mode") === "signup" ? "signup" : "signin";
+}
+
 export default function SignInScreen() {
   const { signInWithPassword, signUpWithPassword, signInWithGoogle, sendPasswordReset } = useAuth();
-  const [mode, setMode] = useState<"signin" | "signup" | "reset">("signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "reset">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);

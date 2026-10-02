@@ -11,6 +11,7 @@ import type { useMedications } from "../hooks/useMedications";
 import { useFoodLog } from "../hooks/useFoodLog";
 import { useCustomFoods } from "../hooks/useCustomFoods";
 import FoodLogModal from "./FoodLogModal";
+import { useSavedMeals } from "../hooks/useSavedMeals";
 import ProgressRing from "./ProgressRing";
 import {
   CUSTOM_ICONS, CustomHabitIcon, DoneBadge, EmptyState, Figure, GroupLabel, HabitBar, HabitCard, Hint, panelCls, softCardCls,
@@ -30,7 +31,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { shiftDateKey, todayKey } from "../lib/dates";
 import { activityComment, foodComment, medsComment, momentFor, moodComment, sleepComment, waterComment } from "./habitComments";
-import { sleepHours } from "../lib/dashboardStats";
+import { dayRange, sleepHours } from "../lib/dashboardStats";
 import { sumMacros } from "../lib/macros";
 
 function timeGreeting() {
@@ -45,11 +46,59 @@ function greeting(name: string) {
   return firstName ? `${timeGreeting()}, ${firstName}` : timeGreeting();
 }
 
-function progressSubtitle(done: number, total: number, isToday: boolean) {
-  if (!isToday) return `${done} of ${total} habits done that day.`;
-  if (total === 0 || done === 0) return "How are you doing today?";
-  if (done >= total) return "You've completed everything today. Lovely work.";
-  return `${done} of ${total} habits done today. Keep going.`;
+// How each built-in habit reads in "Water and sleep to go."
+const LEFT_NAMES: Record<CoreHabit, string> = {
+  food: "meals", exercise: "activity", water: "water", mood: "mood", medication: "meds", sleep: "sleep",
+};
+
+function ordinal(n: number) {
+  const words = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh"];
+  return words[n - 1] ?? `${n}th`;
+}
+
+function joinNames(names: string[]) {
+  if (names.length === 1) return names[0];
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
+
+/**
+ * The line under the greeting: what's still left today, with the one most
+ * useful number, or how this complete day fits into the week.
+ */
+function progressSubtitle(data: HabitData, date: string, waterGoal: number) {
+  const { core, custom, done, total } = completion(data, date, waterGoal);
+  const isToday = date === TODAY;
+
+  if (!isToday) {
+    return done >= total && total > 0 ? "Everything done that day." : `${done} of ${total} done that day.`;
+  }
+  if (done === 0) return "Nothing logged yet today.";
+
+  if (done >= total) {
+    const fullDays = dayRange(7).filter((d) => {
+      const c = completion(data, d, waterGoal);
+      return c.total > 0 && c.done === c.total;
+    }).length;
+    return `All ${total} done, your ${ordinal(fullDays)} full day this week.`;
+  }
+
+  const left = [
+    ...core.filter((c) => !c.done).map((c) => c.key),
+    ...custom.filter((c) => !c.done).map((c) => c.habit.name),
+  ];
+  const names = left.map((k) => (k in LEFT_NAMES ? LEFT_NAMES[k as CoreHabit] : k));
+  const lead = left.length <= 3 ? `${joinNames(names)} to go.` : `${left.length} habits to go.`;
+
+  // One concrete nudge, for whichever counted habit is closest to useful.
+  let detail = "";
+  if (left.includes("water")) {
+    const off = waterGoal - (data.water.find((e) => e.date === date)?.value ?? 0);
+    detail = ` You're ${off} ${off === 1 ? "glass" : "glasses"} off.`;
+  } else if (left.includes("exercise")) {
+    const off = EXERCISE_TARGET_MIN - (data.exercise.find((e) => e.date === date)?.value ?? 0);
+    detail = ` ${off} active minutes would do it.`;
+  }
+  return lead.charAt(0).toUpperCase() + lead.slice(1) + detail;
 }
 
 type Medications = ReturnType<typeof useMedications>;
@@ -167,7 +216,7 @@ function TodaySummary({ data, activeDate, onDateChange, profileName, waterGoal }
       <div className="mt-6 grid items-center gap-8 md:grid-cols-[1fr_auto]">
         <div className="min-w-0">
           <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">{greeting(profileName)}</h1>
-          <p className="mt-3 text-lg text-foreground/70">{progressSubtitle(done, total, isToday)}</p>
+          <p className="mt-3 text-lg text-foreground/70">{progressSubtitle(data, activeDate, waterGoal)}</p>
           <div className="mt-6 flex flex-wrap gap-2">
             {core.map(({ key, done }) => (
               <HabitChip
@@ -227,6 +276,7 @@ function FoodCard({ data, onChange, activeDate, userId, goals, trackMacros }: Pr
 
   const foodLog = useFoodLog(userId, activeDate, data, onChange);
   const customFoods = useCustomFoods(userId);
+  const savedMeals = useSavedMeals(userId);
   const [openMeal, setOpenMeal] = useState<MealKey | null>(null);
 
   const target = Math.round(goals.calories);
@@ -302,12 +352,18 @@ function FoodCard({ data, onChange, activeDate, userId, goals, trackMacros }: Pr
         <FoodLogModal
           meal={openMeal}
           mealLabel={MEALS.find((m) => m.key === openMeal)!.label}
+          date={activeDate}
+          userId={userId}
           items={foodLog.items.filter((i) => i.meal === openMeal)}
           savedFoods={customFoods.foods}
+          savedMeals={savedMeals.meals}
           onAdd={(food) => foodLog.addItem(openMeal, food)}
+          onAddMany={(foods) => foodLog.addItems(openMeal, foods)}
           onUpdateGrams={foodLog.updateGrams}
           onDelete={foodLog.deleteItem}
           onSaveFood={customFoods.saveFood}
+          onSaveMeal={savedMeals.saveMeal}
+          onDeleteMeal={savedMeals.deleteMeal}
           onClose={() => setOpenMeal(null)}
           showMacros={trackMacros}
         />

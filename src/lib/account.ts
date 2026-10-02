@@ -17,6 +17,7 @@ const USER_TABLES = [
   ["medications", null],
   ["food_log_items", "date"],
   ["custom_foods", null],
+  ["saved_meals", null],
   ["community_posts", "created_at"],
   ["community_comments", "created_at"],
   ["community_cheers", "created_at"],

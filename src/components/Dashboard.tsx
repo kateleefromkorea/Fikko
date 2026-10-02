@@ -23,6 +23,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { C, ChartCard, InsightRow, Section, TrendArea, VitalCard, ax, fmt, ttStyle } from "./dashboard/ui";
 import WeeklyReportCard from "./dashboard/WeeklyReport";
 import DashboardSummary from "./dashboard/DashboardSummary";
+import { dashboardEyebrow, dashboardHeadline } from "./dashboard/headline";
 import {
   ConsistencySection, CustomHabitsSection, MoodMedsSection, MovementSection, NutritionSection, PatternsSection,
   ScorecardSection, SleepSection,
@@ -301,15 +302,16 @@ export default function Dashboard({ data, biometrics, profile }: Props) {
   if (hrNow > 72) insights.push({ text: `Resting HR is ${hrNow}bpm, slightly elevated. Could reflect stress, caffeine or incomplete recovery.`, icon: HeartPulse });
   if (insights.length === 0) insights.push({ text: "All vitals look healthy today.", icon: CheckCircle2 });
 
-  const periodLabel = period === "week" ? "Last 7 days" : period === "month" ? "Last 30 days" : "Last 12 months";
+  const headline = dashboardHeadline(ctx);
 
   return (
     <div className="space-y-12">
 
       {/* ── Header ── */}
       <PageHeader
-        title="Dashboard"
-        subtitle={hasWearableData ? `${periodLabel} · synced from your wearable` : `${periodLabel} · from what you've logged`}
+        eyebrow={dashboardEyebrow(period)}
+        title={headline.title}
+        subtitle={hasWearableData ? `${headline.subtitle} Wearable data included.` : headline.subtitle}
         action={<PeriodToggle period={period} onChange={setPeriod} />}
       />
 

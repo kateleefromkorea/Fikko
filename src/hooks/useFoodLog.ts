@@ -4,6 +4,8 @@ import type { FoodLogItem, HabitData, MacrosPer100g, MealKey } from "../types";
 
 const MEAL_KEYS: MealKey[] = ["breakfast", "lunch", "dinner", "snacks"];
 
+export type NewFood = { name: string; grams: number; caloriesPer100g: number } & MacrosPer100g;
+
 function round(n: number) {
   return Math.round(n * 10) / 10;
 }
@@ -62,43 +64,40 @@ export function useFoodLog(
     onChange({ ...data, food });
   }
 
-  async function addItem(meal: MealKey, food: { name: string; grams: number; caloriesPer100g: number } & MacrosPer100g) {
-    const macros = {
-      proteinPer100g: food.proteinPer100g ?? null,
-      carbsPer100g: food.carbsPer100g ?? null,
-      fatPer100g: food.fatPer100g ?? null,
-    };
-    if (!userId) return;
-    const calories = round((food.caloriesPer100g * food.grams) / 100);
-    const { data: inserted } = await supabase
-      .from("food_log_items")
-      .insert({
-        user_id: userId,
-        date,
-        meal,
-        name: food.name,
-        grams: food.grams,
-        calories_per_100g: food.caloriesPer100g,
-        calories,
-        protein_per_100g: macros.proteinPer100g,
-        carbs_per_100g: macros.carbsPer100g,
-        fat_per_100g: macros.fatPer100g,
-      })
-      .select("id")
-      .single();
+  async function addItem(meal: MealKey, food: NewFood) {
+    await addItems(meal, [food]);
+  }
 
-    const newItem: FoodLogItem = {
-      id: inserted?.id ?? crypto.randomUUID(),
+  /** Logs several foods at once, e.g. a saved meal or yesterday's breakfast. */
+  async function addItems(meal: MealKey, foods: NewFood[]) {
+    if (!userId || !foods.length) return;
+    const newItems: FoodLogItem[] = foods.map((food) => ({
+      id: crypto.randomUUID(),
       meal,
       name: food.name,
       grams: food.grams,
       caloriesPer100g: food.caloriesPer100g,
-      calories,
-      ...macros,
-    };
-    const next = [...items, newItem];
+      calories: round((food.caloriesPer100g * food.grams) / 100),
+      proteinPer100g: food.proteinPer100g ?? null,
+      carbsPer100g: food.carbsPer100g ?? null,
+      fatPer100g: food.fatPer100g ?? null,
+    }));
+    const next = [...items, ...newItems];
     setItems(next);
     syncAggregate(next);
+    await supabase.from("food_log_items").insert(newItems.map((i) => ({
+      id: i.id,
+      user_id: userId,
+      date,
+      meal,
+      name: i.name,
+      grams: i.grams,
+      calories_per_100g: i.caloriesPer100g,
+      calories: i.calories,
+      protein_per_100g: i.proteinPer100g,
+      carbs_per_100g: i.carbsPer100g,
+      fat_per_100g: i.fatPer100g,
+    })));
   }
 
   async function updateGrams(itemId: string, grams: number) {
@@ -118,5 +117,5 @@ export function useFoodLog(
     await supabase.from("food_log_items").delete().eq("id", itemId);
   }
 
-  return { items, loading, addItem, updateGrams, deleteItem };
+  return { items, loading, addItem, addItems, updateGrams, deleteItem };
 }

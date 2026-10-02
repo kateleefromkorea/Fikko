@@ -119,8 +119,11 @@ export default function CoachView({ profileName }: { profileName: string }) {
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Coach"
-        subtitle="Your AI coach, using what you've logged in Fikko."
+        eyebrow="Coach"
+        title="Ask about your week."
+        subtitle={loading
+          ? "It reads your last four weeks of logs."
+          : `It reads your last four weeks of logs. ${left === 0 ? "No questions left today; back at midnight." : `${left} ${left === 1 ? "question" : "questions"} left today.`}`}
         action={messages.length > 0 && (
           <Button variant="ghost" onClick={() => setConfirmClear(true)} disabled={busy} className="h-9 text-muted-foreground">
             <Trash2 />

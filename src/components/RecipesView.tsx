@@ -79,6 +79,14 @@ function Chip({ selected, onClick, children }: { selected: boolean; onClick: () 
   );
 }
 
+/** The next meal worth planning, by the clock. */
+function mealOfDay() {
+  const h = new Date().getHours();
+  if (h < 10) return "breakfast";
+  if (h < 15) return "lunch";
+  return "dinner";
+}
+
 export default function RecipesView({ userId, profileName, diet, allergies }: {
   userId: string;
   profileName: string;
@@ -158,8 +166,9 @@ export default function RecipesView({ userId, profileName, diet, allergies }: {
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Recipes"
-        subtitle="Healthy ideas from Fikko and the community."
+        eyebrow="Recipes"
+        title={`Something good for ${mealOfDay()}.`}
+        subtitle="From the Fikko kitchen and members like you."
         action={<Button onClick={() => setAdding(true)}><Plus />Share a recipe</Button>}
       />
 

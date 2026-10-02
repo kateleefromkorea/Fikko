@@ -110,6 +110,20 @@ function SectionHeader({ title, description, onEdit }: { title: string; descript
 
 const cardCls = "gap-6 [--card-spacing:--spacing(6)]";
 
+/** The member's goal, said the way they'd say it. */
+const GOAL_PHRASES: Record<string, string> = {
+  weight_loss: "Losing weight at a steady pace",
+  muscle_building: "Building strength",
+  maintenance: "Holding steady",
+  nutrition: "Eating a little better",
+  chronic: "Managing a condition",
+  longevity: "Playing the long game",
+};
+
+function goalPhrase(goalKey: string | null) {
+  return (goalKey && GOAL_PHRASES[goalKey]) || "Keeping track";
+}
+
 export default function ProfileView({ email, profile, onUpdateProfile, userId, onSignOut, deviceOutcome, onDevicesSynced }: Props) {
   const [editingInfo, setEditingInfo] = useState(false);
   const [editingGoals, setEditingGoals] = useState(false);
@@ -236,7 +250,11 @@ export default function ProfileView({ email, profile, onUpdateProfile, userId, o
 
   return (
     <div className="space-y-10">
-      <PageHeader title="Profile" subtitle="Your details, daily goals and account." />
+      <PageHeader
+        eyebrow="Profile"
+        title={profile.name || "Your profile"}
+        subtitle={`${goalPhrase(profile.primary_goal)}, on ${Math.round(profile.calorie_goal).toLocaleString()} kcal a day.`}
+      />
 
       <div className="grid items-start gap-6 lg:grid-cols-3">
         {/* Left: identity + daily goals */}

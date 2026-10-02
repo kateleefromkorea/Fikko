@@ -327,6 +327,15 @@ const GUIDELINES = [
   "Protect privacy: yours and other people's.",
 ];
 
+/** A live line about today's feed. Only counted on the unfiltered feed, which is the whole picture. */
+function feedHeadline(posts: Post[], loading: boolean, filter: Topic | undefined) {
+  if (loading || filter) return "What everyone's working on.";
+  const today = new Date().toDateString();
+  const people = new Set(posts.filter((p) => new Date(p.createdAt).toDateString() === today).map((p) => p.userId)).size;
+  if (people === 0) return "Nobody's posted yet today. Go first?";
+  return people === 1 ? "1 person has posted today." : `${people} people have posted today.`;
+}
+
 export default function CommunityView({ userId, profileName }: Props) {
   const [filter, setFilter] = useState<Topic | undefined>(undefined);
   const feed = useCommunityFeed(userId, filter);
@@ -368,8 +377,8 @@ export default function CommunityView({ userId, profileName }: Props) {
   return (
     <div className="space-y-10">
       <PageHeader
-        title="Community"
-        subtitle="Share wins, ask questions and cheer each other on."
+        eyebrow="Community"
+        title={feedHeadline(feed.posts, feed.loading, filter)}
         action={
           <Button variant="outline" onClick={() => feed.reload()} disabled={feed.loading}>
             <RefreshCw className={cn(feed.loading && "animate-spin")} />

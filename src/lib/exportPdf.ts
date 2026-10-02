@@ -19,6 +19,7 @@ const SECTION_TITLES: Record<string, string> = {
   coach_messages: "AI coach conversation",
   food_log_items: "Food log",
   custom_foods: "Saved foods",
+  saved_meals: "Saved meals",
   medications: "Medications",
   recipes: "Recipes you shared",
   recipe_saves: "Saved recipes",

@@ -6,6 +6,7 @@ import DevicesCard, { type DeviceOutcome } from "./profile/DevicesCard";
 import ChangePassword from "./profile/ChangePassword";
 import DeleteAccountDialog from "./profile/DeleteAccountDialog";
 import ExportDialog from "./profile/ExportDialog";
+import ResetDataDialog from "./profile/ResetDataDialog";
 import { computeBaseline, LIMITS, inRange } from "../lib/metabolics";
 import { DB_LIMITS, clamp } from "../lib/limits";
 import { exportAllData, type ExportFormat } from "../lib/account";
@@ -134,6 +135,7 @@ export default function ProfileView({ email, profile, onUpdateProfile, userId, o
   const [accountBusy, setAccountBusy] = useState<"export" | null>(null);
   const [accountError, setAccountError] = useState<string | null>(null);
   const [passwordOpen, setPasswordOpen] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
   const [passwordChanged, setPasswordChanged] = useState(false);
 
   const set = (k: keyof Draft) => (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -432,7 +434,7 @@ export default function ProfileView({ email, profile, onUpdateProfile, userId, o
       <Card className={cardCls}>
         <CardHeader>
           <CardTitle className="text-base font-semibold">Account</CardTitle>
-          <CardDescription>Change your password, export or delete your data, or sign out.</CardDescription>
+          <CardDescription>Change your password, export, reset or delete your data, or sign out.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="flex flex-wrap gap-2">
@@ -467,13 +469,23 @@ export default function ProfileView({ email, profile, onUpdateProfile, userId, o
           {/* Deliberately low-key, but always here: app stores and privacy law
               require deletion to be easy to find. */}
           <Separator />
-          <button
-            type="button"
-            onClick={() => { setDeleteOpen(true); setAccountError(null); }}
-            className="text-sm text-muted-foreground underline-offset-4 hover:text-destructive hover:underline"
-          >
-            Delete account
-          </button>
+          <div className="flex flex-wrap gap-x-6 gap-y-2">
+            <button
+              type="button"
+              onClick={() => { setResetOpen(true); setAccountError(null); }}
+              className="text-sm text-muted-foreground underline-offset-4 hover:text-destructive hover:underline"
+            >
+              Reset my data
+            </button>
+            <button
+              type="button"
+              onClick={() => { setDeleteOpen(true); setAccountError(null); }}
+              className="text-sm text-muted-foreground underline-offset-4 hover:text-destructive hover:underline"
+            >
+              Delete account
+            </button>
+          </div>
+          {resetOpen && <ResetDataDialog userId={userId} onClose={() => setResetOpen(false)} />}
           {exportOpen && <ExportDialog userId={userId} onClose={() => setExportOpen(false)} />}
           {deleteOpen && (
             <DeleteAccountDialog

@@ -148,7 +148,7 @@ function BaselinePlan({ profile }: { profile: ProfileRow }) {
       <CardHeader>
         <CardTitle className="text-base font-semibold">Your plan</CardTitle>
         <CardDescription>
-          Mifflin-St Jeor, from the details you gave us
+          Worked out from your height, weight, age and activity
           {profile.target_weight_kg ? ` · target ${profile.target_weight_kg} kg` : ""}
         </CardDescription>
         {goal && (

@@ -119,7 +119,7 @@ export default function CoachView({ profileName }: { profileName: string }) {
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Coach"
+        eyebrow="AI Coach"
         title="Ask about your week."
         subtitle={loading
           ? "It reads your last four weeks of logs."

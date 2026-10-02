@@ -104,3 +104,18 @@ export async function deleteAccount(feedback?: { reason: string; details: string
   // The server has ended every session; clear this one locally too.
   await supabase.auth.signOut({ scope: "local" });
 }
+
+/**
+ * Tables cleared by "Reset my data": everything the member has tracked. The
+ * account, profile and goals, medication list, custom habits, saved foods and
+ * meals, Community posts, recipes, points and wearable data all stay.
+ */
+const LOG_TABLES = ["habit_entries", "custom_habit_entries", "food_log_items", "coach_messages"] as const;
+
+/** Permanently erases the signed-in member's logs. Row-level security limits each delete to their own rows. */
+export async function resetMyLogs(userId: string) {
+  const results = await Promise.all(LOG_TABLES.map((t) => supabase.from(t).delete().eq("user_id", userId)));
+  if (results.some((r) => r.error)) {
+    throw new Error("Some of your data couldn't be reset. Please try again.");
+  }
+}

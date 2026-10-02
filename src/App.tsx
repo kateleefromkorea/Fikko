@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useState } from "react";
-import { ChartNoAxesColumn, ChefHat, HeartHandshake, ListChecks, LogOut, UserRound, Users, type LucideIcon } from "lucide-react";
+import { ChartNoAxesColumn, ChefHat, ListChecks, LogOut, Sparkles, UserRound, Users, type LucideIcon } from "lucide-react";
 import { completion } from "./lib/completion";
 import HabitsView from "./components/HabitsView";
 import type { DeviceOutcome } from "./components/profile/DevicesCard";
@@ -45,12 +45,13 @@ type Tab = "habits" | "dashboard" | "recipes" | "community" | "coaches" | "profi
 
 // Shown as tabs in the header on tablet and desktop, and as a bottom tab bar
 // on phones, where the labels don't fit across the top.
-const NAV: { id: Tab; label: string; icon: LucideIcon; soon?: boolean }[] = [
+// `ai` marks a tab powered by AI: it shows a sparkle in front of its label.
+const NAV: { id: Tab; label: string; icon: LucideIcon; soon?: boolean; ai?: boolean }[] = [
   { id: "habits", label: "Habits", icon: ListChecks },
   { id: "dashboard", label: "Dashboard", icon: ChartNoAxesColumn },
   { id: "recipes", label: "Recipes", icon: ChefHat },
   { id: "community", label: "Community", icon: Users },
-  { id: "coaches", label: "Coach", icon: HeartHandshake },
+  { id: "coaches", label: "AI Coach", icon: Sparkles, ai: true },
 ];
 
 
@@ -133,7 +134,7 @@ export default function App() {
           </button>
 
           <nav aria-label="Main" className="hidden min-w-0 items-center gap-1 md:flex">
-            {NAV.map(({ id, label, soon }) => (
+            {NAV.map(({ id, label, soon, ai }) => (
               <Button
                 key={id}
                 variant="ghost"
@@ -144,6 +145,7 @@ export default function App() {
                   tab === id && "bg-primary/8 text-primary hover:bg-primary/10 hover:text-primary",
                 )}
               >
+                {ai && <Sparkles className={cn("size-4", tab !== id && "text-primary")} aria-hidden="true" />}
                 {label}
                 {soon && (
                   <Badge variant="outline" className="border-teal/40 bg-teal/5 text-primary">

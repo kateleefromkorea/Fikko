@@ -214,7 +214,7 @@ export default function FoodLogModal({
    * One row of a food you can add, from search, a scan or the recent list. A
    * render function rather than a component, so typing grams keeps focus.
    */
-  const resultRow = (result: FoodResult) => (
+  const resultRow = (result: FoodResult, amountLabel = "serving") => (
       <li key={result.id} className="flex items-center gap-2 px-4 py-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
@@ -224,7 +224,7 @@ export default function FoodLogModal({
           <p className="truncate text-xs text-muted-foreground">
             {result.brand ? `${result.brand} · ` : ""}
             {Math.round(result.caloriesPer100g)} kcal / 100g
-            {result.servingGrams ? ` · serving ${result.servingGrams} g` : ""}
+            {result.servingGrams ? ` · ${amountLabel} ${result.servingGrams} g` : ""}
             {showMacros && (() => { const m = macrosFor({ ...result, grams: 100 }); return m ? ` · ${formatMacros(m)}` : ""; })()}
           </p>
         </div>
@@ -354,7 +354,7 @@ export default function FoodLogModal({
           {!scanned && allMatches.length > 0 && (
             <div className="space-y-2">
               <ul className="max-h-72 divide-y overflow-y-auto rounded-lg border">
-                {visibleMatches.map(resultRow)}
+                {visibleMatches.map((r) => resultRow(r))}
               </ul>
               {!showAll && allMatches.length > 1 && (
                 <Button variant="link" onClick={() => setShowAll(true)} className="h-auto p-0">
@@ -416,7 +416,7 @@ export default function FoodLogModal({
                 </p>
                 <ul className="divide-y rounded-lg border">
                   {recentToShow.map((r) => (
-                    resultRow({ id: `recent-${r.id}`, name: r.name, caloriesPer100g: r.caloriesPer100g, proteinPer100g: r.proteinPer100g, carbsPer100g: r.carbsPer100g, fatPer100g: r.fatPer100g, servingGrams: r.grams })
+                    resultRow({ id: `recent-${r.id}`, name: r.name, caloriesPer100g: r.caloriesPer100g, proteinPer100g: r.proteinPer100g, carbsPer100g: r.carbsPer100g, fatPer100g: r.fatPer100g, servingGrams: r.grams }, "last time")
                   ))}
                 </ul>
               </div>

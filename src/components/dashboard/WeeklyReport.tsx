@@ -15,8 +15,8 @@ const longDate = (key: string) =>
   new Date(key + "T12:00:00").toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
 
 /**
- * "Your week": the top of the Dashboard. Sums up the last finished
- * Monday-to-Sunday week and opens the full report, where past weeks can be browsed.
+ * The weekly report strip inside the dashboard summary: the last finished
+ * Monday-to-Sunday week at a glance, opening the full report, where past weeks can be browsed.
  */
 export default function WeeklyReportCard({ data, biometrics, profile }: Props) {
   const [open, setOpen] = useState(false);
@@ -26,50 +26,49 @@ export default function WeeklyReportCard({ data, biometrics, profile }: Props) {
   // Brand new: nothing logged before this week, so there's no report yet.
   if (history === 0) {
     return (
-      <section aria-labelledby="week-title" className="rounded-2xl border bg-card p-6 shadow-sm sm:p-8">
-        <p className="text-xs font-semibold tracking-wider text-primary uppercase">Your weekly report</p>
-        <h2 id="week-title" className="mt-3 text-xl font-semibold">Your first report arrives on {longDate(nextReportDate())}</h2>
-        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-          Every Monday, Fikko looks back at your week: what went well, what slipped, the patterns in your data and one thing to focus on next.
-          Check in on the Habits page this week to fill it.
-        </p>
-      </section>
+      <div className="flex items-start gap-3 rounded-xl bg-white/70 p-4 ring-1 ring-foreground/5">
+        <FileText className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
+        <div className="min-w-0">
+          <p className="text-sm font-semibold">Your first weekly report arrives on {longDate(nextReportDate())}</p>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Every Monday, Fikko looks back at your week: what went well, what slipped, the patterns in your data and one thing to focus on next.
+          </p>
+        </div>
+      </div>
     );
   }
 
   return (
-    <section aria-labelledby="week-title" className="rounded-2xl border bg-card p-6 shadow-sm sm:p-8">
-      <div className="flex flex-col gap-6 md:flex-row md:items-center">
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold tracking-wider text-primary uppercase">Your week · {report.label}</p>
-          <h2 id="week-title" className="mt-3 text-2xl font-semibold tracking-tight">{report.headline}</h2>
-          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{report.summary}</p>
-          {report.focus && report.logged > 0 && (
-            <p className="mt-3 flex items-start gap-2 text-sm">
-              <Target className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
-              <span><span className="font-medium">Next week:</span> {report.focus.text}</span>
-            </p>
-          )}
-        </div>
-        <div className="flex shrink-0 flex-col items-start gap-3 md:items-end">
+    <div className="flex flex-col gap-4 rounded-xl bg-white/70 p-4 ring-1 ring-foreground/5 md:flex-row md:items-center">
+      <FileText className="hidden size-5 shrink-0 text-primary md:block" aria-hidden="true" />
+      <div className="min-w-0 flex-1">
+        <p className="flex flex-wrap items-baseline gap-x-2 text-sm">
+          <span className="font-semibold">Weekly report · {report.label}</span>
           {report.logged > 0 && (
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-semibold tracking-tight tabular-nums">{pct(report.rate)}</span>
-              <span className="text-sm text-muted-foreground">consistency</span>
-            </div>
+            <>
+              <span className="text-muted-foreground">{pct(report.rate)} consistency</span>
+              {report.prevRate != null && (
+                <Delta value={(report.rate - report.prevRate) * 100} suffix=" pts vs the week before" className="text-sm" />
+              )}
+            </>
           )}
-          {report.prevRate != null && report.logged > 0 && (
-            <Delta value={(report.rate - report.prevRate) * 100} suffix=" pts vs the week before" className="text-sm" />
-          )}
-          <Button onClick={() => setOpen(true)} className="h-10 px-5">
-            <FileText />
-            {report.logged > 0 ? "Read your weekly report" : "See past reports"}
-          </Button>
-        </div>
+        </p>
+        {report.focus && report.logged > 0 ? (
+          <p className="mt-1 flex items-start gap-2 text-sm text-foreground/80">
+            <Target className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+            <span><span className="font-medium">Next week:</span> {report.focus.text}</span>
+          </p>
+        ) : report.logged === 0 && (
+          <p className="mt-1 text-sm text-muted-foreground">Nothing logged that week.</p>
+        )}
       </div>
+      <Button onClick={() => setOpen(true)} className="h-10 shrink-0 px-5">
+        <FileText />
+        {report.logged > 0 ? "Read your weekly report" : "See past reports"}
+      </Button>
 
       <ReportDialog open={open} onOpenChange={setOpen} data={data} biometrics={biometrics} profile={profile} history={history} />
-    </section>
+    </div>
   );
 }
 

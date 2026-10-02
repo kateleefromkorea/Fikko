@@ -19,7 +19,7 @@ export default function RewardsCard({ rewards, recipes, className }: { rewards: 
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 id="rewards-title" className="text-sm text-muted-foreground">Your recipe points</h2>
-          <p className="mt-1 text-3xl font-semibold tracking-tight tabular-nums">{rewards.points.toLocaleString()}</p>
+          <p className="mt-1 font-display text-3xl font-medium">{rewards.points.toLocaleString()}</p>
         </div>
         <span className="grid size-10 place-items-center rounded-xl bg-primary/8" aria-hidden="true">
           <Trophy className="size-5 text-primary" />

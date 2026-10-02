@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,400..700,0..100&family=Inter:wght@400;500;600;700&display=swap');
 @import 'tailwindcss';
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -52,24 +52,30 @@
 /* shadcn's neutral base with Fikko green as the primary — the same tokens
    as the marketing site (fikko-site/src/index.css), so the two read as one
    product. The page sits on a faint grey so white cards lift off it. */
+/* A warm cream base rather than shadcn's cool grey, with Fikko green as the
+   primary. Neutrals carry a faint yellow (hue ~80) so the whole app reads warm;
+   cards stay pure white so they lift off the page. */
 :root {
-  --background: oklch(0.985 0 0);
-  --foreground: oklch(0.145 0 0);
+  /* Headlines and hero numbers only; everything else stays Inter. */
+  --font-display: 'Fraunces', Georgia, serif;
+
+  --background: oklch(0.982 0.006 85);
+  --foreground: oklch(0.19 0.008 60);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.19 0.008 60);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.19 0.008 60);
   --primary: #157954;
   --primary-foreground: #FFFFFF;
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.962 0.008 85);
+  --secondary-foreground: oklch(0.24 0.008 60);
+  --muted: oklch(0.962 0.008 85);
+  --muted-foreground: oklch(0.52 0.014 70);
+  --accent: oklch(0.962 0.008 85);
+  --accent-foreground: oklch(0.24 0.008 60);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
+  --border: oklch(0.91 0.01 80);
+  --input: oklch(0.91 0.01 80);
   --ring: #2DC4B2;
   --radius: 0.625rem;
 
@@ -85,6 +91,15 @@
   --custom: #2DC4B2;
 }
 
+/* The display face for headlines and hero numbers. Medium weight, softened
+   terminals; lining, even-width figures so numbers don't jitter as they change. */
+@utility font-display {
+  font-family: var(--font-display);
+  font-variation-settings: "SOFT" 50;
+  font-variant-numeric: lining-nums tabular-nums;
+  letter-spacing: -0.015em;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -95,6 +110,13 @@
   h1, h2, h3 {
     letter-spacing: -0.02em;
     text-wrap: balance;
+  }
+  /* Every page headline is set in the display face. */
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-variation-settings: "SOFT" 50;
+    letter-spacing: -0.015em;
   }
   p {
     text-wrap: pretty;
@@ -114,12 +136,12 @@
    colours and the Today panel's own gradient. Cards keep their outline ring
    so they still read against white. */
 .app-wash {
-  background-color: white;
+  background-color: var(--background);
 }
 
 /* The Habits page sits on a soft grey so its white cards lift off it. */
 .app-wash[data-page="habits"] {
-  background-color: #F6F7F8;
+  background-color: oklch(0.968 0.009 82);
 }
 
 /* Today summary card: the marketing site's closing panel — teal into sky,

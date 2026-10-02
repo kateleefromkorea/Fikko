@@ -1,9 +1,11 @@
+import type { ReactNode } from "react";
 import { CalendarCheck, Flame, Sparkles, Trophy } from "lucide-react";
 import ProgressRing from "../ProgressRing";
 import { HabitIcon } from "../HabitCard";
 import { avgOf, currentStreak, loggedOn, longestStreak, parseJSON, sleepHours, valuesIn } from "../../lib/dashboardStats";
 import type { SleepNote } from "../HabitsView";
 import { Delta } from "./ui";
+import { weekLabel } from "./reportData";
 import {
   HABIT_INFO, PERIOD_PHRASE, PREV_PHRASE, habitLabel, kcal, moodLabel, one, pct, plural, restLabel, type DashCtx,
 } from "./context";
@@ -18,9 +20,9 @@ function headline(rate: number, logged: number, noun: string) {
 
 /**
  * The top of the dashboard: how the period went overall, in one ring, one
- * sentence and a figure for every habit.
+ * sentence and a figure for every habit, with the weekly report underneath.
  */
-export default function DashboardSummary({ ctx }: { ctx: DashCtx }) {
+export default function DashboardSummary({ ctx, report }: { ctx: DashCtx; report?: ReactNode }) {
   const { data, profile, period, dates, ov, prevOv, stats, m } = ctx;
   const noun = period === "year" ? "year" : period;
   const logTest = (d: string) => loggedOn(data, d);
@@ -103,18 +105,24 @@ export default function DashboardSummary({ ctx }: { ctx: DashCtx }) {
 
   return (
     <section aria-labelledby="summary-title" className="fresh-panel overflow-hidden rounded-2xl border border-teal/20 p-6 shadow-sm sm:p-8">
-      <p className="text-xs font-semibold tracking-wider text-primary uppercase">Summary · {PERIOD_PHRASE[period]}</p>
+      <p className="text-xs font-semibold tracking-wider text-primary uppercase">
+        Summary · {PERIOD_PHRASE[period]}
+        {dates.length > 0 && ` · ${weekLabel({ from: dates[0], to: dates[dates.length - 1] })}`}
+      </p>
 
       <div className="mt-6 grid items-center gap-8 md:grid-cols-[auto_1fr]">
-        <ProgressRing value={ov.rate} size={148} stroke={12} label={`${pct(ov.rate)} of habits completed`} className="mx-auto md:mx-0">
+        <ProgressRing value={ov.rate} size={200} stroke={14} label={`${pct(ov.rate)} of habits completed`} className="mx-auto md:mx-0">
           <div>
-            <p className="text-3xl font-semibold tracking-tight tabular-nums">{pct(ov.rate)}</p>
-            <p className="text-xs text-foreground/60">consistency</p>
+            <p className="font-display text-7xl leading-none font-medium">
+              {Math.round(ov.rate * 100)}
+              <span className="text-3xl text-foreground/50">%</span>
+            </p>
+            <p className="mt-2 text-xs tracking-wider text-foreground/60 uppercase">consistency</p>
           </div>
         </ProgressRing>
 
         <div className="min-w-0">
-          <h2 id="summary-title" className="text-3xl font-semibold tracking-tight sm:text-4xl">{headline(ov.rate, ov.logged, noun)}</h2>
+          <h2 id="summary-title" className="font-display text-3xl font-medium sm:text-4xl">{headline(ov.rate, ov.logged, noun)}</h2>
           <p className="mt-3 max-w-2xl text-base text-foreground/70">{sentence}</p>
           {prevOv && (
             <p className="mt-3 flex flex-wrap items-center gap-x-2 text-sm text-foreground/60">
@@ -155,6 +163,8 @@ export default function DashboardSummary({ ctx }: { ctx: DashCtx }) {
           );
         })}
       </div>
+
+      {report && <div className="mt-3">{report}</div>}
     </section>
   );
 }

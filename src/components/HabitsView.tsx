@@ -215,7 +215,7 @@ function TodaySummary({ data, activeDate, onDateChange, profileName, waterGoal }
 
       <div className="mt-6 grid items-center gap-8 md:grid-cols-[1fr_auto]">
         <div className="min-w-0">
-          <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">{greeting(profileName)}</h1>
+          <h1 className="text-4xl font-medium sm:text-5xl">{greeting(profileName)}</h1>
           <p className="mt-3 text-lg text-foreground/70">{progressSubtitle(data, activeDate, waterGoal)}</p>
           <div className="mt-6 flex flex-wrap gap-2">
             {core.map(({ key, done }) => (
@@ -241,17 +241,17 @@ function TodaySummary({ data, activeDate, onDateChange, profileName, waterGoal }
 
         <ProgressRing
           value={total ? done / total : 0}
-          size={148}
-          stroke={12}
+          size={200}
+          stroke={14}
           label={`${done} of ${total} habits done`}
           className="justify-self-center rounded-full bg-white/60 shadow-sm md:justify-self-end"
         >
           <div>
-            <p className="text-4xl font-semibold tracking-tight tabular-nums">
+            <p className="font-display text-7xl leading-none font-medium">
               {done}
-              <span className="text-xl text-muted-foreground">/{total}</span>
+              <span className="text-3xl text-muted-foreground">/{total}</span>
             </p>
-            <p className="text-xs text-muted-foreground">done</p>
+            <p className="mt-2 text-xs tracking-wider text-muted-foreground uppercase">done today</p>
           </div>
         </ProgressRing>
       </div>
@@ -307,7 +307,7 @@ function FoodCard({ data, onChange, activeDate, userId, goals, trackMacros }: Pr
             label={`${Math.round(total)} of ${target} kcal`}
           >
             <div>
-              <p className="text-3xl font-semibold tracking-tight tabular-nums">{Math.round(total).toLocaleString()}</p>
+              <p className="font-display text-3xl font-medium">{Math.round(total).toLocaleString()}</p>
               <p className="text-xs text-muted-foreground">of {target.toLocaleString()} kcal</p>
             </div>
           </ProgressRing>
@@ -942,7 +942,7 @@ function CustomHabitTile({ habit, activeDate, logValue, onLogValue, onLog, onDel
           </Button>
         </div>
         <div className="flex items-end justify-between gap-2">
-          <p className="text-3xl font-semibold tracking-tight tabular-nums">
+          <p className="font-display text-3xl font-medium">
             {todayVal}
             <span className="ml-1 text-sm font-normal tracking-normal text-muted-foreground">/ {habit.target} {habit.unit}</span>
           </p>

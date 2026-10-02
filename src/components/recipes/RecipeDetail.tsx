@@ -75,7 +75,7 @@ export default function RecipeDetail({
                     ))}
                   </ul>
                 )}
-                <DialogTitle className="text-2xl font-semibold tracking-tight sm:text-3xl">{r.title}</DialogTitle>
+                <DialogTitle className="font-display text-2xl font-medium sm:text-3xl">{r.title}</DialogTitle>
                 <DialogDescription className="text-base">
                   {r.description || (r.source === "fikko" ? "A Fikko recipe." : "Shared by a Fikko member.")}
                 </DialogDescription>

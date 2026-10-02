@@ -16,7 +16,7 @@ export default function PageHeader({ eyebrow, title, subtitle, badge, action }: 
       <div className="min-w-0">
         {eyebrow && <p className="mb-3 text-xs font-semibold tracking-wider text-primary uppercase">{eyebrow}</p>}
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-3xl font-medium sm:text-4xl">{title}</h1>
+          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">{title}</h1>
           {badge}
         </div>
         {subtitle && <p className="mt-2 text-base text-muted-foreground">{subtitle}</p>}

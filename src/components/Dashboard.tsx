@@ -162,7 +162,7 @@ function BaselinePlan({ profile }: { profile: ProfileRow }) {
               )}
             >
               <p className={cn("text-sm text-muted-foreground", t.accent && "text-primary")}>{t.label}</p>
-              <p className={cn("mt-1 font-display text-3xl font-medium", t.accent && "text-primary")}>
+              <p className={cn("mt-1 text-3xl font-semibold tabular-nums", t.accent && "text-primary")}>
                 {t.value}
                 <span className="ml-1 text-sm font-normal text-muted-foreground">kcal</span>
               </p>

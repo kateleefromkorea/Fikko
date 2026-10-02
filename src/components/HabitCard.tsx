@@ -123,7 +123,7 @@ export function CommentBubble({ text }: { text: string }) {
 /** Big number with a small unit, used as a card's headline figure. */
 export function Figure({ value, unit, className }: { value: ReactNode; unit?: string; className?: string }) {
   return (
-    <p className={cn("text-right font-display text-3xl font-medium", className)}>
+    <p className={cn("text-right text-4xl font-semibold tracking-tight tabular-nums", className)}>
       {value}
       {unit && <span className="ml-1 text-sm font-normal tracking-normal text-muted-foreground">{unit}</span>}
     </p>

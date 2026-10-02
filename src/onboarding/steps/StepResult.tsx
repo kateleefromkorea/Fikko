@@ -27,7 +27,7 @@ export default function StepResult({ baseline, goalKey, name, onDone, saving }: 
       {/* The headline number */}
       <div className="mt-8 rounded-lg border border-primary/25 bg-primary/5 p-6 text-center">
         <p className="text-sm font-medium text-primary">Your daily target</p>
-        <p className="mt-1 font-display text-6xl font-medium text-primary">{calorieTarget.toLocaleString()}</p>
+        <p className="mt-1 text-5xl font-semibold text-primary tabular-nums">{calorieTarget.toLocaleString()}</p>
         <p className="mt-1 text-sm text-muted-foreground">kcal per day</p>
         {adjustment !== 0 && (
           <p className="mt-3 text-sm text-muted-foreground">

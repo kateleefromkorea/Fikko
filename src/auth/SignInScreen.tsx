@@ -67,7 +67,7 @@ export default function SignInScreen() {
 
       <main className="flex flex-1 flex-col items-center justify-center px-4 py-12">
         <div className="mb-10 max-w-md text-center">
-          <h1 className="text-4xl leading-[1.1] font-medium sm:text-5xl">
+          <h1 className="text-4xl leading-[1.1] font-semibold sm:text-5xl">
             {mode === "signin" ? "Welcome back" : mode === "signup" ? "Start with Fikko" : "Forgot your password?"}
           </h1>
           <p className="mt-4 text-base text-balance text-muted-foreground">

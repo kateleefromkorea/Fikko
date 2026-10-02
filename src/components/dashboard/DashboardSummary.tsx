@@ -111,18 +111,15 @@ export default function DashboardSummary({ ctx, report }: { ctx: DashCtx; report
       </p>
 
       <div className="mt-6 grid items-center gap-8 md:grid-cols-[auto_1fr]">
-        <ProgressRing value={ov.rate} size={200} stroke={14} label={`${pct(ov.rate)} of habits completed`} className="mx-auto md:mx-0">
+        <ProgressRing value={ov.rate} size={148} stroke={12} label={`${pct(ov.rate)} of habits completed`} className="mx-auto md:mx-0">
           <div>
-            <p className="font-display text-7xl leading-none font-medium">
-              {Math.round(ov.rate * 100)}
-              <span className="text-3xl text-foreground/50">%</span>
-            </p>
-            <p className="mt-2 text-xs tracking-wider text-foreground/60 uppercase">consistency</p>
+            <p className="text-3xl font-semibold tracking-tight tabular-nums">{pct(ov.rate)}</p>
+            <p className="text-xs text-foreground/60">consistency</p>
           </div>
         </ProgressRing>
 
         <div className="min-w-0">
-          <h2 id="summary-title" className="font-display text-3xl font-medium sm:text-4xl">{headline(ov.rate, ov.logged, noun)}</h2>
+          <h2 id="summary-title" className="text-3xl font-semibold tracking-tight sm:text-4xl">{headline(ov.rate, ov.logged, noun)}</h2>
           <p className="mt-3 max-w-2xl text-base text-foreground/70">{sentence}</p>
           {prevOv && (
             <p className="mt-3 flex flex-wrap items-center gap-x-2 text-sm text-foreground/60">

@@ -10,7 +10,6 @@ import {
   BatteryLow, BatteryFull, CheckCircle2, Droplet, Footprints, HeartPulse, Moon, Watch, Wind, type LucideIcon,
 } from "lucide-react";
 import type { HabitData, BiometricData, HabitEntry, BiometricEntry } from "../types";
-import PageHeader from "./PageHeader";
 import type { ProfileRow } from "../hooks/useProfile";
 import { goalByKey } from "../lib/metabolics";
 import { CORE_HABITS, WATER_TARGET } from "../lib/completion";
@@ -23,7 +22,6 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { C, ChartCard, InsightRow, Section, TrendArea, VitalCard, ax, fmt, ttStyle } from "./dashboard/ui";
 import WeeklyReportCard from "./dashboard/WeeklyReport";
 import DashboardSummary from "./dashboard/DashboardSummary";
-import { dashboardEyebrow, dashboardHeadline } from "./dashboard/headline";
 import {
   ConsistencySection, CustomHabitsSection, MoodMedsSection, MovementSection, NutritionSection, PatternsSection,
   ScorecardSection, SleepSection,
@@ -107,9 +105,17 @@ function groupByMonth(entries: (HabitEntry | BiometricEntry)[], agg: "avg" | "su
 function PeriodToggle({ period, onChange }: { period: Period; onChange: (p: Period) => void }) {
   return (
     <Tabs value={period} onValueChange={(v) => onChange(v as Period)}>
-      <TabsList className="h-9!">
+      {/* Sits on the summary's gradient, so it gets a white track and a solid
+          Fikko green for the chosen period to stand out from the panel. */}
+      <TabsList className="h-9! bg-white/80 shadow-sm ring-1 ring-primary/15">
         {(["week", "month", "year"] as Period[]).map((p) => (
-          <TabsTrigger key={p} value={p} className="px-4 capitalize">{p}</TabsTrigger>
+          <TabsTrigger
+            key={p}
+            value={p}
+            className="px-4 capitalize data-active:bg-primary! data-active:text-primary-foreground! data-active:shadow-sm"
+          >
+            {p}
+          </TabsTrigger>
         ))}
       </TabsList>
     </Tabs>
@@ -302,20 +308,17 @@ export default function Dashboard({ data, biometrics, profile }: Props) {
   if (hrNow > 72) insights.push({ text: `Resting HR is ${hrNow}bpm, slightly elevated. Could reflect stress, caffeine or incomplete recovery.`, icon: HeartPulse });
   if (insights.length === 0) insights.push({ text: "All vitals look healthy today.", icon: CheckCircle2 });
 
-  const headline = dashboardHeadline(ctx);
 
   return (
     <div className="space-y-12">
 
-      {/* ── Header ── */}
-      <PageHeader
-        eyebrow={dashboardEyebrow(period)}
-        title={headline.title}
-        subtitle={hasWearableData ? `${headline.subtitle} Wearable data included.` : headline.subtitle}
-        action={<PeriodToggle period={period} onChange={setPeriod} />}
+      {/* ── Summary: also the page header, like the Today card on Habits ── */}
+      <DashboardSummary
+        ctx={ctx}
+        toggle={<PeriodToggle period={period} onChange={setPeriod} />}
+        note={hasWearableData ? "Wearable data included." : undefined}
+        report={<WeeklyReportCard data={data} biometrics={biometrics} profile={profile} />}
       />
-
-      <DashboardSummary ctx={ctx} report={<WeeklyReportCard data={data} biometrics={biometrics} profile={profile} />} />
       <ConsistencySection ctx={ctx} />
       <PatternsSection ctx={ctx} />
       <ScorecardSection ctx={ctx} />

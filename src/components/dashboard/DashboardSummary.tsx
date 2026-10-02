@@ -6,6 +6,7 @@ import { avgOf, currentStreak, loggedOn, longestStreak, parseJSON, sleepHours, v
 import type { SleepNote } from "../HabitsView";
 import { Delta } from "./ui";
 import { weekLabel } from "./reportData";
+import { comparisonLine, dashboardEyebrow } from "./headline";
 import {
   HABIT_INFO, PERIOD_PHRASE, PREV_PHRASE, habitLabel, kcal, moodLabel, one, pct, plural, restLabel, type DashCtx,
 } from "./context";
@@ -19,16 +20,26 @@ function headline(rate: number, logged: number, noun: string) {
 }
 
 /**
- * The top of the dashboard: how the period went overall, in one ring, one
- * sentence and a figure for every habit, with the weekly report underneath.
+ * The top of the dashboard, and its page header: how the period went overall,
+ * in one ring, one headline and a figure for every habit, with the weekly
+ * report underneath. Laid out like the Habits page's Today card, with the
+ * period toggle where Habits has its date navigator.
  */
-export default function DashboardSummary({ ctx, report }: { ctx: DashCtx; report?: ReactNode }) {
+export default function DashboardSummary({ ctx, report, toggle, note }: {
+  ctx: DashCtx;
+  report?: ReactNode;
+  /** The Week / Month / Year switch, shown top right. */
+  toggle?: ReactNode;
+  /** An extra line under the comparison, e.g. that wearable data is included. */
+  note?: string;
+}) {
   const { data, profile, period, dates, ov, prevOv, stats, m } = ctx;
   const noun = period === "year" ? "year" : period;
   const logTest = (d: string) => loggedOn(data, d);
   const streak = currentStreak(logTest);
   const best = longestStreak(logTest);
 
+  const comparison = comparisonLine(ctx);
   const ranked = [...stats].sort((a, b) => b.rate - a.rate);
   const top = ranked[0];
   const low = ranked[ranked.length - 1];
@@ -105,10 +116,13 @@ export default function DashboardSummary({ ctx, report }: { ctx: DashCtx; report
 
   return (
     <section aria-labelledby="summary-title" className="fresh-panel overflow-hidden rounded-2xl border border-teal/20 p-6 shadow-sm sm:p-8">
-      <p className="text-xs font-semibold tracking-wider text-primary uppercase">
-        Summary · {PERIOD_PHRASE[period]}
-        {dates.length > 0 && ` · ${weekLabel({ from: dates[0], to: dates[dates.length - 1] })}`}
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <p className="text-xs font-semibold tracking-wider text-primary uppercase">
+          {dashboardEyebrow(period)}
+          {dates.length > 0 && ` · ${weekLabel({ from: dates[0], to: dates[dates.length - 1] })}`}
+        </p>
+        {toggle}
+      </div>
 
       <div className="mt-6 grid items-center gap-8 md:grid-cols-[auto_1fr]">
         <ProgressRing value={ov.rate} size={148} stroke={12} label={`${pct(ov.rate)} of habits completed`} className="mx-auto md:mx-0">
@@ -119,12 +133,18 @@ export default function DashboardSummary({ ctx, report }: { ctx: DashCtx; report
         </ProgressRing>
 
         <div className="min-w-0">
-          <h2 id="summary-title" className="text-3xl font-semibold tracking-tight sm:text-4xl">{headline(ov.rate, ov.logged, noun)}</h2>
-          <p className="mt-3 max-w-2xl text-base text-foreground/70">{sentence}</p>
-          {prevOv && (
-            <p className="mt-3 flex flex-wrap items-center gap-x-2 text-sm text-foreground/60">
-              <Delta value={(ov.rate - prevOv.rate) * 100} suffix=" pts" className="text-sm font-medium" />
-              <span>vs {PREV_PHRASE[period]} ({pct(prevOv.rate)})</span>
+          <h1 id="summary-title" className="text-4xl font-semibold tracking-tight sm:text-5xl">{headline(ov.rate, ov.logged, noun)}</h1>
+          <p className="mt-3 max-w-2xl text-lg text-foreground/70">{sentence}</p>
+          {(prevOv || comparison || note) && (
+            <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-foreground/60">
+              {prevOv && (
+                <>
+                  <Delta value={(ov.rate - prevOv.rate) * 100} suffix=" pts" className="text-sm font-medium" />
+                  <span>vs {PREV_PHRASE[period]} ({pct(prevOv.rate)}).</span>
+                </>
+              )}
+              {comparison && <span>{comparison}</span>}
+              {note && <span>{note}</span>}
             </p>
           )}
         </div>

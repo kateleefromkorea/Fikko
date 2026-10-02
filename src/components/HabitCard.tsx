@@ -77,7 +77,7 @@ export const panelCls = "rounded-xl bg-foreground/[0.035]";
  * line under it, an optional headline figure on the right, then the body.
  */
 export function HabitCard({
-  id, icon, hue, title, description, action, done, children, className,
+  id, icon, hue, title, description, action, done, comment, children, className,
 }: {
   id?: string;
   icon: LucideIcon;
@@ -86,6 +86,8 @@ export function HabitCard({
   description?: ReactNode;
   action?: ReactNode;
   done?: boolean;
+  /** A short line reacting to what's been logged, shown in a bubble under the header. */
+  comment?: string;
   children: ReactNode;
   className?: string;
 }) {
@@ -100,8 +102,21 @@ export function HabitCard({
         {description && <CardDescription className="col-start-2">{description}</CardDescription>}
         {action && <CardAction className="col-start-3 row-span-2 self-center">{action}</CardAction>}
       </CardHeader>
-      <CardContent className="flex flex-1 flex-col">{children}</CardContent>
+      <CardContent className="flex flex-1 flex-col">
+        {comment && <CommentBubble text={comment} />}
+        {children}
+      </CardContent>
     </Card>
+  );
+}
+
+/** The card's commentary: a quick read on how the day is going for that habit. */
+export function CommentBubble({ text }: { text: string }) {
+  return (
+    <p aria-live="polite" className="mb-5 flex items-start gap-2 rounded-xl bg-foreground/[0.04] px-3.5 py-2.5 text-sm text-foreground/80">
+      <Sparkles className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+      <span>{text}</span>
+    </p>
   );
 }
 

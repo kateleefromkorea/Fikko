@@ -29,6 +29,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { shiftDateKey, todayKey } from "../lib/dates";
+import { activityComment, foodComment, medsComment, momentFor, moodComment, sleepComment, waterComment } from "./habitComments";
 import { sleepHours } from "../lib/dashboardStats";
 import { sumMacros } from "../lib/macros";
 
@@ -235,11 +236,7 @@ function FoodCard({ data, onChange, activeDate, userId, goals, trackMacros }: Pr
   // still shows each meal's share.
   const scale = Math.max(total, target);
 
-  const foodComment = total === 0
-    ? "Nothing logged yet. Pick a meal to get started."
-    : overTarget
-      ? `${Math.round(total - target).toLocaleString()} kcal over today's target.`
-      : `${Math.round(target - total).toLocaleString()} kcal left in today's target.`;
+  const comment = foodComment({ total, target, meals }, momentFor(activeDate, todayKey()));
 
   return (
     <HabitCard
@@ -249,6 +246,7 @@ function FoodCard({ data, onChange, activeDate, userId, goals, trackMacros }: Pr
       title="Calories"
       description={`Done once you log a meal · target ${target.toLocaleString()} kcal`}
       done={total > 0}
+      comment={comment}
     >
       <div className="grid items-center gap-8 sm:grid-cols-[auto_1fr]">
         <div className="flex flex-col items-center gap-3">
@@ -263,7 +261,7 @@ function FoodCard({ data, onChange, activeDate, userId, goals, trackMacros }: Pr
               <p className="text-xs text-muted-foreground">of {target.toLocaleString()} kcal</p>
             </div>
           </ProgressRing>
-          <p className={cn("max-w-48 text-center text-sm text-muted-foreground", overTarget && "text-amber-700")}>{foodComment}</p>
+          {overTarget && <p className="max-w-48 text-center text-sm text-amber-700">{Math.round(total - target).toLocaleString()} kcal over</p>}
           {trackMacros && foodLog.items.length > 0 && (() => {
             const { total: m, missing } = sumMacros(foodLog.items);
             return (
@@ -343,10 +341,10 @@ function ExerciseCard({ data, onChange, activeDate, biometrics }: Props) {
       description={`Goal ${EXERCISE_TARGET_MIN} active minutes`}
       action={<Figure value={minutes} unit="min" />}
       done={done}
+      comment={activityComment({ minutes, target: EXERCISE_TARGET_MIN, steps }, momentFor(activeDate, todayKey()))}
     >
       <div className="space-y-2">
         <HabitBar value={minutes} max={EXERCISE_TARGET_MIN} hue="exercise" />
-        <Hint>{done ? "Movement goal reached." : `${EXERCISE_TARGET_MIN - minutes} minutes to go.`}</Hint>
       </div>
 
       <div className="mt-6 space-y-3">
@@ -412,11 +410,10 @@ function WaterCard({ data, onChange, activeDate, biometrics, goals }: Props) {
   const steps = biometrics?.steps?.find((e) => e.date === activeDate)?.value ?? null;
   // A big step day (from a wearable, once sync exists) adds two glasses to the member's own goal.
   const nudgeTarget = Math.round(goals.water) + (steps !== null && steps > 10000 ? 2 : 0);
-  const nudgeMsg = steps !== null && steps > 10000
-    ? `You walked ${steps.toLocaleString()} steps today, so aim for ${nudgeTarget} glasses.`
-    : glasses >= nudgeTarget
-      ? "Target reached. Nicely hydrated."
-      : `${nudgeTarget - glasses} more to reach your target. Tap a glass to fill it.`;
+  const comment = waterComment(
+    { glasses, target: nudgeTarget, boosted: steps !== null && steps > 10000, steps },
+    momentFor(activeDate, todayKey()),
+  );
 
   return (
     <HabitCard
@@ -427,6 +424,7 @@ function WaterCard({ data, onChange, activeDate, biometrics, goals }: Props) {
       description={`Target ${nudgeTarget} glasses`}
       action={<Figure value={glasses} unit={`/ ${nudgeTarget}`} />}
       done={glasses >= nudgeTarget}
+      comment={comment}
     >
       {/* Up to 10 glasses a row; larger goals wrap onto more rows. */}
       <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${Math.min(nudgeTarget, 10)}, minmax(0, 1fr))` }}>
@@ -456,9 +454,7 @@ function WaterCard({ data, onChange, activeDate, biometrics, goals }: Props) {
           );
         })}
       </div>
-      <div className="mt-auto pt-6">
-        <Hint>{nudgeMsg}</Hint>
-      </div>
+      <p className="mt-auto pt-6 text-sm text-muted-foreground">Tap a glass to fill it, tap again to empty it.</p>
     </HabitCard>
   );
 }
@@ -549,6 +545,10 @@ function MedicationCard({ data, onChange, activeDate, medications }: Props) {
       description={medList.length ? `${checkedCount} of ${medList.length} taken` : "Build a daily schedule"}
       action={medList.length ? <Figure value={checkedCount} unit={`/ ${medList.length}`} /> : undefined}
       done={allTaken}
+      comment={medsComment(
+        { total: medList.length, taken: checkedCount, pendingSlots: medList.filter((m) => !checkedRaw[m.id]).map((m) => m.time_of_day) },
+        momentFor(activeDate, todayKey()),
+      )}
     >
       {medList.length === 0 && !adding ? (
         <EmptyState icon={Pill} title="Nothing scheduled yet" body="Add what you take and tick it off each day.">
@@ -684,13 +684,10 @@ function SleepCard({ data, onChange, activeDate, biometrics, goals }: Props) {
       ]
     : [];
 
-  const sleepComment = totalH === null
-    ? "How did last night go?"
-    : totalH >= 7
-      ? "Solid night, in a healthy sleep range."
-      : totalH >= 5
-        ? "A bit short. Try to wind down earlier tonight."
-        : "Low sleep total. Prioritise rest tonight if you can.";
+  const comment = sleepComment(
+    { rest: restScore, hours: sleptHours, goal: goals.sleepHours, wearableHours: totalH },
+    momentFor(activeDate, todayKey()),
+  );
 
   return (
     <HabitCard
@@ -698,9 +695,10 @@ function SleepCard({ data, onChange, activeDate, biometrics, goals }: Props) {
       icon={Moon}
       hue="sleep"
       title="Sleep"
-      description={sleepComment}
+      description={`Goal ${formatHours(goals.sleepHours)} a night · done when you wake up rested`}
       action={totalH !== null ? <Figure value={totalH} unit="h" /> : undefined}
       done={restScore >= 3}
+      comment={comment}
     >
       <div className="grid gap-8 lg:grid-cols-3">
         {/* Wearable read-out */}
@@ -807,6 +805,7 @@ export const MOODS: { value: number; icon: LucideIcon; label: string; note: stri
 
 function MoodCard({ data, onChange, activeDate, biometrics }: Props) {
   const mood = getEntry(data.mood, activeDate)?.value ?? 0;
+  const rest = getEntry(data.sleep, activeDate)?.value ?? 0;
   const set = (v: number) => onChange({ ...data, mood: setDateValue(data.mood, activeDate, v) });
   const rec = biometrics?.recoveryScore?.find((e) => e.date === activeDate)?.value ?? null;
   const current = MOODS.find((m) => m.value === mood);
@@ -819,6 +818,7 @@ function MoodCard({ data, onChange, activeDate, biometrics }: Props) {
       title="Mood"
       description={current ? `Feeling ${current.label.toLowerCase()}` : "How are you feeling today?"}
       done={mood > 0}
+      comment={moodComment({ mood, rest }, momentFor(activeDate, todayKey()))}
     >
       <div className="grid grid-cols-5 gap-2" role="group" aria-label="Mood">
         {MOODS.map((m) => (
@@ -844,7 +844,6 @@ function MoodCard({ data, onChange, activeDate, biometrics }: Props) {
             <HabitBar value={rec} max={100} hue="mood" />
           </div>
         )}
-        <Hint>{current ? current.note : "One tap is all it takes."}</Hint>
       </div>
     </HabitCard>
   );

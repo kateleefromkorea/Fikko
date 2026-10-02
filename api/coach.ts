@@ -26,8 +26,9 @@ const SYSTEM_PROMPT = `You are the Fikko coach, a friendly health and habit coac
 How you help:
 - Ground every answer in the member's own data, given below. Quote their real numbers and dates when they help ("you averaged 6 hours of sleep on weeknights"). If the data doesn't cover something, say so plainly rather than guessing, and suggest what to log.
 - Be practical and specific: small, realistic next steps that fit their goal, diet, allergies and routine. One or two suggestions beat a long list.
-- Keep replies short and conversational: usually 2 to 5 sentences, or a short list when steps help. Plain text only; you may use simple "- " bullets but no headings, tables or bold.
+- Keep replies short and conversational: usually 2 to 5 sentences, or a short list when steps help. Even for a review of their week, pick the 2 or 3 points that matter most rather than going through every habit. Plain text only; you may use simple "- " bullets but no headings, tables, bold or emoji.
 - Be warm and encouraging without being gushing. Celebrate real progress; treat lapses without judgement.
+- Check "Member status" in their data. A new member with nothing logged yet hasn't lapsed: welcome them, never point out the empty log as a problem, and help them start (log one meal, water or tonight's sleep; the more they log, the more personal your help gets), or answer their question from their profile and goals. Someone returning after a break gets a warm welcome back and one easy restart step, with no guilt.
 - Respect their dietary pattern and allergies in any food suggestion, and never suggest anything containing an allergen they listed.
 
 Limits:
@@ -71,8 +72,8 @@ async function memberContext(db: SupabaseClient, userId: string, tzOffset: numbe
   const from = dayKey(new Date(now.getTime() - (HISTORY_DAYS - 1) * 864e5));
   const foodFrom = dayKey(new Date(now.getTime() - 6 * 864e5));
 
-  const [profileRes, habitsRes, customRes, customEntriesRes, foodRes, bioRes, medsRes] = await Promise.all([
-    db.from("profiles").select("name, gender, date_of_birth, height_cm, weight_kg, activity_level, primary_goal, target_weight_kg, weekly_rate_kg, dietary_pattern, allergies, calorie_goal, water_goal, sleep_goal, tracking_style").eq("user_id", userId).maybeSingle(),
+  const [profileRes, habitsRes, customRes, customEntriesRes, foodRes, bioRes, medsRes, lastRes] = await Promise.all([
+    db.from("profiles").select("onboarding_completed_at, name, gender, date_of_birth, height_cm, weight_kg, activity_level, primary_goal, target_weight_kg, weekly_rate_kg, dietary_pattern, allergies, calorie_goal, water_goal, sleep_goal, tracking_style").eq("user_id", userId).maybeSingle(),
     db.from("habit_entries").select("category, date, value, note").eq("user_id", userId).gte("date", from).lte("date", today).order("date"),
     db.from("custom_habits").select("id, name, unit, target").eq("user_id", userId),
     db.from("custom_habit_entries").select("custom_habit_id, date, value").eq("user_id", userId).gte("date", from).lte("date", today),
@@ -82,6 +83,8 @@ async function memberContext(db: SupabaseClient, userId: string, tzOffset: numbe
     // them with an AI provider. Other sources (e.g. Apple Health, later) can be added here.
     db.from("biometric_entries").select("metric, date, value").eq("user_id", userId).gte("date", from).lte("date", today).neq("source", "google"),
     db.from("medications").select("id", { count: "exact", head: true }).eq("user_id", userId),
+    // The most recent log before this window, to tell a new member from one coming back.
+    db.from("habit_entries").select("date").eq("user_id", userId).lt("date", from).order("date", { ascending: false }).limit(1).maybeSingle(),
   ]);
 
   const p = profileRes.data;
@@ -110,6 +113,18 @@ async function memberContext(db: SupabaseClient, userId: string, tzOffset: numbe
     lines.push("", "Profile:", ...facts.map((f) => `- ${f}`));
   }
   lines.push("", "Habit targets in Fikko: activity counts as done at 30+ minutes; sleep at a rest score of 3/5 or better; medications when everything scheduled is ticked.");
+
+  const loggedRecently = (habitsRes.data?.length ?? 0) > 0 || (customEntriesRes.data ?? []).some((e) => Number(e.value) > 0);
+  if (!loggedRecently) {
+    const joined = p?.onboarding_completed_at
+      ? Math.max(0, Math.floor((Date.now() - new Date(p.onboarding_completed_at).getTime()) / 864e5))
+      : null;
+    lines.push("", lastRes.data
+      ? `Member status: returning after a break. Last log was on ${lastRes.data.date}; nothing logged in the last ${HISTORY_DAYS} days.`
+      : `Member status: new to Fikko${joined != null ? ` (joined ${joined === 0 ? "today" : `${joined} day${joined === 1 ? "" : "s"} ago`})` : ""}, nothing logged yet.`);
+  } else {
+    lines.push("", "Member status: actively logging.");
+  }
 
   // One line per day, newest last.
   const days = new Map<string, string[]>();

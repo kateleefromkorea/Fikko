@@ -45,6 +45,7 @@
       <li><strong>What you log:</strong> water, meals and foods, activity minutes, sleep times and how rested you felt, mood, medications and supplements you add, and any custom habits.</li>
       <li><strong>What you share:</strong> Community posts and comments, recipes and recipe photos, saves, cheers and reports.</li>
       <li><strong>Points and badges</strong> earned from recipes you share.</li>
+      <li><strong>AI coach conversations:</strong> the messages you send the coach and its replies, until you clear the chat, and a count of messages sent each day to apply the daily limit.</li>
       <li><strong>Connected devices:</strong> you can connect Fitbit or Pixel Watch (through Google), with more devices coming. When you connect a device or health app, we receive your daily summaries from that service, such as: sleep stages and duration, resting heart rate, HRV, breathing rate, body temperature compared with your baseline, steps, active calories, blood oxygen and VO&#8322; max. We only receive what you approve on the provider&rsquo;s permission screen, and we only read data; we never write to your account there.</li>
       <li><strong>Technical data:</strong> a sign-in token kept in your browser so you stay signed in, small settings such as dismissed notes, and standard server logs (such as IP address and browser type) kept by our hosting providers for security.</li>
     </ul>
@@ -71,6 +72,7 @@
     <p>We use a small number of providers to run Fikko. They process data only on our instructions:</p>
     <ul>
       <li><strong>Supabase</strong> for our database, sign-in and photo storage.</li>
+      <li><strong>Anthropic</strong> to power the AI coach. When you message the coach, we send your message, your recent conversation, your profile details (such as your goals, diet and allergies) and your last four weeks of habit logs to Anthropic&rsquo;s Claude API so it can reply. We don&rsquo;t send your email address, medication names, or data from Google (Fitbit or Pixel Watch). Anthropic doesn&rsquo;t use this data to train its models.</li>
       <li><strong>Vercel</strong> to host the app.</li>
       <li><strong>Google</strong> if you choose to sign in with Google, and to load the app&rsquo;s font.</li>
       <li><strong>USDA FoodData Central</strong> for food search. Only your search words are sent, from our server, never your identity.</li>

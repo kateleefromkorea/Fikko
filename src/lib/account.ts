@@ -24,6 +24,7 @@ const USER_TABLES = [
   ["recipe_saves", "created_at"],
   ["points_events", "created_at"],
   ["biometric_entries", "date"],
+  ["coach_messages", "created_at"],
 ] as const;
 
 export type ExportFormat = "pdf" | "json";

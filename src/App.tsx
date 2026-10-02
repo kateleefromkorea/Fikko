@@ -50,7 +50,7 @@ const NAV: { id: Tab; label: string; icon: LucideIcon; soon?: boolean }[] = [
   { id: "dashboard", label: "Dashboard", icon: ChartNoAxesColumn },
   { id: "recipes", label: "Recipes", icon: ChefHat },
   { id: "community", label: "Community", icon: Users },
-  { id: "coaches", label: "Coach", icon: HeartHandshake, soon: true },
+  { id: "coaches", label: "Coach", icon: HeartHandshake },
 ];
 
 
@@ -231,7 +231,7 @@ export default function App() {
             <CommunityView userId={session.user.id} profileName={profile.name} />
           </Suspense>
         )}
-        {tab === "coaches" && <CoachView />}
+        {tab === "coaches" && <CoachView profileName={profile.name} />}
         {tab === "profile" && (
           <Suspense fallback={<p className="py-10 text-center text-sm text-muted-foreground">Loading profile…</p>}>
           <ProfileView

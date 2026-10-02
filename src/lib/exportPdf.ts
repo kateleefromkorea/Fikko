@@ -16,6 +16,7 @@ const SECTION_TITLES: Record<string, string> = {
   custom_habits: "Custom habits",
   custom_habit_entries: "Custom habit log",
   biometric_entries: "Synced device readings",
+  coach_messages: "AI coach conversation",
   food_log_items: "Food log",
   custom_foods: "Saved foods",
   medications: "Medications",

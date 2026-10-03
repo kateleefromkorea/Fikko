@@ -1281,7 +1281,8 @@ function useDayCompleteCelebration(
   const { done, total } = completion(data, today, waterGoal);
   const allDone = total > 0 && done === total;
   const wasAllDone = useRef<boolean | null>(null);
-  const [show, setShow] = useState(false);
+  // Opening the app with ?celebrate plays it straight away, for testing.
+  const [show, setShow] = useState(() => new URLSearchParams(window.location.search).has("celebrate"));
 
   useEffect(() => {
     const before = wasAllDone.current;

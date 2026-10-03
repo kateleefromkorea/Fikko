@@ -4,7 +4,7 @@ import { supabase } from "./supabase";
 // see and clear their own); sending goes through /api/coach, which holds the
 // Anthropic key, applies the daily limit and saves both sides of the chat.
 
-/** Messages a member can send per local day. Keep in step with api/coach.ts. */
+/** AI messages a member gets per local day, shared with voice check-ins. Keep in step with api/_lib/aiUsage.ts. */
 export const COACH_DAILY_LIMIT = 20;
 
 export interface CoachMessage {

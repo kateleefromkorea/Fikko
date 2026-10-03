@@ -4,16 +4,16 @@
 //
 //   POST { message, tzOffset }  with "Authorization: Bearer <member session token>"
 //
-// Each member gets DAILY_LIMIT messages per local day. Only this endpoint can
+// Each member gets DAILY_AI_LIMIT AI replies per local day, shared with voice check-ins. Only this endpoint can
 // write coach messages and usage (see migration 014), so the limit holds, and
 // it's counted from coach_usage so clearing the chat doesn't reset it.
 
 import Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { admin, json, memberFrom, supabaseReady } from "./_lib/devices.js";
+import { DAILY_AI_LIMIT, clampOffset, limitMessage, recordUse, usedToday } from "./_lib/aiUsage.js";
 
 const MODEL = "claude-haiku-4-5";
-export const DAILY_LIMIT = 20;
 const MAX_MESSAGE_LENGTH = 2000;
 /** Earlier messages sent back to Claude so it can follow the conversation. */
 const HISTORY_MESSAGES = 20;
@@ -89,7 +89,9 @@ async function memberContext(db: SupabaseClient, userId: string, tzOffset: numbe
 
   const p = profileRes.data;
   const lines: string[] = [];
-  lines.push(`Today is ${WEEKDAYS[now.getUTCDay()]} ${today}, ${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())} the member's local time.`);
+  // No clock time here: the context is part of the cached prompt prefix, and a time that
+  // changes every minute would stop it ever being reused. The time goes in the latest message.
+  lines.push(`Today is ${WEEKDAYS[now.getUTCDay()]} ${today} in the member's local time.`);
 
   if (p) {
     const age = p.date_of_birth ? Math.floor((now.getTime() - new Date(p.date_of_birth + "T00:00:00Z").getTime()) / (365.25 * 864e5)) : null;
@@ -221,12 +223,6 @@ async function memberContext(db: SupabaseClient, userId: string, tzOffset: numbe
 
 // ── Endpoint ───────────────────────────────────────────────────────────────
 
-/** UTC instant of the member's local midnight today. */
-function localMidnight(tzOffset: number) {
-  const local = localNow(tzOffset);
-  return new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate()) + tzOffset * 60_000);
-}
-
 export async function POST(request: Request) {
   if (!supabaseReady()) return json({ error: "The coach isn't configured on the server." }, 503);
   if (!process.env.ANTHROPIC_API_KEY) return json({ error: "The coach isn't set up yet. Please try again later." }, 503);
@@ -239,28 +235,36 @@ export async function POST(request: Request) {
   const message = typeof body.message === "string" ? body.message.trim() : "";
   if (!message) return json({ error: "Type a message first." }, 400);
   if (message.length > MAX_MESSAGE_LENGTH) return json({ error: `Please keep messages under ${MAX_MESSAGE_LENGTH.toLocaleString()} characters.` }, 400);
-  // Minutes behind UTC, as Date.getTimezoneOffset() gives it; real zones span -14h to +12h.
-  const tzOffset = typeof body.tzOffset === "number" && Number.isFinite(body.tzOffset)
-    ? Math.max(-14 * 60, Math.min(12 * 60, Math.round(body.tzOffset)))
-    : 0;
+  const tzOffset = clampOffset(body.tzOffset);
 
-  const { count } = await db.from("coach_usage")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", member.id)
-    .gte("created_at", localMidnight(tzOffset).toISOString());
-  if ((count ?? 0) >= DAILY_LIMIT) {
-    return json({ error: `You've used today's ${DAILY_LIMIT} coach messages. They reset at midnight.` }, 429);
-  }
+  const count = await usedToday(db, member.id, tzOffset);
+  if (count >= DAILY_AI_LIMIT) return json({ error: limitMessage() }, 429);
 
   const [context, historyRes] = await Promise.all([
     memberContext(db, member.id, tzOffset),
     db.from("coach_messages").select("role, content").eq("user_id", member.id)
       .order("created_at", { ascending: false }).limit(HISTORY_MESSAGES),
   ]);
+  const local = localNow(tzOffset);
   const history: Anthropic.MessageParam[] = (historyRes.data ?? []).reverse()
     .map((m) => ({ role: m.role as "user" | "assistant", content: m.content as string }));
   // The API expects the conversation to open with the member.
   while (history.length && history[0].role !== "user") history.shift();
+
+  // Prompt caching: the prefix (system prompt, member data, earlier messages) is identical from
+  // one message to the next, so cache it and pay about a tenth for those input tokens on a hit.
+  // A breakpoint on the system data and one on the last earlier message cover both parts.
+  // Prefixes under the model's minimum (4,096 tokens for Haiku 4.5) are quietly not cached.
+  const cached = { type: "ephemeral" } as const;
+  const last = history[history.length - 1];
+  const messages: Anthropic.MessageParam[] = [
+    ...history.slice(0, -1),
+    ...(last ? [{ role: last.role, content: [{ type: "text" as const, text: last.content as string, cache_control: cached }] }] : []),
+    {
+      role: "user",
+      content: `[Member's local time: ${pad(local.getUTCHours())}:${pad(local.getUTCMinutes())}]\n${message}`,
+    },
+  ];
 
   const client = new Anthropic();
   const stream = client.messages.stream({
@@ -268,9 +272,9 @@ export async function POST(request: Request) {
     max_tokens: 1024,
     system: [
       { type: "text", text: SYSTEM_PROMPT },
-      { type: "text", text: `The member's data in Fikko:\n\n${context}` },
+      { type: "text", text: `The member's data in Fikko:\n\n${context}`, cache_control: cached },
     ],
-    messages: [...history, { role: "user", content: message }],
+    messages,
   });
 
   const encoder = new TextEncoder();
@@ -285,6 +289,9 @@ export async function POST(request: Request) {
           }
         }
         const final = await stream.finalMessage();
+        // Token counts only, no member data. cache_read > 0 means the prompt cache hit.
+        const u = final.usage;
+        console.log(`[coach] usage input=${u.input_tokens} cache_read=${u.cache_read_input_tokens ?? 0} cache_write=${u.cache_creation_input_tokens ?? 0} output=${u.output_tokens}`);
         if (!reply.trim()) {
           reply = final.stop_reason === "refusal"
             ? "I can't help with that one. Is there something about your habits, meals, sleep or activity I can help with?"
@@ -292,7 +299,7 @@ export async function POST(request: Request) {
           controller.enqueue(encoder.encode(reply));
         }
         const at = Date.now();
-        await db.from("coach_usage").insert({ user_id: member.id });
+        await recordUse(db, member.id);
         await db.from("coach_messages").insert([
           { user_id: member.id, role: "user", content: message, created_at: new Date(at).toISOString() },
           { user_id: member.id, role: "assistant", content: reply.slice(0, 8000), created_at: new Date(at + 1).toISOString() },
@@ -313,7 +320,7 @@ export async function POST(request: Request) {
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
       "Cache-Control": "no-store",
-      "X-Coach-Remaining": String(Math.max(0, DAILY_LIMIT - (count ?? 0) - 1)),
+      "X-Coach-Remaining": String(Math.max(0, DAILY_AI_LIMIT - count - 1)),
     },
   });
 }

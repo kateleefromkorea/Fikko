@@ -49,19 +49,21 @@ export function useFoodLog(
       });
   }, [userId, date]);
 
-  function syncAggregate(nextItems: FoodLogItem[]) {
+  // `base` lets a caller that's changing other habits at the same moment (a
+  // voice check-in) save everything in one update instead of two that race.
+  function syncAggregate(nextItems: FoodLogItem[], base: HabitData = data) {
     const mealTotals: Record<MealKey, number> = { breakfast: 0, lunch: 0, dinner: 0, snacks: 0 };
     for (const item of nextItems) mealTotals[item.meal] += item.calories;
     const dayTotal = MEAL_KEYS.reduce((sum, k) => sum + mealTotals[k], 0);
 
     const rounded = Object.fromEntries(MEAL_KEYS.map((k) => [k, round(mealTotals[k])]));
     const note = JSON.stringify(rounded);
-    const existing = data.food.find((e) => e.date === date);
+    const existing = base.food.find((e) => e.date === date);
     const food = existing
-      ? data.food.map((e) => (e.date === date ? { ...e, value: round(dayTotal), note } : e))
-      : [...data.food, { date, value: round(dayTotal), note }];
+      ? base.food.map((e) => (e.date === date ? { ...e, value: round(dayTotal), note } : e))
+      : [...base.food, { date, value: round(dayTotal), note }];
 
-    onChange({ ...data, food });
+    onChange({ ...base, food });
   }
 
   async function addItem(meal: MealKey, food: NewFood) {
@@ -70,8 +72,13 @@ export function useFoodLog(
 
   /** Logs several foods at once, e.g. a saved meal or yesterday's breakfast. */
   async function addItems(meal: MealKey, foods: NewFood[]) {
-    if (!userId || !foods.length) return;
-    const newItems: FoodLogItem[] = foods.map((food) => ({
+    await addEntries(foods.map((f) => ({ ...f, meal })));
+  }
+
+  /** Logs foods across any meals in one go, on top of `base` when other habits changed too. */
+  async function addEntries(entries: (NewFood & { meal: MealKey })[], base?: HabitData) {
+    if (!userId || !entries.length) return;
+    const newItems: FoodLogItem[] = entries.map(({ meal, ...food }) => ({
       id: crypto.randomUUID(),
       meal,
       name: food.name,
@@ -84,12 +91,12 @@ export function useFoodLog(
     }));
     const next = [...items, ...newItems];
     setItems(next);
-    syncAggregate(next);
+    syncAggregate(next, base);
     await supabase.from("food_log_items").insert(newItems.map((i) => ({
       id: i.id,
       user_id: userId,
       date,
-      meal,
+      meal: i.meal,
       name: i.name,
       grams: i.grams,
       calories_per_100g: i.caloriesPer100g,
@@ -117,5 +124,5 @@ export function useFoodLog(
     await supabase.from("food_log_items").delete().eq("id", itemId);
   }
 
-  return { items, loading, addItem, addItems, updateGrams, deleteItem };
+  return { items, loading, addItem, addItems, addEntries, updateGrams, deleteItem };
 }

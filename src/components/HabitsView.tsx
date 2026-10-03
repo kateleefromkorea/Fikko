@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import {
   Activity, Annoyed, Apple, BedDouble, Brain, CalendarDays, Check, ChevronLeft, ChevronRight, Coffee, Droplet, Dumbbell,
   Frown, Laugh, Meh, Moon, Pill, Plus, Smartphone, Smile, SmilePlus, Sparkles, Sun, Sunrise, Sunset, Thermometer,
@@ -11,6 +11,7 @@ import type { useMedications } from "../hooks/useMedications";
 import { useFoodLog } from "../hooks/useFoodLog";
 import { useCustomFoods } from "../hooks/useCustomFoods";
 import FoodLogModal from "./FoodLogModal";
+import VoiceCheckIn from "./VoiceCheckIn";
 import { useSavedMeals } from "../hooks/useSavedMeals";
 import ProgressRing from "./ProgressRing";
 import {
@@ -102,6 +103,7 @@ function progressSubtitle(data: HabitData, date: string, waterGoal: number) {
 }
 
 type Medications = ReturnType<typeof useMedications>;
+type FoodLog = ReturnType<typeof useFoodLog>;
 
 interface Props {
   data: HabitData;
@@ -197,8 +199,10 @@ function HabitChip({ icon: Icon, label, done, onClick }: { icon: LucideIcon; lab
   );
 }
 
-function TodaySummary({ data, activeDate, onDateChange, profileName, waterGoal }: {
+function TodaySummary({ data, activeDate, onDateChange, profileName, waterGoal, voice }: {
   data: HabitData; activeDate: string; onDateChange: (d: string) => void; profileName: string; waterGoal: number;
+  /** The voice check-in, shown under the greeting. */
+  voice?: ReactNode;
 }) {
   const { core, custom, done, total } = completion(data, activeDate, waterGoal);
   const isToday = activeDate === TODAY;
@@ -237,6 +241,7 @@ function TodaySummary({ data, activeDate, onDateChange, profileName, waterGoal }
               />
             ))}
           </div>
+          {voice && <div className="mt-6">{voice}</div>}
         </div>
 
         <ProgressRing
@@ -270,11 +275,10 @@ export const MEALS: { key: MealKey; label: string; icon: LucideIcon; color: stri
   { key: "snacks",    label: "Snacks",    icon: Apple,   color: "#FBD89C" },
 ];
 
-function FoodCard({ data, onChange, activeDate, userId, goals, trackMacros }: Props) {
+function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog }: Props & { foodLog: FoodLog }) {
   const entry = getEntry(data.food, activeDate);
   const meals: MealCalories = parseNote<MealCalories>(entry?.note) ?? { breakfast: 0, lunch: 0, dinner: 0, snacks: 0 };
 
-  const foodLog = useFoodLog(userId, activeDate, data, onChange);
   const customFoods = useCustomFoods(userId);
   const savedMeals = useSavedMeals(userId);
   const [openMeal, setOpenMeal] = useState<MealKey | null>(null);
@@ -1172,15 +1176,33 @@ function DateNavigator({ activeDate, onChange }: { activeDate: string; onChange:
 export default function HabitsView({ data, onChange, biometrics, medications, userId, profileName, goals, trackMacros, onOpenCommunity }: Omit<Props, "activeDate"> & { onOpenCommunity?: () => void }) {
   const [activeDate, setActiveDate] = useState(TODAY);
   const cardProps = { data, onChange, activeDate, biometrics, medications, userId, profileName, goals, trackMacros };
+  // Shared by the Calories card and voice check-ins, so both see the same meals.
+  const foodLog = useFoodLog(userId, activeDate, data, onChange);
 
   return (
     <div className="space-y-12">
-      <TodaySummary data={data} activeDate={activeDate} onDateChange={setActiveDate} profileName={profileName} waterGoal={goals.water} />
+      <TodaySummary
+        data={data}
+        activeDate={activeDate}
+        onDateChange={setActiveDate}
+        profileName={profileName}
+        waterGoal={goals.water}
+        voice={userId && (
+          <VoiceCheckIn
+            key={activeDate}
+            data={data}
+            date={activeDate}
+            isToday={activeDate === todayKey()}
+            medications={medications.medications}
+            onSave={(next, foods) => (foods.length ? void foodLog.addEntries(foods, next) : onChange(next))}
+          />
+        )}
+      />
 
       <section className="space-y-4">
         <SectionLabel>Nutrition & movement</SectionLabel>
         <div className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2"><FoodCard {...cardProps} /></div>
+          <div className="lg:col-span-2"><FoodCard {...cardProps} foodLog={foodLog} /></div>
           <ExerciseCard {...cardProps} />
         </div>
       </section>

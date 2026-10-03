@@ -204,7 +204,7 @@ export default function CoachView({ profileName }: { profileName: string }) {
           </div>
           <p className="mt-2 flex flex-wrap justify-between gap-x-4 gap-y-1 text-xs text-muted-foreground">
             <span>The coach can make mistakes and isn't medical advice.</span>
-            {!loading && <span className="tabular-nums">{left} of {COACH_DAILY_LIMIT} messages left today</span>}
+            {!loading && <span className="tabular-nums">{left} of {COACH_DAILY_LIMIT} AI messages left today</span>}
           </p>
         </form>
       </Card>

@@ -1,7 +1,7 @@
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Activity, Annoyed, Apple, BedDouble, Brain, CalendarDays, Check, ChevronLeft, ChevronRight, Coffee, Droplet, Dumbbell,
-  Frown, Laugh, Meh, Moon, Pill, Plus, Smartphone, Smile, SmilePlus, Sparkles, Sun, Sunrise, Sunset, Thermometer,
+  BatteryLow, CloudRain, Frown, Laugh, Leaf, Meh, Moon, SunMedium, Zap, Pill, Plus, Smartphone, Smile, SmilePlus, Sparkles, Sun, Sunrise, Sunset, Thermometer,
   Trash2, Utensils, Volume2, Watch, Wine, X, type LucideIcon,
 } from "lucide-react";
 import { DB_LIMITS, clamp } from "../lib/limits";
@@ -12,6 +12,7 @@ import { useFoodLog } from "../hooks/useFoodLog";
 import { useCustomFoods } from "../hooks/useCustomFoods";
 import FoodLogModal from "./FoodLogModal";
 import VoiceCheckIn from "./VoiceCheckIn";
+import Celebration from "./Celebration";
 import { useSavedMeals } from "../hooks/useSavedMeals";
 import ProgressRing from "./ProgressRing";
 import {
@@ -470,6 +471,8 @@ function WaterCard({ data, onChange, activeDate, biometrics, goals }: Props) {
   const steps = biometrics?.steps?.find((e) => e.date === activeDate)?.value ?? null;
   // A big step day (from a wearable, once sync exists) adds two glasses to the member's own goal.
   const nudgeTarget = Math.round(goals.water) + (steps !== null && steps > 10000 ? 2 : 0);
+  // Glasses shown: the target, plus one spare once it's reached (up to 30 in a day).
+  const slots = Math.min(30, Math.max(nudgeTarget, glasses >= nudgeTarget ? glasses + 1 : nudgeTarget));
   const comment = waterComment(
     { glasses, target: nudgeTarget, boosted: steps !== null && steps > 10000, steps },
     momentFor(activeDate, todayKey()),
@@ -486,10 +489,13 @@ function WaterCard({ data, onChange, activeDate, biometrics, goals }: Props) {
       done={glasses >= nudgeTarget}
       comment={comment}
     >
-      {/* Up to 10 glasses a row; larger goals wrap onto more rows. */}
-      <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${Math.min(nudgeTarget, 10)}, minmax(0, 1fr))` }}>
-        {Array.from({ length: nudgeTarget }).map((_, i) => {
+      {/* Up to 10 glasses a row; larger goals wrap onto more rows. Once the
+          target is met there's always one more empty glass (dashed), so extra
+          glasses can be logged too. */}
+      <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${Math.min(slots, 10)}, minmax(0, 1fr))` }}>
+        {Array.from({ length: slots }).map((_, i) => {
           const filled = i < glasses;
+          const extra = i >= nudgeTarget;
           return (
             <button
               key={i}
@@ -499,6 +505,7 @@ function WaterCard({ data, onChange, activeDate, biometrics, goals }: Props) {
               className={cn(
                 "relative h-16 overflow-hidden rounded-t-sm rounded-b-xl border-2 transition-colors",
                 filled ? "border-water/50" : "border-border hover:border-water/40 hover:bg-water/5",
+                extra && !filled && "border-dashed",
               )}
             >
               <span
@@ -514,7 +521,9 @@ function WaterCard({ data, onChange, activeDate, biometrics, goals }: Props) {
           );
         })}
       </div>
-      <p className="mt-auto pt-6 text-sm text-muted-foreground">Tap a glass to fill it, tap again to empty it.</p>
+      <p className="mt-auto pt-6 text-sm text-muted-foreground">
+        {glasses >= nudgeTarget ? "Had more? Tap the dashed glass to add another." : "Tap a glass to fill it, tap again to empty it."}
+      </p>
     </HabitCard>
   );
 }
@@ -602,7 +611,7 @@ function MedicationCard({ data, onChange, activeDate, medications }: Props) {
       icon={Pill}
       hue="meds"
       title="Medications"
-      description={medList.length ? `${checkedCount} of ${medList.length} taken` : "Build a daily schedule"}
+      description={medList.length ? `${checkedCount} of ${medList.length} taken` : "Optional · counts towards your day once you add one"}
       action={medList.length ? <Figure value={checkedCount} unit={`/ ${medList.length}`} /> : undefined}
       done={allTaken}
       comment={medsComment(
@@ -855,6 +864,7 @@ function SleepCard({ data, onChange, activeDate, biometrics, goals }: Props) {
 }
 
 /* ─── Mood ─── */
+/** The 1–5 mood scale behind charts, averages and the coach. */
 export const MOODS: { value: number; icon: LucideIcon; label: string; note: string }[] = [
   { value: 1, icon: Frown,   label: "Rough", note: "Rough days happen. Be gentle with yourself." },
   { value: 2, icon: Annoyed, label: "Meh",   note: "A so-so day. A short walk can help." },
@@ -863,12 +873,36 @@ export const MOODS: { value: number; icon: LucideIcon; label: string; note: stri
   { value: 5, icon: Laugh,   label: "Great", note: "Love that. Enjoy it." },
 ];
 
+/**
+ * What members pick from: ten moods, each sitting on the 1–5 scale above so
+ * stats keep working. The chosen key is saved in the entry's note.
+ */
+export const MOOD_OPTIONS: { key: string; value: number; icon: LucideIcon; label: string }[] = [
+  { key: "rough",    value: 1, icon: Frown,      label: "Rough" },
+  { key: "sad",      value: 1, icon: CloudRain,  label: "Sad" },
+  { key: "stressed", value: 2, icon: Zap,        label: "Stressed" },
+  { key: "tired",    value: 2, icon: BatteryLow, label: "Tired" },
+  { key: "meh",      value: 2, icon: Annoyed,    label: "Meh" },
+  { key: "okay",     value: 3, icon: Meh,        label: "Okay" },
+  { key: "calm",     value: 4, icon: Leaf,       label: "Calm" },
+  { key: "good",     value: 4, icon: Smile,      label: "Good" },
+  { key: "happy",    value: 5, icon: SunMedium,  label: "Happy" },
+  { key: "great",    value: 5, icon: Laugh,      label: "Great" },
+];
+
+/** The option picked for a day: the saved one, or for older entries the scale's own word. */
+export function moodOption(value: number, note?: string) {
+  if (!value) return undefined;
+  return MOOD_OPTIONS.find((o) => o.key === note && o.value === value)
+    ?? MOOD_OPTIONS.find((o) => o.key === MOODS[value - 1]?.label.toLowerCase());
+}
+
 function MoodCard({ data, onChange, activeDate, biometrics }: Props) {
   const mood = getEntry(data.mood, activeDate)?.value ?? 0;
   const rest = getEntry(data.sleep, activeDate)?.value ?? 0;
-  const set = (v: number) => onChange({ ...data, mood: setDateValue(data.mood, activeDate, v) });
+  const set = (o: (typeof MOOD_OPTIONS)[number]) => onChange({ ...data, mood: setDateValue(data.mood, activeDate, o.value, o.key) });
   const rec = biometrics?.recoveryScore?.find((e) => e.date === activeDate)?.value ?? null;
-  const current = MOODS.find((m) => m.value === mood);
+  const current = moodOption(mood, getEntry(data.mood, activeDate)?.note);
 
   return (
     <HabitCard
@@ -878,15 +912,15 @@ function MoodCard({ data, onChange, activeDate, biometrics }: Props) {
       title="Mood"
       description={current ? `Feeling ${current.label.toLowerCase()}` : "How are you feeling today?"}
       done={mood > 0}
-      comment={moodComment({ mood, rest }, momentFor(activeDate, todayKey()))}
+      comment={moodComment({ mood, rest, feeling: current?.key }, momentFor(activeDate, todayKey()))}
     >
       <div className="grid grid-cols-5 gap-2" role="group" aria-label="Mood">
-        {MOODS.map((m) => (
+        {MOOD_OPTIONS.map((m) => (
           <button
-            key={m.value}
-            onClick={() => set(m.value)}
-            aria-pressed={mood === m.value}
-            className={cn(optionCls, "flex flex-col items-center gap-2 px-1 py-4 text-center")}
+            key={m.key}
+            onClick={() => set(m)}
+            aria-pressed={current?.key === m.key}
+            className={cn(optionCls, "flex flex-col items-center gap-2 px-1 py-3.5 text-center")}
           >
             <m.icon className="size-6" aria-hidden="true" />
             <span className="text-xs font-medium">{m.label}</span>
@@ -1173,11 +1207,16 @@ function DateNavigator({ activeDate, onChange }: { activeDate: string; onChange:
 }
 
 /* ─── Layout ─── */
-export default function HabitsView({ data, onChange, biometrics, medications, userId, profileName, goals, trackMacros, onOpenCommunity }: Omit<Props, "activeDate"> & { onOpenCommunity?: () => void }) {
+export default function HabitsView({ data, onChange: saveData, biometrics, medications, userId, profileName, goals, trackMacros, onOpenCommunity }: Omit<Props, "activeDate"> & { onOpenCommunity?: () => void }) {
   const [activeDate, setActiveDate] = useState(TODAY);
+  // Set once the member logs something, so data arriving from the server
+  // (or a sync) never counts as them finishing the day.
+  const memberActed = useRef(false);
+  const onChange = (next: HabitData) => { memberActed.current = true; saveData(next); };
   const cardProps = { data, onChange, activeDate, biometrics, medications, userId, profileName, goals, trackMacros };
   // Shared by the Calories card and voice check-ins, so both see the same meals.
   const foodLog = useFoodLog(userId, activeDate, data, onChange);
+  const celebrating = useDayCompleteCelebration(data, goals.water, userId, memberActed);
 
   return (
     <div className="space-y-12">
@@ -1224,6 +1263,38 @@ export default function HabitsView({ data, onChange, biometrics, medications, us
       <CustomHabitsSection {...cardProps} />
 
       {userId && onOpenCommunity && <CommunityPreview userId={userId} onOpen={onOpenCommunity} />}
+
+      {celebrating.show && <Celebration onDone={celebrating.dismiss} />}
     </div>
   );
+}
+
+/**
+ * Confetti the moment today's last habit is completed. It plays on the change
+ * from "not all done" to "all done", not when opening a page that's already
+ * complete, and at most once a day, so unticking and re-ticking doesn't repeat it.
+ */
+function useDayCompleteCelebration(
+  data: HabitData, waterGoal: number, userId: string | null, memberActed: { current: boolean },
+) {
+  const today = todayKey();
+  const { done, total } = completion(data, today, waterGoal);
+  const allDone = total > 0 && done === total;
+  const wasAllDone = useRef<boolean | null>(null);
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    const before = wasAllDone.current;
+    wasAllDone.current = allDone;
+    // Only a change the member made counts; loading their data just records where the day stands.
+    if (before === null || before || !allDone || !userId || !memberActed.current) return;
+    const key = `fikko-celebrated-${userId}`;
+    try {
+      if (localStorage.getItem(key) === today) return;
+      localStorage.setItem(key, today);
+    } catch { /* storage blocked: celebrate anyway */ }
+    setShow(true);
+  }, [allDone, today, userId, memberActed]);
+
+  return { show, dismiss: () => setShow(false) };
 }

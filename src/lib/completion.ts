@@ -27,9 +27,14 @@ export function coreDone(data: HabitData, key: CoreHabit, date: string, waterTar
 
 export const CORE_HABITS: CoreHabit[] = ["food", "exercise", "water", "mood", "medication", "sleep"];
 
+/** The built-in habits that count for this member: Medications only once they've listed some. */
+export function activeCoreHabits(data: HabitData): CoreHabit[] {
+  return data.tracksMedications === false ? CORE_HABITS.filter((k) => k !== "medication") : CORE_HABITS;
+}
+
 /** How many habits, built-in and custom, are done on a day. */
 export function completion(data: HabitData, date: string, waterTarget = WATER_TARGET) {
-  const core = CORE_HABITS.map((key) => ({ key, done: coreDone(data, key, date, waterTarget) }));
+  const core = activeCoreHabits(data).map((key) => ({ key, done: coreDone(data, key, date, waterTarget) }));
   const custom = data.custom.map((h) => ({
     habit: h,
     done: valueOn(h.entries, date) >= h.target,

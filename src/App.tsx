@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { ChartNoAxesColumn, ChefHat, ListChecks, LogOut, Sparkles, UserRound, Users, type LucideIcon } from "lucide-react";
 import { completion } from "./lib/completion";
 import HabitsView from "./components/HabitsView";
@@ -77,9 +77,14 @@ export default function App() {
   useEffect(() => {
     if (deviceOutcome) window.history.replaceState(null, "", window.location.pathname);
   }, [deviceOutcome]);
-  const { data, setData } = useHabitData(userId);
+  const { data: loggedData, setData } = useHabitData(userId);
   const { profile, updateProfile, loading: profileLoading } = useProfile(userId);
   const medications = useMedications(userId);
+  // Medications only counts towards the day for members who've listed some.
+  const data = useMemo(
+    () => ({ ...loggedData, tracksMedications: medications.loading ? undefined : medications.medications.length > 0 }),
+    [loggedData, medications.loading, medications.medications.length],
+  );
   const { biometrics, reload: reloadBiometrics } = useBiometrics(userId);
 
   // Anonymous page-view stats. Sign-in and each tab count as a page.

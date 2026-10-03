@@ -1,5 +1,5 @@
 import type { CustomHabit, HabitData, HabitEntry, MealKey } from "../types";
-import { CORE_HABITS, completion, coreDone, type CoreHabit } from "./completion";
+import { CORE_HABITS, activeCoreHabits, completion, coreDone, type CoreHabit } from "./completion";
 import { daysAgoKey } from "./dates";
 
 /**
@@ -121,7 +121,7 @@ export function habitStats(data: HabitData, dates: string[], prevDates: string[]
     };
   };
   return [
-    ...CORE_HABITS.map((k) => stat(k, (d) => coreDone(data, k, d, waterTarget))),
+    ...activeCoreHabits(data).map((k) => stat(k, (d) => coreDone(data, k, d, waterTarget))),
     ...data.custom.map((h) => stat(h.id, (d) => customDone(h, d), h)),
   ];
 }

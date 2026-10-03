@@ -142,7 +142,13 @@ async function memberContext(db: SupabaseClient, userId: string, tzOffset: numbe
       }
       case "water": add(e.date, `water ${v} glasses`); break;
       case "exercise": if (v > 0) add(e.date, `activity ${v} min`); break;
-      case "mood": if (v > 0) add(e.date, `mood ${MOODS[v] ?? v} (${v}/5)`); break;
+      case "mood": {
+        if (v <= 0) break;
+        // The specific mood picked ("stressed", "calm"), when it says more than the scale.
+        const feeling = typeof e.note === "string" && /^[a-z]{2,12}$/.test(e.note) && e.note !== MOODS[v] ? `, felt ${e.note}` : "";
+        add(e.date, `mood ${MOODS[v] ?? v} (${v}/5${feeling})`);
+        break;
+      }
       case "medication": add(e.date, v === 1 ? "meds all taken" : "meds not all taken"); break;
       case "sleep": {
         if (v <= 0) break;

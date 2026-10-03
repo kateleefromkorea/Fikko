@@ -24,6 +24,12 @@ export interface HabitData {
   sleep: HabitEntry[];
   mood: HabitEntry[];
   custom: CustomHabit[];
+  /**
+   * False when the member has no medications listed, so Medications doesn't
+   * count towards their day. Set by the app from the medication list; missing
+   * means it counts.
+   */
+  tracksMedications?: boolean;
 }
 
 export type MealKey = "breakfast" | "lunch" | "dinner" | "snacks";

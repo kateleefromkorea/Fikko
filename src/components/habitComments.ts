@@ -110,11 +110,22 @@ export function sleepComment(
   return "A rough night. Go easy today, and try to get to bed a little earlier.";
 }
 
+// Lines for the moods that say more than their place on the 1–5 scale.
+const FEELING_LINES: Record<string, string> = {
+  sad: "Sorry it's a sad day. Talking to someone you trust can help, even briefly.",
+  stressed: "A stressful day. A few slow breaths or a short walk can take the edge off.",
+  tired: "Running low today. Go easy, and an early night could make tomorrow better.",
+  calm: "Calm is a great place to be. Notice what helped today.",
+  happy: "Happy to hear it. Enjoy it.",
+};
+
 export function moodComment(
-  { mood, rest }: { mood: number; rest: number },
+  { mood, rest, feeling }: { mood: number; rest: number; feeling?: string },
   { isToday }: Moment,
 ): string {
   if (!mood) return isToday ? "How are you feeling today? One tap is all it takes." : "No mood logged for this day.";
+  if (feeling === "tired" && rest > 0 && rest <= 2) return "Tired after a rough night. Rest up, and try to get to bed a little earlier tonight.";
+  if (feeling && FEELING_LINES[feeling]) return FEELING_LINES[feeling];
   if (mood <= 2 && rest > 0 && rest <= 2) return "Tough day after a tough night. The two often go together, so be gentle with yourself and rest up.";
   if (mood <= 2) return mood === 1 ? "Rough days happen. Be gentle with yourself, and a short walk or a chat with someone can help." : "A so-so day. Fresh air, water or a short walk can lift things a little.";
   if (mood === 3) return "Steady. That counts.";

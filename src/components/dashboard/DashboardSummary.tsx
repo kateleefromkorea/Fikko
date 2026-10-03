@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { CalendarCheck, Flame, Sparkles, Trophy } from "lucide-react";
 import ProgressRing from "../ProgressRing";
+import { cn } from "@/lib/utils";
 import { HabitIcon } from "../HabitCard";
 import { avgOf, currentStreak, loggedOn, longestStreak, parseJSON, sleepHours, valuesIn } from "../../lib/dashboardStats";
 import type { SleepNote } from "../HabitsView";
@@ -105,7 +106,7 @@ export default function DashboardSummary({ ctx, report, toggle, note }: {
       value: `${medsAll}/${ov.days}`,
       sub: "days everything taken",
     },
-  ];
+  ].filter((g) => g.key !== "medication" || data.tracksMedications !== false);
 
   const tiles = [
     { icon: CalendarCheck, label: "Days logged", value: `${ov.logged}/${ov.days}` },
@@ -162,7 +163,7 @@ export default function DashboardSummary({ ctx, report, toggle, note }: {
         ))}
       </dl>
 
-      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className={cn("mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3", glance.length === 6 ? "xl:grid-cols-6" : "xl:grid-cols-5")}>
         {glance.map((g) => {
           const info = HABIT_INFO[g.key];
           return (

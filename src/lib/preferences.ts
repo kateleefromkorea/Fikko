@@ -8,6 +8,46 @@ export const DIET_PATTERNS = [
   "Vegetarian", "Mediterranean", "Halal", "Gluten-free",
 ];
 
+/** How many dietary patterns a member can pick. Must match migration 019. */
+export const MAX_DIET_PATTERNS = 3;
+
+/** A member's dietary patterns, falling back to the single one older profiles have. */
+export function dietsOf(p: { dietary_patterns?: string[] | null; dietary_pattern?: string | null }): string[] {
+  if (p.dietary_patterns?.length) return p.dietary_patterns;
+  return p.dietary_pattern ? [p.dietary_pattern] : [];
+}
+
+/**
+ * The more specific aims a member can pick under some goals. Saved as keys in
+ * profiles.goal_focus, for personalisation (tracking style, the coach) and
+ * health insights.
+ */
+export const GOAL_FOCUS: Record<string, { key: string; label: string }[]> = {
+  nutrition: [
+    { key: "more_protein", label: "Eat more protein" },
+    { key: "fewer_carbs", label: "Cut down on carbs" },
+    { key: "less_fat", label: "Cut down on fat" },
+    { key: "supplements", label: "Track daily supplements" },
+  ],
+  chronic: [
+    { key: "sleep", label: "Better sleep" },
+    { key: "mood", label: "Improved mood" },
+    { key: "stress", label: "Less stress" },
+    { key: "energy", label: "More energy" },
+    { key: "heart", label: "Heart health" },
+  ],
+};
+
+export const focusLabel = (key: string) =>
+  Object.values(GOAL_FOCUS).flat().find((f) => f.key === key)?.label ?? key;
+
+/** Focus areas that mean the member wants protein, carbs and fat broken out. */
+const MACRO_FOCUS = ["more_protein", "fewer_carbs", "less_fat"];
+
+/** The tracking style onboarding sets: macros for members aiming at a macro, otherwise just calories. */
+export const inferredTrackingStyle = (focus: string[]) =>
+  focus.some((f) => MACRO_FOCUS.includes(f)) ? "Detailed macros" : "Simple calories";
+
 /** Allergy choices as shown to members. "None" clears the rest. */
 export const ALLERGY_CHOICES = ["Dairy", "Nuts", "Shellfish", "Soy", "Eggs", "None"];
 
@@ -48,17 +88,18 @@ const MEAT_OR_FISH = ["chicken", "beef", "pork", "fish"];
  * A recipe whose allergens aren't listed is never hidden for allergies; the
  * recipe itself says they aren't listed.
  */
-export function recipeClash(recipe: RecipeLike, diet: string | null | undefined, allergies: string[] | null | undefined): string | null {
+export function recipeClash(recipe: RecipeLike, diets: string[] | null | undefined, allergies: string[] | null | undefined): string | null {
   const contains = recipe.contains ?? [];
   const has = (a: Allergen) => contains.includes(a);
+  const follows = (d: string) => (diets ?? []).includes(d);
 
-  if (diet === "Vegetarian" && recipe.tags.some((t) => MEAT_OR_FISH.includes(t))) return "Not vegetarian";
-  if (diet === "Plant-based / Vegan") {
+  if (follows("Vegetarian") && recipe.tags.some((t) => MEAT_OR_FISH.includes(t))) return "Not vegetarian";
+  if (follows("Plant-based / Vegan")) {
     if (recipe.tags.some((t) => MEAT_OR_FISH.includes(t))) return "Not vegan";
     if (has("dairy") || has("eggs")) return "Not vegan";
   }
-  if (diet === "Halal" && recipe.tags.includes("pork")) return "Contains pork";
-  if (diet === "Gluten-free" && has("gluten")) return "Contains gluten";
+  if (follows("Halal") && recipe.tags.includes("pork")) return "Contains pork";
+  if (follows("Gluten-free") && has("gluten")) return "Contains gluten";
 
   for (const a of allergies ?? []) {
     const key = a.toLowerCase() as Allergen;

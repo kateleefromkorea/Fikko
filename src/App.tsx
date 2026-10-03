@@ -29,7 +29,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { todayKey } from "./lib/dates";
-import { tracksMacros } from "./lib/preferences";
+import { dietsOf, tracksMacros } from "./lib/preferences";
 import { hasDraft } from "./onboarding/draft";
 import { trackView } from "./lib/track";
 
@@ -249,7 +249,7 @@ export default function App() {
         )}
         {tab === "recipes" && (
           <Suspense fallback={<p className="py-10 text-center text-sm text-muted-foreground">Loading recipes…</p>}>
-            <RecipesView userId={session.user.id} profileName={profile.name} diet={profile.dietary_pattern} allergies={profile.allergies ?? []} />
+            <RecipesView userId={session.user.id} profileName={profile.name} diets={dietsOf(profile)} allergies={profile.allergies ?? []} />
           </Suspense>
         )}
         {tab === "community" && (
@@ -279,6 +279,7 @@ export default function App() {
             profile={profile}
             userId={session.user.id}
             deviceOutcome={deviceOutcome}
+            onAddMedication={(name) => medications.addMedication(name, "breakfast")}
             onComplete={async (patch) => {
               await updateProfile(patch);
               // Instant gratification: land on the dashboard, where the numbers

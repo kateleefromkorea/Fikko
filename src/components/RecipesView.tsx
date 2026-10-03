@@ -87,11 +87,11 @@ function mealOfDay() {
   return "dinner";
 }
 
-export default function RecipesView({ userId, profileName, diet, allergies }: {
+export default function RecipesView({ userId, profileName, diets, allergies }: {
   userId: string;
   profileName: string;
   /** From the member's preferences; recipes that clash are hidden unless they choose to see all. */
-  diet: string | null;
+  diets: string[];
   allergies: string[];
 }) {
   const { recipes, saved, loading, error, setError, toggleSave, create, remove, report, rewards, featured } = useRecipes(userId);
@@ -110,9 +110,9 @@ export default function RecipesView({ userId, profileName, diet, allergies }: {
   const featuredRecipe = featured ? recipes.find((r) => r.key === featured.recipeId) ?? null : null;
 
   const [showAll, setShowAll] = useState(false);
-  const clashes = useMemo(() => new Map(recipes.map((r) => [r.key, recipeClash(r, diet, allergies)])), [recipes, diet, allergies]);
+  const clashes = useMemo(() => new Map(recipes.map((r) => [r.key, recipeClash(r, diets, allergies)])), [recipes, diets, allergies]);
   const hiddenCount = showAll ? 0 : recipes.filter((r) => clashes.get(r.key)).length;
-  const hasPrefs = !!diet || allergies.some((a) => a !== "None");
+  const hasPrefs = diets.length > 0 || allergies.some((a) => a !== "None");
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();

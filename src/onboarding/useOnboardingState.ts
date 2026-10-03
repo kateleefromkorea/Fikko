@@ -5,6 +5,8 @@ import {
   cmToFtIn, ftInToCm, kgToLb, lbToKg,
   LIMITS, inRange, ageFromDob, goalByKey,
 } from "../lib/metabolics";
+import { DB_LIMITS } from "../lib/limits";
+import { GOAL_FOCUS, MAX_DIET_PATTERNS, dietsOf } from "../lib/preferences";
 
 export type HeightUnit = "cm" | "ft";
 export type WeightUnit = "kg" | "lb";
@@ -31,12 +33,18 @@ export interface OnboardingState {
   targetWeight: string;
   /** Magnitude in kg/week; the goal decides whether it is a loss or a gain. */
   weeklyRate: number | null;
-  dietaryPattern: string | null;
+  /** Specific aims under the goal (GOAL_FOCUS keys), when the goal has them. */
+  goalFocus: string[];
+  /** Up to MAX_DIET_PATTERNS. */
+  dietaryPatterns: string[];
   allergies: string[];
   activityLevel: string | null;
   wearable: string | null;
-  trackingStyle: string | null;
-  remindersEnabled: boolean;
+  /** Daily targets (step 6); blank until suggested from the member's answers. */
+  waterGoal: string;
+  sleepGoal: string;
+  /** Medications and supplements to add to the Medications card. */
+  medications: string[];
 }
 
 function initialState(profile: ProfileRow): OnboardingState {
@@ -60,12 +68,14 @@ function initialState(profile: ProfileRow): OnboardingState {
     goalKey: null,
     targetWeight: "",
     weeklyRate: null,
-    dietaryPattern: null,
+    goalFocus: profile.goal_focus ?? [],
+    dietaryPatterns: dietsOf(profile),
     allergies: [],
     activityLevel: profile.activity_level ?? null,
     wearable: null,
-    trackingStyle: null,
-    remindersEnabled: false,
+    waterGoal: "",
+    sleepGoal: "",
+    medications: [],
   };
 }
 
@@ -79,6 +89,11 @@ export interface OnboardingDerived {
   age: number | null;
   /** Signed kg/week, ready for computeBaseline. */
   weeklyRateKg: number | null;
+  /**
+   * Muscle building with a target at or below today's weight: body
+   * recomposition (build muscle, lose fat), so calories stay at maintenance.
+   */
+  recomposition: boolean;
 }
 
 function num(s: string): number | null {
@@ -110,17 +125,23 @@ function derive(s: OnboardingState): OnboardingDerived {
   }
 
   const direction = goalByKey(s.goalKey)?.weightManaging;
-  const weeklyRateKg = s.weeklyRate == null || !direction
-    ? null
-    : direction === "loss" ? -s.weeklyRate : s.weeklyRate;
+  const weightKg = toKg(num(s.weight));
+  const targetWeightKg = toKg(num(s.targetWeight));
+  const recomposition = direction === "gain" && weightKg != null && targetWeightKg != null && targetWeightKg <= weightKg;
+  const weeklyRateKg = recomposition
+    ? 0
+    : s.weeklyRate == null || !direction
+      ? null
+      : direction === "loss" ? -s.weeklyRate : s.weeklyRate;
 
   return {
     heightCm,
-    weightKg: toKg(num(s.weight)),
-    targetWeightKg: toKg(num(s.targetWeight)),
+    weightKg,
+    targetWeightKg,
     dob,
     age: dob ? ageFromDob(dob) : null,
     weeklyRateKg,
+    recomposition,
   };
 }
 
@@ -138,19 +159,29 @@ function stepErrors(s: OnboardingState, d: OnboardingDerived): Record<number, st
   else if (goal.weightManaging) {
     if (d.targetWeightKg == null || !inRange(d.targetWeightKg, LIMITS.weightKg)) {
       goals = `Target weight must be between ${LIMITS.weightKg.min} and ${LIMITS.weightKg.max} kg.`;
-    } else if (s.weeklyRate == null) {
-      goals = "Choose how quickly you want to get there.";
     } else if (goal.weightManaging === "loss" && d.weightKg != null && d.targetWeightKg >= d.weightKg) {
       goals = "For weight loss, the target should be below your current weight.";
-    } else if (goal.weightManaging === "gain" && d.weightKg != null && d.targetWeightKg <= d.weightKg) {
-      goals = "For muscle building, the target should be above your current weight.";
+    } else if (s.weeklyRate == null && !d.recomposition) {
+      // A muscle-building target at or below today's weight is recomposition, which needs no pace.
+      goals = "Choose how quickly you want to get there.";
     }
+  } else if (GOAL_FOCUS[goal.key] && s.goalFocus.length === 0) {
+    goals = "Pick at least one thing to focus on.";
+  }
+
+  const water = num(s.waterGoal), sleep = num(s.sleepGoal);
+  let targets: string | null = null;
+  if (water == null || water < DB_LIMITS.waterGoal.min || water > DB_LIMITS.waterGoal.max) {
+    targets = `Water must be between ${DB_LIMITS.waterGoal.min} and ${DB_LIMITS.waterGoal.max} glasses.`;
+  } else if (sleep == null || sleep < 4 || sleep > 12) {
+    targets = "Sleep must be between 4 and 12 hours.";
   }
 
   return {
     2: biometrics,
     3: goals,
     5: s.activityLevel ? null : "Pick the activity level closest to your week.",
+    6: targets,
   };
 }
 
@@ -204,5 +235,21 @@ export function useOnboardingState(profile: ProfileRow, draft: OnboardingDraft |
     });
   }
 
-  return { state, derived, errors, set, setHeightUnit, setWeightUnit, toggleAllergy };
+  /** Adds or removes a dietary pattern; at most MAX_DIET_PATTERNS can be on. */
+  function toggleDiet(pattern: string) {
+    setState((p) => {
+      if (p.dietaryPatterns.includes(pattern)) return { ...p, dietaryPatterns: p.dietaryPatterns.filter((x) => x !== pattern) };
+      if (p.dietaryPatterns.length >= MAX_DIET_PATTERNS) return p;
+      return { ...p, dietaryPatterns: [...p.dietaryPatterns, pattern] };
+    });
+  }
+
+  function toggleFocus(key: string) {
+    setState((p) => ({
+      ...p,
+      goalFocus: p.goalFocus.includes(key) ? p.goalFocus.filter((x) => x !== key) : [...p.goalFocus, key],
+    }));
+  }
+
+  return { state, derived, errors, set, setHeightUnit, setWeightUnit, toggleAllergy, toggleDiet, toggleFocus };
 }

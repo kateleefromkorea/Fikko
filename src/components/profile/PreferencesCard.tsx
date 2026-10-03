@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Pencil } from "lucide-react";
 import type { ProfileRow } from "../../hooks/useProfile";
 import { GAIN_RATES, GOALS, LIMITS, LOSS_RATES, computeBaseline, goalByKey, inRange } from "../../lib/metabolics";
-import { ALLERGY_CHOICES, DIET_PATTERNS, TRACKING_STYLES } from "../../lib/preferences";
+import { ALLERGY_CHOICES, DIET_PATTERNS, GOAL_FOCUS, MAX_DIET_PATTERNS, TRACKING_STYLES, dietsOf, focusLabel } from "../../lib/preferences";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,14 +11,13 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 
-const NO_DIET = "No particular diet";
-
 interface Draft {
   goalKey: string | null;
   targetWeight: string;
   /** Pace as a positive kg/week; the goal's direction gives the sign. */
   rate: number | null;
-  diet: string | null;
+  diets: string[];
+  focus: string[];
   allergies: string[];
   trackingStyle: string | null;
   reminders: boolean;
@@ -29,7 +28,8 @@ function toDraft(p: ProfileRow): Draft {
     goalKey: p.primary_goal,
     targetWeight: p.target_weight_kg != null ? String(p.target_weight_kg) : "",
     rate: p.weekly_rate_kg != null ? Math.abs(p.weekly_rate_kg) : null,
-    diet: p.dietary_pattern,
+    diets: dietsOf(p),
+    focus: p.goal_focus ?? [],
     allergies: p.allergies ?? [],
     trackingStyle: p.tracking_style,
     reminders: p.reminders_enabled,
@@ -62,7 +62,11 @@ export default function PreferencesCard({ profile, onUpdateProfile, className }:
   const goal = goalByKey(draft.goalKey);
   const direction = goal?.weightManaging ?? null;
   const rates = direction === "gain" ? GAIN_RATES : LOSS_RATES;
-  const signedRate = direction && draft.rate ? (direction === "loss" ? -draft.rate : draft.rate) : null;
+  const focusOptions = draft.goalKey ? GOAL_FOCUS[draft.goalKey] ?? null : null;
+  const targetKg = draft.targetWeight.trim() ? parseFloat(draft.targetWeight) : null;
+  // Muscle building towards a weight at or below today's: build muscle while losing fat, at maintenance.
+  const recomposition = direction === "gain" && profile.weight_kg != null && targetKg != null && targetKg <= profile.weight_kg;
+  const signedRate = recomposition ? 0 : direction && draft.rate ? (direction === "loss" ? -draft.rate : draft.rate) : null;
 
   const baseline = computeBaseline({
     sex: profile.gender,
@@ -82,8 +86,22 @@ export default function PreferencesCard({ profile, onUpdateProfile, className }:
       return { ...d, allergies: rest.includes(a) ? rest.filter((x) => x !== a) : [...rest, a] };
     });
 
+  const toggleDiet = (p: string) =>
+    setDraft((d) => {
+      if (d.diets.includes(p)) return { ...d, diets: d.diets.filter((x) => x !== p) };
+      return d.diets.length >= MAX_DIET_PATTERNS ? d : { ...d, diets: [...d.diets, p] };
+    });
+
+  const toggleFocus = (k: string) =>
+    setDraft((d) => ({ ...d, focus: d.focus.includes(k) ? d.focus.filter((x) => x !== k) : [...d.focus, k] }));
+
+  const chipCls = (on: boolean) => cn(
+    "h-8 rounded-full border px-3 text-sm transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-40",
+    on ? "border-primary bg-primary/8 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+  );
+
   function save() {
-    const target = draft.targetWeight.trim() ? parseFloat(draft.targetWeight) : null;
+    const target = targetKg;
     if (direction) {
       if (target == null || !inRange(target, LIMITS.weightKg)) {
         return setError(`Target weight must be between ${LIMITS.weightKg.min} and ${LIMITS.weightKg.max} kg.`);
@@ -91,17 +109,16 @@ export default function PreferencesCard({ profile, onUpdateProfile, className }:
       if (profile.weight_kg != null && direction === "loss" && target >= profile.weight_kg) {
         return setError("For weight loss, the target should be below your current weight.");
       }
-      if (profile.weight_kg != null && direction === "gain" && target <= profile.weight_kg) {
-        return setError("For muscle building, the target should be above your current weight.");
-      }
-      if (!draft.rate) return setError("Choose a pace.");
+      if (!draft.rate && !recomposition) return setError("Choose a pace.");
     }
     setError(null);
     onUpdateProfile({
       primary_goal: draft.goalKey,
       target_weight_kg: direction ? target : null,
       weekly_rate_kg: signedRate,
-      dietary_pattern: draft.diet,
+      dietary_pattern: draft.diets[0] ?? null,
+      dietary_patterns: draft.diets,
+      goal_focus: focusOptions ? draft.focus.filter((k) => focusOptions.some((f) => f.key === k)) : [],
       allergies: draft.allergies,
       tracking_style: draft.trackingStyle,
       reminders_enabled: draft.reminders,
@@ -114,6 +131,7 @@ export default function PreferencesCard({ profile, onUpdateProfile, className }:
   }
 
   const paceLabel = (() => {
+    if (profile.primary_goal === "muscle_building" && profile.weekly_rate_kg === 0) return "Recomposition";
     if (!profile.weekly_rate_kg) return "—";
     const kg = Math.abs(profile.weekly_rate_kg);
     return `${profile.weekly_rate_kg < 0 ? "Lose" : "Gain"} ${kg} kg / week`;
@@ -124,7 +142,8 @@ export default function PreferencesCard({ profile, onUpdateProfile, className }:
     { label: "Goal", value: goalByKey(profile.primary_goal)?.label ?? "—" },
     { label: "Target weight", value: profile.target_weight_kg != null ? `${profile.target_weight_kg} kg` : "—" },
     { label: "Pace", value: paceLabel },
-    { label: "Diet", value: profile.dietary_pattern ?? "—" },
+    ...(profile.goal_focus?.length ? [{ label: "Focus", value: profile.goal_focus.map(focusLabel).join(", ") }] : []),
+    { label: "Diet", value: dietsOf(profile).join(", ") || "—" },
     { label: "Allergies", value: allergyLabel.length ? allergyLabel.join(", ") : profile.allergies?.includes("None") ? "None" : "—" },
     { label: "Tracking style", value: profile.tracking_style ?? "Simple calories" },
     { label: "Reminders", value: profile.reminders_enabled ? "On (starting soon)" : "Off" },
@@ -174,6 +193,11 @@ export default function PreferencesCard({ profile, onUpdateProfile, className }:
                       className="h-9"
                     />
                   </Field>
+                  {recomposition ? (
+                    <p className="self-end text-sm text-muted-foreground">
+                      Body recomposition: build muscle while losing fat, with calories at maintenance.
+                    </p>
+                  ) : (
                   <Field label="Pace" htmlFor="pref-pace">
                     <Select value={draft.rate != null ? String(draft.rate) : ""} onValueChange={(v) => setDraft((d) => ({ ...d, rate: Number(v) }))}>
                       <SelectTrigger id="pref-pace" className="h-9 w-full"><SelectValue placeholder="Choose a pace" /></SelectTrigger>
@@ -182,17 +206,9 @@ export default function PreferencesCard({ profile, onUpdateProfile, className }:
                       </SelectContent>
                     </Select>
                   </Field>
+                  )}
                 </>
               )}
-
-              <Field label="Diet" htmlFor="pref-diet">
-                <Select value={draft.diet ?? NO_DIET} onValueChange={(v) => setDraft((d) => ({ ...d, diet: v === NO_DIET ? null : v }))}>
-                  <SelectTrigger id="pref-diet" className="h-9 w-full"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {[NO_DIET, ...DIET_PATTERNS].map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </Field>
 
               <Field label="Tracking style" htmlFor="pref-tracking">
                 <Select value={draft.trackingStyle ?? "Simple calories"} onValueChange={(v) => setDraft((d) => ({ ...d, trackingStyle: v }))}>
@@ -206,6 +222,43 @@ export default function PreferencesCard({ profile, onUpdateProfile, className }:
               </Field>
             </div>
 
+            {focusOptions && (
+              <fieldset className="space-y-2">
+                <legend className="text-sm text-muted-foreground">Focus</legend>
+                <div className="flex flex-wrap gap-2">
+                  {focusOptions.map((f) => {
+                    const on = draft.focus.includes(f.key);
+                    return (
+                      <button key={f.key} type="button" aria-pressed={on} onClick={() => toggleFocus(f.key)} className={chipCls(on)}>
+                        {f.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            )}
+
+            <fieldset className="space-y-2">
+              <legend className="text-sm text-muted-foreground">Diet · up to {MAX_DIET_PATTERNS}</legend>
+              <div className="flex flex-wrap gap-2">
+                {DIET_PATTERNS.map((p) => {
+                  const on = draft.diets.includes(p);
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      aria-pressed={on}
+                      disabled={!on && draft.diets.length >= MAX_DIET_PATTERNS}
+                      onClick={() => toggleDiet(p)}
+                      className={chipCls(on)}
+                    >
+                      {p}
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+
             <fieldset className="space-y-2">
               <legend className="text-sm text-muted-foreground">Allergies & intolerances</legend>
               <div className="flex flex-wrap gap-2">
@@ -217,10 +270,7 @@ export default function PreferencesCard({ profile, onUpdateProfile, className }:
                       type="button"
                       aria-pressed={on}
                       onClick={() => toggleAllergy(a)}
-                      className={cn(
-                        "h-8 rounded-full border px-3 text-sm transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-                        on ? "border-primary bg-primary/8 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                      )}
+                      className={chipCls(on)}
                     >
                       {a}
                     </button>

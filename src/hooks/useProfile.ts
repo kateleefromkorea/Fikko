@@ -33,6 +33,12 @@ export interface ProfileRow {
   /** Set when the member has asked to delete their account: the date it will
    *  be permanently deleted. Null for an active account. */
   deletion_scheduled_for: string | null;
+
+  // ── Added by migration 019 (onboarding refresh) ──
+  /** Up to 3 ways of eating. dietary_pattern above holds the first, for older code. */
+  dietary_patterns: string[];
+  /** Keys from GOAL_FOCUS for the member's goal. */
+  goal_focus: string[];
 }
 
 const EMPTY_PROFILE: ProfileRow = {
@@ -50,6 +56,8 @@ const EMPTY_PROFILE: ProfileRow = {
   target_weight_kg: null,
   weekly_rate_kg: null,
   dietary_pattern: null,
+  dietary_patterns: [],
+  goal_focus: [],
   allergies: [],
   wearable: null,
   tracking_style: null,

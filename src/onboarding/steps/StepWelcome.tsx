@@ -27,19 +27,23 @@ export default function StepWelcome({ name }: { name: string }) {
         subtitle="Six quick questions and your dashboard is set up around you. It takes about a minute."
       />
 
-      <ul className="flex flex-col gap-3">
-        {VALUE_PROPS.map((v) => (
-          <li key={v.title} className="flex items-start gap-4 rounded-lg border p-4">
-            <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/8 text-primary" aria-hidden="true">
-              <v.icon className="size-5" />
-            </span>
-            <div className="min-w-0">
-              <p className="text-sm font-medium">{v.title}</p>
-              <p className="mt-0.5 text-sm text-muted-foreground">{v.body}</p>
-            </div>
-          </li>
-        ))}
-      </ul>
+      {/* One information panel, not a list of tiles, so nothing here looks like a choice to tap. */}
+      <section aria-labelledby="welcome-what" className="rounded-xl bg-muted/50 p-5 sm:p-6">
+        <h3 id="welcome-what" className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+          What you get
+        </h3>
+        <ul className="mt-4 divide-y divide-foreground/10">
+          {VALUE_PROPS.map((v) => (
+            <li key={v.title} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
+              <v.icon className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
+              <div className="min-w-0">
+                <p className="text-sm font-medium">{v.title}</p>
+                <p className="mt-0.5 text-sm text-muted-foreground">{v.body}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <p className="mt-6 text-sm text-muted-foreground">
         Your answers stay in your own account and are only used to work out your targets.

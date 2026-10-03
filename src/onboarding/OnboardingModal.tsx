@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import type { ProfileRow } from "../hooks/useProfile";
-import { computeBaseline } from "../lib/metabolics";
+import { computeBaseline, goalByKey } from "../lib/metabolics";
 import type { Baseline } from "../lib/metabolics";
 import { useOnboardingState } from "./useOnboardingState";
 import { clearDraft, readDraft } from "./draft";
@@ -10,7 +10,8 @@ import StepBiometrics from "./steps/StepBiometrics";
 import StepGoals from "./steps/StepGoals";
 import StepDiet from "./steps/StepDiet";
 import StepLifestyle from "./steps/StepLifestyle";
-import StepPreferences from "./steps/StepPreferences";
+import StepTargets from "./steps/StepTargets";
+import { GOAL_FOCUS, inferredTrackingStyle } from "../lib/preferences";
 import StepResult from "./steps/StepResult";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,18 +22,20 @@ const TOTAL_STEPS = 6;
 const RESULT_STEP = 7;
 
 /** Steps the user may move past without answering anything. */
-const SKIPPABLE = new Set([4, 6]);
+const SKIPPABLE = new Set([4]);
 
 interface Props {
   profile: ProfileRow;
   userId: string;
   /** Set when the member is back from a device's sign-in started on step 5. */
   deviceOutcome: DeviceOutcome | null;
+  /** Adds a medication or supplement from step 6 to the Medications card. */
+  onAddMedication: (name: string) => void;
   /** Persists the answers; the modal closes once this resolves. */
   onComplete: (patch: Partial<ProfileRow>, baseline: Baseline) => Promise<void>;
 }
 
-export default function OnboardingModal({ profile, userId, deviceOutcome, onComplete }: Props) {
+export default function OnboardingModal({ profile, userId, deviceOutcome, onAddMedication, onComplete }: Props) {
   // Answers parked before leaving for a device's sign-in, if this is the way back.
   const [draft] = useState(() => readDraft(userId));
   const api = useOnboardingState(profile, draft);
@@ -75,7 +78,10 @@ export default function OnboardingModal({ profile, userId, deviceOutcome, onComp
   async function finish() {
     if (!baseline || saving) return;
     setSaving(true);
+    // Focus areas only mean something for the goal they were picked under.
+    const focus = s.goalKey && GOAL_FOCUS[s.goalKey] ? s.goalFocus : [];
     try {
+      for (const name of s.medications) onAddMedication(name);
       await onComplete(
         {
           name: s.name.trim(),
@@ -85,14 +91,21 @@ export default function OnboardingModal({ profile, userId, deviceOutcome, onComp
           weight_kg: derived.weightKg == null ? null : Math.round(derived.weightKg * 10) / 10,
           activity_level: s.activityLevel,
           primary_goal: s.goalKey,
+          // Only weight goals have a target; one typed before switching goal is dropped.
           target_weight_kg:
-            derived.targetWeightKg == null ? null : Math.round(derived.targetWeightKg * 10) / 10,
+            derived.targetWeightKg == null || !goalByKey(s.goalKey)?.weightManaging
+              ? null
+              : Math.round(derived.targetWeightKg * 10) / 10,
           weekly_rate_kg: derived.weeklyRateKg,
-          dietary_pattern: s.dietaryPattern,
+          dietary_pattern: s.dietaryPatterns[0] ?? null,
+          dietary_patterns: s.dietaryPatterns,
+          goal_focus: focus,
           allergies: s.allergies,
           wearable: s.wearable,
-          tracking_style: s.trackingStyle,
-          reminders_enabled: s.remindersEnabled,
+          // Macros for members aiming at protein, carbs or fat; changeable in Profile.
+          tracking_style: inferredTrackingStyle(focus),
+          water_goal: Math.round(parseFloat(s.waterGoal)) || 8,
+          sleep_goal: parseFloat(s.sleepGoal) || 8,
           height_unit: s.heightUnit,
           weight_unit: s.weightUnit,
           bmr: baseline.bmr,
@@ -141,7 +154,7 @@ export default function OnboardingModal({ profile, userId, deviceOutcome, onComp
             {step === 5 && (
               <StepLifestyle api={api} showError={showError} userId={userId} outcome={draft ? deviceOutcome : null} />
             )}
-            {step === 6 && <StepPreferences api={api} />}
+            {step === 6 && <StepTargets api={api} showError={showError} />}
             {onResult &&
               (baseline ? (
                 <StepResult

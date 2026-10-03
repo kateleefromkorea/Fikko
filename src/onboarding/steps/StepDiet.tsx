@@ -1,12 +1,13 @@
 import type { useOnboardingState } from "../useOnboardingState";
 import { Chip, Field, StepHeading } from "../ui";
-import { ALLERGY_CHOICES, DIET_PATTERNS } from "../../lib/preferences";
+import { ALLERGY_CHOICES, DIET_PATTERNS, MAX_DIET_PATTERNS } from "../../lib/preferences";
 
 type Api = ReturnType<typeof useOnboardingState>;
 
 
 export default function StepDiet({ api }: { api: Api }) {
-  const { state: s, set, toggleAllergy } = api;
+  const { state: s, toggleAllergy, toggleDiet } = api;
+  const full = s.dietaryPatterns.length >= MAX_DIET_PATTERNS;
 
   return (
     <div>
@@ -16,17 +17,17 @@ export default function StepDiet({ api }: { api: Api }) {
       />
 
       <div className="flex flex-col gap-8">
-        <Field label="Dietary pattern" hint="Pick the one closest to how you usually eat.">
+        <Field
+          label="Dietary pattern"
+          hint={full
+            ? `That's the maximum of ${MAX_DIET_PATTERNS}. Tap one to remove it if you want to pick another.`
+            : `Pick up to ${MAX_DIET_PATTERNS} that describe how you usually eat.`}
+        >
           <div className="flex flex-wrap gap-2">
-            {DIET_PATTERNS.map((p) => (
-              <Chip
-                key={p}
-                label={p}
-                selected={s.dietaryPattern === p}
-                // Tapping the selected pattern again clears it.
-                onClick={() => set("dietaryPattern", s.dietaryPattern === p ? null : p)}
-              />
-            ))}
+            {DIET_PATTERNS.map((p) => {
+              const on = s.dietaryPatterns.includes(p);
+              return <Chip key={p} label={p} selected={on} disabled={full && !on} onClick={() => toggleDiet(p)} />;
+            })}
           </div>
         </Field>
 

@@ -12,6 +12,9 @@ import { Label } from "@/components/ui/label";
 
 export const inputCls = "h-9";
 
+/** The selected state for every choice in onboarding: dark, so it reads as chosen at a glance. */
+export const selectedCls = "border-foreground bg-foreground text-background hover:bg-foreground/90";
+
 export const selectCls =
   "h-9 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
@@ -71,13 +74,13 @@ export function SelectCard({
       aria-pressed={selected}
       className={cn(
         "flex w-full items-center gap-4 rounded-lg border bg-card p-4 text-left transition-colors hover:bg-muted/60",
-        selected && "border-primary bg-primary/5 hover:bg-primary/5",
+        selected && selectedCls,
       )}
     >
       <span
         className={cn(
           "grid size-10 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground",
-          selected && "bg-primary/10 text-primary",
+          selected && "bg-background/15 text-background",
         )}
         aria-hidden="true"
       >
@@ -85,29 +88,31 @@ export function SelectCard({
       </span>
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-medium">{label}</span>
-        {description && <span className="mt-0.5 block text-sm text-muted-foreground">{description}</span>}
+        {description && <span className={cn("mt-0.5 block text-sm text-muted-foreground", selected && "text-background/70")}>{description}</span>}
       </span>
-      {selected && <Check className="size-4 shrink-0 text-primary" aria-hidden="true" />}
+      {selected && <Check className="size-4 shrink-0" aria-hidden="true" />}
     </button>
   );
 }
 
 /** Multi-select (or compact single-select) tap target. */
 export function Chip({
-  selected, onClick, label,
+  selected, onClick, label, disabled,
 }: {
   selected: boolean;
   onClick: () => void;
   label: string;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={selected}
+      disabled={disabled}
       className={cn(
-        "h-9 rounded-full border bg-card px-4 text-sm transition-colors hover:bg-muted/60",
-        selected && "border-primary bg-primary/5 font-medium text-primary hover:bg-primary/5",
+        "h-9 rounded-full border bg-card px-4 text-sm transition-colors hover:bg-muted/60 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-card",
+        selected && cn(selectedCls, "font-medium"),
       )}
     >
       {label}
@@ -134,7 +139,7 @@ export function Segmented<T extends string>({
           aria-pressed={value === o.value}
           className={cn(
             "h-full rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground",
-            value === o.value && "bg-background text-foreground shadow-sm",
+            value === o.value && "bg-foreground text-background shadow-sm hover:text-background",
           )}
         >
           {o.label}

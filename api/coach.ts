@@ -73,7 +73,7 @@ async function memberContext(db: SupabaseClient, userId: string, tzOffset: numbe
   const foodFrom = dayKey(new Date(now.getTime() - 6 * 864e5));
 
   const [profileRes, habitsRes, customRes, customEntriesRes, foodRes, bioRes, medsRes, lastRes] = await Promise.all([
-    db.from("profiles").select("onboarding_completed_at, name, gender, date_of_birth, height_cm, weight_kg, activity_level, primary_goal, target_weight_kg, weekly_rate_kg, dietary_pattern, allergies, calorie_goal, water_goal, sleep_goal, tracking_style").eq("user_id", userId).maybeSingle(),
+    db.from("profiles").select("onboarding_completed_at, name, gender, date_of_birth, height_cm, weight_kg, activity_level, primary_goal, target_weight_kg, weekly_rate_kg, dietary_pattern, dietary_patterns, goal_focus, allergies, calorie_goal, water_goal, sleep_goal, tracking_style").eq("user_id", userId).maybeSingle(),
     db.from("habit_entries").select("category, date, value, note").eq("user_id", userId).gte("date", from).lte("date", today).order("date"),
     db.from("custom_habits").select("id, name, unit, target").eq("user_id", userId),
     db.from("custom_habit_entries").select("custom_habit_id, date, value").eq("user_id", userId).gte("date", from).lte("date", today),
@@ -104,8 +104,10 @@ async function memberContext(db: SupabaseClient, userId: string, tzOffset: numbe
       p.activity_level && `Activity level: ${p.activity_level}`,
       p.primary_goal && `Goal: ${p.primary_goal}`,
       p.target_weight_kg && `Target weight: ${p.target_weight_kg} kg`,
+      p.primary_goal === "muscle_building" && p.weekly_rate_kg === 0 && "Approach: body recomposition (build muscle while losing fat, calories at maintenance)",
       p.weekly_rate_kg && `Planned pace: ${p.weekly_rate_kg} kg a week`,
-      p.dietary_pattern && `Diet: ${p.dietary_pattern}`,
+      p.goal_focus?.length && `Focus areas: ${p.goal_focus.map((k: string) => k.replace(/_/g, " ")).join(", ")}`,
+      (p.dietary_patterns?.length || p.dietary_pattern) && `Diet: ${(p.dietary_patterns?.length ? p.dietary_patterns : [p.dietary_pattern]).join(", ")}`,
       p.allergies?.length && `Allergies: ${p.allergies.join(", ")}`,
       p.calorie_goal && `Daily calorie target: ${p.calorie_goal} kcal`,
       `Daily water goal: ${p.water_goal ?? 8} glasses`,

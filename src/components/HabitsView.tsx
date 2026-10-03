@@ -475,10 +475,15 @@ function WaterCard({ data, onChange, activeDate, biometrics, goals }: Props) {
   const nudgeTarget = Math.round(goals.water) + (steps !== null && steps > 10000 ? 2 : 0);
   // Glasses shown: the target, plus one spare once it's reached (up to 30 in a day).
   const slots = Math.min(30, Math.max(nudgeTarget, glasses >= nudgeTarget ? glasses + 1 : nudgeTarget));
-  const comment = waterComment(
+  // How to use the glasses rides along in the comment bubble, so the card has
+  // one line of guidance rather than a second one at the bottom.
+  const tip = glasses >= nudgeTarget ? "Had more? Tap the dashed glass." : "Tap a glass to fill it.";
+  const comment = `${waterComment(
     { glasses, target: nudgeTarget, boosted: steps !== null && steps > 10000, steps },
     momentFor(activeDate, todayKey()),
-  );
+  )} ${tip}`;
+  // Two rows of taller glasses fill the card; bigger goals add columns, then rows.
+  const cols = Math.min(Math.ceil(slots / 2), 6);
 
   return (
     <HabitCard
@@ -491,10 +496,10 @@ function WaterCard({ data, onChange, activeDate, biometrics, goals }: Props) {
       done={glasses >= nudgeTarget}
       comment={comment}
     >
-      {/* Up to 10 glasses a row; larger goals wrap onto more rows. Once the
-          target is met there's always one more empty glass (dashed), so extra
-          glasses can be logged too. */}
-      <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${Math.min(slots, 10)}, minmax(0, 1fr))` }}>
+      {/* Glasses stretch to fill the card's height, so the row of check-in
+          cards lines up without a blank band at the bottom. Once the target is
+          met there's always one more empty glass (dashed) for extras. */}
+      <div className="grid flex-1 auto-rows-fr gap-2" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
         {Array.from({ length: slots }).map((_, i) => {
           const filled = i < glasses;
           const extra = i >= nudgeTarget;
@@ -505,7 +510,7 @@ function WaterCard({ data, onChange, activeDate, biometrics, goals }: Props) {
               aria-label={filled ? `Remove glass ${i + 1}` : `Log glass ${i + 1}`}
               aria-pressed={filled}
               className={cn(
-                "relative h-16 overflow-hidden rounded-t-sm rounded-b-xl border-2 transition-colors",
+                "relative h-full min-h-20 overflow-hidden rounded-t-md rounded-b-2xl border-2 transition-colors",
                 filled ? "border-water/50" : "border-border hover:border-water/40 hover:bg-water/5",
                 extra && !filled && "border-dashed",
               )}
@@ -523,9 +528,6 @@ function WaterCard({ data, onChange, activeDate, biometrics, goals }: Props) {
           );
         })}
       </div>
-      <p className="mt-auto pt-6 text-sm text-muted-foreground">
-        {glasses >= nudgeTarget ? "Had more? Tap the dashed glass to add another." : "Tap a glass to fill it, tap again to empty it."}
-      </p>
     </HabitCard>
   );
 }
@@ -937,6 +939,42 @@ export function moodOption(value: number, note?: string) {
     ?? MOOD_OPTIONS.find((o) => o.key === MOODS[value - 1]?.label.toLowerCase());
 }
 
+/** The seven days ending on the viewed day, each with the mood logged that day. */
+function MoodWeek({ data, endDate }: { data: HabitData; endDate: string }) {
+  const days = Array.from({ length: 7 }, (_, i) => shiftDateKey(endDate, i - 6));
+  return (
+    <div className="space-y-2">
+      <GroupLabel>This week</GroupLabel>
+      <ol className="grid grid-cols-7 gap-1.5">
+        {days.map((date) => {
+          const entry = getEntry(data.mood, date);
+          const option = entry ? moodOption(entry.value, entry.note) : undefined;
+          const day = new Date(date + "T12:00:00").toLocaleDateString("en-US", { weekday: "narrow" });
+          const isEnd = date === endDate;
+          return (
+            <li
+              key={date}
+              className="flex flex-col items-center gap-1"
+              aria-label={`${new Date(date + "T12:00:00").toLocaleDateString("en-US", { weekday: "long" })}: ${option?.label ?? "no mood logged"}`}
+            >
+              <span
+                className={cn(
+                  "grid size-8 place-items-center rounded-full",
+                  option ? "bg-mood/15 text-amber-700" : "border border-dashed text-muted-foreground/40",
+                )}
+                aria-hidden="true"
+              >
+                {option ? <option.icon className="size-4" /> : null}
+              </span>
+              <span className={cn("text-[11px] text-muted-foreground", isEnd && "font-semibold text-foreground")} aria-hidden="true">{day}</span>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
 function MoodCard({ data, onChange, activeDate, biometrics }: Props) {
   const mood = getEntry(data.mood, activeDate)?.value ?? 0;
   const rest = getEntry(data.sleep, activeDate)?.value ?? 0;
@@ -954,13 +992,13 @@ function MoodCard({ data, onChange, activeDate, biometrics }: Props) {
       done={mood > 0}
       comment={moodComment({ mood, rest, feeling: current?.key }, momentFor(activeDate, todayKey()))}
     >
-      <div className="grid grid-cols-5 gap-2" role="group" aria-label="Mood">
+      <div className="grid flex-1 auto-rows-fr grid-cols-5 gap-2" role="group" aria-label="Mood">
         {MOOD_OPTIONS.map((m) => (
           <button
             key={m.key}
             onClick={() => set(m)}
             aria-pressed={current?.key === m.key}
-            className={cn(optionCls, "flex flex-col items-center gap-2 px-1 py-3.5 text-center")}
+            className={cn(optionCls, "flex h-full flex-col items-center justify-center gap-2 px-1 py-3.5 text-center")}
           >
             <m.icon className="size-6" aria-hidden="true" />
             <span className="text-xs font-medium">{m.label}</span>
@@ -968,7 +1006,8 @@ function MoodCard({ data, onChange, activeDate, biometrics }: Props) {
         ))}
       </div>
 
-      <div className="mt-auto space-y-4 pt-6">
+      <div className="mt-5 space-y-4">
+        <MoodWeek data={data} endDate={activeDate} />
         {rec !== null && (
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">

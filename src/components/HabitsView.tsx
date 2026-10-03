@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Activity, Annoyed, Apple, BedDouble, Brain, CalendarDays, Check, ChevronLeft, ChevronRight, Coffee, Droplet, Dumbbell,
   BatteryLow, CloudRain, Frown, Laugh, Leaf, Meh, Moon, SunMedium, Zap, Pill, Plus, Smartphone, Smile, SmilePlus, Sparkles, Sun, Sunrise, Sunset, Thermometer,
-  Trash2, Utensils, Volume2, Watch, Wine, X, type LucideIcon,
+  ShieldCheck, Trash2, Utensils, Volume2, Watch, Wine, X, type LucideIcon,
 } from "lucide-react";
 import { DB_LIMITS, clamp } from "../lib/limits";
 import { completion, EXERCISE_TARGET_MIN, type CoreHabit } from "../lib/completion";
@@ -13,6 +13,8 @@ import { useCustomFoods } from "../hooks/useCustomFoods";
 import FoodLogModal from "./FoodLogModal";
 import VoiceCheckIn from "./VoiceCheckIn";
 import Celebration from "./Celebration";
+import InteractionCheck from "./InteractionCheck";
+import { suggestMedications } from "../lib/medicationNames";
 import { useSavedMeals } from "../hooks/useSavedMeals";
 import ProgressRing from "./ProgressRing";
 import {
@@ -536,10 +538,13 @@ const TIME_SLOTS: { key: TimeOfDay; label: string; icon: LucideIcon }[] = [
 ];
 
 function MedicationCard({ data, onChange, activeDate, medications }: Props) {
-  const { medications: medList, addMedication, removeMedication, updateTimeOfDay } = medications;
+  const { medications: medList, past, addMedication, removeMedication, updateTimeOfDay } = medications;
   const [newMed, setNewMed] = useState("");
   const [newSlot, setNewSlot] = useState<TimeOfDay>("breakfast");
   const [adding, setAdding] = useState(false);
+  // The names being checked, fixed when the check opens.
+  const [checking, setChecking] = useState<string[] | null>(null);
+  const nameInput = useRef<HTMLInputElement>(null);
 
   const entry = getEntry(data.medication, activeDate);
   const checkedRaw: Record<string, boolean> = parseNote<Record<string, boolean>>(entry?.note) ?? {};
@@ -556,10 +561,10 @@ function MedicationCard({ data, onChange, activeDate, medications }: Props) {
 
   const toggleMed = (id: string) => save({ ...checkedRaw, [id]: !checkedRaw[id] }, medList);
 
-  const addMed = () => {
-    const name = newMed.trim();
-    if (!name || medList.some((m) => m.name === name)) return;
-    const med = addMedication(name, newSlot);
+  const addMed = (typed = newMed, slot = newSlot) => {
+    const name = typed.trim();
+    if (!name || medList.some((m) => m.name.toLowerCase() === name.toLowerCase())) return;
+    const med = addMedication(name, slot);
     // A new, unticked medication means today is no longer "everything taken".
     if (med && entry) save(checkedRaw, [...medList, med]);
     setNewMed("");
@@ -574,6 +579,12 @@ function MedicationCard({ data, onChange, activeDate, medications }: Props) {
     save(updated, medList.filter((m) => m.id !== id));
   };
 
+  // Names to suggest as they type, including ones they've taken before.
+  const current = new Set(medList.map((m) => m.name.toLowerCase()));
+  const suggestions = suggestMedications(newMed, current, past.map((m) => m.name));
+  const takenBefore = past.filter((m) => !current.has(m.name.toLowerCase())).slice(-6).reverse();
+  const chip = "rounded-full border px-3 py-1 text-xs font-medium hover:bg-muted";
+
   const addForm = (
     <div className="space-y-3">
       <Input
@@ -582,9 +593,29 @@ function MedicationCard({ data, onChange, activeDate, medications }: Props) {
         onKeyDown={(e) => { if (e.key === "Enter") addMed(); if (e.key === "Escape") setAdding(false); }}
         placeholder="Medication or supplement"
         aria-label="Medication or supplement name"
+        ref={nameInput}
         autoFocus
         className="h-9"
       />
+      {suggestions.length > 0 && (
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Suggestions">
+          {suggestions.map((name) => (
+            <button key={name} type="button" onClick={() => { setNewMed(name); nameInput.current?.focus(); }} className={chip}>{name}</button>
+          ))}
+        </div>
+      )}
+      {!newMed.trim() && takenBefore.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-xs text-muted-foreground">Taken before · tap to add back</p>
+          <div className="flex flex-wrap gap-1.5">
+            {takenBefore.map((m) => (
+              <button key={m.id} type="button" onClick={() => addMed(m.name, m.time_of_day)} className={chip}>
+                <Plus className="mr-1 inline size-3" aria-hidden="true" />{m.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="grid grid-cols-3 gap-2" role="group" aria-label="Time of day">
         {TIME_SLOTS.map((s) => (
           <button
@@ -599,7 +630,7 @@ function MedicationCard({ data, onChange, activeDate, medications }: Props) {
         ))}
       </div>
       <div className="flex gap-2">
-        <Button onClick={addMed} className="h-9 px-4">Add</Button>
+        <Button onClick={() => addMed()} className="h-9 px-4">Add</Button>
         <Button variant="ghost" onClick={() => setAdding(false)} className="h-9 px-4">Cancel</Button>
       </div>
     </div>
@@ -680,13 +711,22 @@ function MedicationCard({ data, onChange, activeDate, medications }: Props) {
 
           <Separator className="my-5" />
           {adding ? addForm : (
-            <Button variant="outline" onClick={() => setAdding(true)} className="h-9 w-full border-dashed text-muted-foreground">
-              <Plus />
-              Add medication or supplement
-            </Button>
+            <div className="flex flex-col gap-2">
+              <Button variant="outline" onClick={() => setAdding(true)} className="h-9 w-full border-dashed text-muted-foreground">
+                <Plus />
+                Add medication or supplement
+              </Button>
+              {medList.length >= 2 && (
+                <Button variant="outline" onClick={() => setChecking(medList.map((m) => m.name))} className="h-9">
+                  <ShieldCheck />
+                  Check interactions
+                </Button>
+              )}
+            </div>
           )}
         </>
       )}
+      {checking && <InteractionCheck names={checking} onClose={() => setChecking(null)} />}
     </HabitCard>
   );
 }

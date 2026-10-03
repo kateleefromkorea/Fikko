@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import PhotoLog from "./PhotoLog";
 
 // The camera code is only downloaded when someone taps Scan.
 const BarcodeScanner = lazy(() => import("./BarcodeScanner"));
@@ -335,6 +336,8 @@ export default function FoodLogModal({
               <span className="hidden sm:inline">Scan</span>
             </Button>
           </div>
+
+          <PhotoLog meal={meal} onAddMany={onAddMany} />
 
           {scanning && (
             <Suspense fallback={<p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" /> Starting camera…</p>}>

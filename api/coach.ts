@@ -82,7 +82,7 @@ async function memberContext(db: SupabaseClient, userId: string, tzOffset: numbe
     // Google's Limited Use rules currently cover showing them to the member, not sharing
     // them with an AI provider. Other sources (e.g. Apple Health, later) can be added here.
     db.from("biometric_entries").select("metric, date, value").eq("user_id", userId).gte("date", from).lte("date", today).neq("source", "google"),
-    db.from("medications").select("id", { count: "exact", head: true }).eq("user_id", userId),
+    db.from("medications").select("id", { count: "exact", head: true }).eq("user_id", userId).is("archived_at", null),
     // The most recent log before this window, to tell a new member from one coming back.
     db.from("habit_entries").select("date").eq("user_id", userId).lt("date", from).order("date", { ascending: false }).limit(1).maybeSingle(),
   ]);

@@ -8,6 +8,8 @@ interface AuthContextValue {
   loading: boolean;
   signInWithPassword: (email: string, password: string) => Promise<{ error: string | null }>;
   signUpWithPassword: (email: string, password: string) => Promise<{ error: string | null }>;
+  /** Emails the sign-up confirmation link again, for an account that isn't confirmed yet. */
+  resendConfirmation: (email: string) => Promise<{ error: string | null }>;
   signInWithGoogle: () => Promise<{ error: string | null }>;
   sendPasswordReset: (email: string) => Promise<{ error: string | null }>;
   updatePassword: (password: string) => Promise<{ error: string | null }>;
@@ -53,6 +55,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null };
   }
 
+  async function resendConfirmation(email: string) {
+    const { error } = await supabase.auth.resend({ type: "signup", email, options: { emailRedirectTo: window.location.origin } });
+    return { error: error?.message ?? null };
+  }
+
   async function signInWithGoogle() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -85,6 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         signInWithPassword,
         signUpWithPassword,
+        resendConfirmation,
         signInWithGoogle,
         sendPasswordReset,
         updatePassword,

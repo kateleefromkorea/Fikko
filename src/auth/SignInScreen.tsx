@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Loader2, MailCheck } from "lucide-react";
 import { useAuth } from "./AuthProvider";
 import TestimonialLoop from "./TestimonialLoop";
@@ -20,6 +20,9 @@ function GoogleMark() {
   );
 }
 
+/** Seconds between "send again" taps; Supabase also limits how often one address can be emailed. */
+const RESEND_WAIT = 60;
+
 /** Links can open the sign-up form directly with ?mode=signup (the marketing
  *  site's "Start" buttons do); anything else opens sign-in as before. */
 function initialMode(): "signin" | "signup" {
@@ -27,13 +30,53 @@ function initialMode(): "signin" | "signup" {
 }
 
 export default function SignInScreen() {
-  const { signInWithPassword, signUpWithPassword, signInWithGoogle, sendPasswordReset } = useAuth();
+  const { signInWithPassword, signUpWithPassword, resendConfirmation, signInWithGoogle, sendPasswordReset } = useAuth();
   const [mode, setMode] = useState<"signin" | "signup" | "reset">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [checkEmail, setCheckEmail] = useState(false);
+  // "Send the link again": when it can next be tapped, the seconds left, and how the last try went.
+  // Counted from the clock, so it stays right after a trip to the email app (where timers pause).
+  const [resendAt, setResendAt] = useState(0);
+  const [wait, setWait] = useState(0);
+  const [resending, setResending] = useState(false);
+  const [resent, setResent] = useState<"sent" | string | null>(null);
+  // Signing in before confirming the email offers the link again too.
+  const [unconfirmed, setUnconfirmed] = useState(false);
+
+  useEffect(() => {
+    if (!resendAt) return;
+    const tick = () => setWait(Math.max(0, Math.ceil((resendAt - Date.now()) / 1000)));
+    tick();
+    const t = setInterval(tick, 1000);
+    document.addEventListener("visibilitychange", tick);
+    return () => { clearInterval(t); document.removeEventListener("visibilitychange", tick); };
+  }, [resendAt]);
+
+  const startWait = () => setResendAt(Date.now() + RESEND_WAIT * 1000);
+
+  async function resend() {
+    if (wait > 0 || resending) return;
+    setResending(true);
+    setResent(null);
+    const { error } = mode === "reset" ? await sendPasswordReset(email) : await resendConfirmation(email);
+    setResending(false);
+    setResent(error ?? "sent");
+    startWait();
+  }
+
+  async function resendFromSignIn() {
+    const { error } = await resendConfirmation(email);
+    if (error) return setError(error);
+    setMode("signup");
+    setUnconfirmed(false);
+    setError(null);
+    setResent("sent");
+    startWait();
+    setCheckEmail(true);
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -46,9 +89,13 @@ export default function SignInScreen() {
           ? await signUpWithPassword(email, password)
           : await sendPasswordReset(email);
     setSubmitting(false);
+    setUnconfirmed(false);
     if (error) {
       setError(error);
+      if (mode === "signin" && /not confirmed/i.test(error)) setUnconfirmed(true);
     } else if (mode !== "signin") {
+      setResent(null);
+      startWait();
       setCheckEmail(true);
     }
   }
@@ -87,10 +134,21 @@ export default function SignInScreen() {
                 <span className="font-medium text-foreground">{email}</span>
                 {mode === "reset" ? ". It may take a minute to arrive." : " to finish signing up."}
               </p>
+              <div className="mt-5 w-full space-y-2 border-t pt-5">
+                <p className="text-sm text-muted-foreground">Didn&apos;t get it? Check your spam folder, or</p>
+                <Button variant="outline" onClick={() => void resend()} disabled={wait > 0 || resending} className="h-9 w-full">
+                  {resending && <Loader2 className="animate-spin" />}
+                  {wait > 0 ? `Send the link again in ${wait}s` : "Send the link again"}
+                </Button>
+                {resent === "sent" && (
+                  <p role="status" className="text-sm text-primary">A new link is on its way. Use the newest email.</p>
+                )}
+                {resent && resent !== "sent" && <p role="alert" className="text-sm text-destructive">{resent}</p>}
+              </div>
               <Button
                 variant="link"
-                onClick={() => { setCheckEmail(false); setError(null); }}
-                className="mt-4 h-auto p-0"
+                onClick={() => { setCheckEmail(false); setError(null); setResent(null); }}
+                className="mt-3 h-auto p-0"
               >
                 Wrong email? Use a different one
               </Button>
@@ -151,6 +209,11 @@ export default function SignInScreen() {
                   </div>
                   )}
                   {error && <p className="text-sm text-destructive">{error}</p>}
+                  {unconfirmed && (
+                    <Button type="button" variant="link" onClick={() => void resendFromSignIn()} className="h-auto p-0 text-sm">
+                      Send the confirmation link again
+                    </Button>
+                  )}
                   <Button type="submit" disabled={submitting} className="h-10 w-full">
                     {submitting && <Loader2 className="animate-spin" />}
                     {mode === "signin" ? "Sign in" : mode === "signup" ? "Create account" : "Send reset link"}
@@ -179,6 +242,7 @@ export default function SignInScreen() {
                     onClick={() => {
                       setMode(mode === "signin" ? "signup" : "signin");
                       setError(null);
+                      setUnconfirmed(false);
                     }}
                     className="h-auto p-0"
                   >

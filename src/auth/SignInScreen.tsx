@@ -117,7 +117,7 @@ export default function SignInScreen() {
           <h1 className="text-4xl leading-[1.1] font-semibold sm:text-5xl">
             {mode === "signin" ? "Welcome back" : mode === "signup" ? "Start with Fikko" : "Forgot your password?"}
           </h1>
-          <p className="mt-4 text-base text-balance text-muted-foreground">
+          <p className="mt-4 font-tagline text-lg leading-relaxed text-balance text-muted-foreground">
             Your entire day, simplified into one check-in. Completely ad-free.
           </p>
         </div>

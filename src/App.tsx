@@ -31,6 +31,7 @@ import {
 import { todayKey } from "./lib/dates";
 import { tracksMacros } from "./lib/preferences";
 import { hasDraft } from "./onboarding/draft";
+import { trackView } from "./lib/track";
 
 // Loaded on demand. The Dashboard carries the charting library (most of the
 // app's JavaScript) and onboarding only runs once per user, so neither should
@@ -40,6 +41,10 @@ const OnboardingModal = lazy(() => import("./onboarding/OnboardingModal"));
 const CommunityView = lazy(() => import("./components/CommunityView"));
 const RecipesView = lazy(() => import("./components/RecipesView"));
 const ProfileView = lazy(() => import("./components/ProfileView"));
+const AdminView = lazy(() => import("./admin/AdminView"));
+
+// The admin site lives at /admin, outside the member app.
+const isAdminPage = window.location.pathname.replace(/\/+$/, "") === "/admin";
 
 type Tab = "habits" | "dashboard" | "recipes" | "community" | "coaches" | "profile";
 
@@ -77,6 +82,12 @@ export default function App() {
   const medications = useMedications(userId);
   const { biometrics, reload: reloadBiometrics } = useBiometrics(userId);
 
+  // Anonymous page-view stats. Sign-in and each tab count as a page.
+  const signedIn = !!session;
+  useEffect(() => {
+    if (!isAdminPage && !loading) trackView(signedIn ? `/${tab}` : "/sign-in");
+  }, [signedIn, loading, tab]);
+
   if (!isSupabaseConfigured) {
     return <SetupNeeded />;
   }
@@ -91,6 +102,14 @@ export default function App() {
 
   if (recovering) {
     return <SetNewPassword />;
+  }
+
+  if (isAdminPage) {
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-background" />}>
+        <AdminView />
+      </Suspense>
+    );
   }
 
   // An account waiting out its deletion grace period opens on the restore

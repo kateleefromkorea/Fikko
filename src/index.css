@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Nunito:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500&display=swap');
 @import 'tailwindcss';
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -9,7 +9,7 @@
   --font-sans: 'Inter', system-ui, sans-serif;
   --font-heading: 'Inter', system-ui, sans-serif;
   /* Accent face, used sparingly: the sign-in page's tagline. */
-  --font-tagline: 'Nunito', system-ui, sans-serif;
+  --font-tagline: 'Roboto', system-ui, sans-serif;
 
   /* Teal and sky are the fresh accents; the rest are one hue per habit,
      shared with the marketing site, used only to identify a habit or a

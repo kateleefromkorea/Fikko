@@ -1,6 +1,7 @@
 // The admin site at /admin: visitor stats for the app and the marketing site,
 // plus sign-ups. Everything comes from one database call (admin_stats in
-// migration 016), which refuses anyone not listed in the admins table.
+// migration 016), which refuses anyone not listed in the admins table or
+// who hasn't entered a code from their authenticator app (migration 017).
 
 import { useEffect, useState, type ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
@@ -9,6 +10,7 @@ import { supabase } from "../lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { C, ax, ttStyle } from "../components/dashboard/ui";
+import AdminMfa from "./AdminMfa";
 
 interface Stats {
   daily: { day: string; views: number; visitors: number; signups: number }[];
@@ -32,29 +34,52 @@ const shortDay = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString(und
 const sum = (rows: Stats["daily"], k: "views" | "visitors" | "signups") => rows.reduce((n, r) => n + Number(r[k]), 0);
 
 export default function AdminView() {
+  const [status, setStatus] = useState<"checking" | "needs_mfa" | "ok" | "error">("checking");
+
+  const check = () =>
+    supabase.rpc("admin_status").then(({ data, error }) => {
+      if (error) return setStatus("error");
+      // Anyone who isn't an admin just lands on the normal app, so the page gives nothing away.
+      if (data === "none") return window.location.replace("/");
+      setStatus(data === "ok" ? "ok" : "needs_mfa");
+    });
+
+  useEffect(() => { void check(); }, []);
+
+  if (status === "checking") return <div className="min-h-screen bg-background" />;
+  if (status === "error") {
+    return (
+      <Shell>
+        <p className="text-sm text-destructive">Couldn't check access. Has migration 017 been run?</p>
+      </Shell>
+    );
+  }
+  if (status === "needs_mfa") {
+    return (
+      <Shell>
+        <AdminMfa onVerified={() => void check()} />
+      </Shell>
+    );
+  }
+  return <StatsView />;
+}
+
+function StatsView() {
   const [days, setDays] = useState<number>(30);
   const [site, setSite] = useState<Site>("all");
   const [stats, setStats] = useState<Stats | null>(null);
-  const [state, setState] = useState<"loading" | "ready" | "denied" | "error">("loading");
+  const [state, setState] = useState<"loading" | "ready" | "error">("loading");
 
   useEffect(() => {
     let live = true;
     supabase.rpc("admin_stats", { p_days: days, p_site: site === "all" ? null : site }).then(({ data, error }) => {
       if (!live) return;
-      if (error) return setState(error.code === "42501" ? "denied" : "error");
+      if (error) return setState("error");
       setStats(data as Stats);
       setState("ready");
     });
     return () => { live = false; };
   }, [days, site]);
-
-  if (state === "denied") {
-    return (
-      <Shell>
-        <p className="py-20 text-center text-muted-foreground">This page isn't available.</p>
-      </Shell>
-    );
-  }
 
   return (
     <Shell>
@@ -71,7 +96,7 @@ export default function AdminView() {
         </Tabs>
       </div>
 
-      {state === "error" && <p className="text-sm text-destructive">Couldn't load stats. Has migration 016 been run?</p>}
+      {state === "error" && <p className="text-sm text-destructive">Couldn't load stats. Try reloading the page.</p>}
       {state === "loading" && !stats && <p className="text-sm text-muted-foreground">Loading…</p>}
 
       {stats && (

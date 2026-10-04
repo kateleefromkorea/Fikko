@@ -2,6 +2,8 @@
 //   • USDA FoodData Central for generic whole foods ("banana", "chicken breast").
 //     The key stays on the server.
 //   • Open Food Facts for branded, packaged products and barcode lookups.
+//   • Regional food composition databases (Australia's AFCD, and more as they're
+//     licensed) from the regional_foods table, shown with the generic foods.
 //
 //   GET ?q=<words>       generic matches first, then branded products
 //   GET ?barcode=<digits> one product, or { food: null } when it isn't known
@@ -16,7 +18,7 @@
 // without the check, which is fine: they cost nothing and are public data.
 
 import { admin, supabaseReady } from "./_lib/devices.js";
-import { lookupBarcode, normalizeQuery, searchBranded, searchUsda } from "./_lib/foods.js";
+import { lookupBarcode, normalizeQuery, searchBranded, searchRegional, searchUsda } from "./_lib/foods.js";
 import { OPTIONS, withCors } from "./_lib/cors.js";
 
 export type { FoodSearchHit } from "./_lib/foods.js";
@@ -65,12 +67,15 @@ async function handleGET(request: Request) {
   if (query.length > MAX_QUERY_LENGTH) return json({ error: "That search is too long." }, 400);
   if (!(await signedIn(request))) return json({ error: "Sign in to search foods." }, 401);
 
-  const [generic, branded] = await Promise.allSettled([searchUsda(query), searchBranded(query)]);
-  if (generic.status === "rejected" && branded.status === "rejected") {
+  const [generic, branded, regional] = await Promise.allSettled([searchUsda(query), searchBranded(query), searchRegional(query)]);
+  // The regional databases are an extra: if the table isn't there yet, search carries on without them.
+  const regionalFoods = regional.status === "fulfilled" ? regional.value : [];
+  if (generic.status === "rejected" && branded.status === "rejected" && !regionalFoods.length) {
     return json({ error: "Food search is unavailable right now." }, 502);
   }
   const foods = [
     ...(generic.status === "fulfilled" ? generic.value : []),
+    ...regionalFoods,
     ...(branded.status === "fulfilled" ? branded.value : []),
   ];
   // A partial answer is cached only briefly, so the missing half is retried soon.

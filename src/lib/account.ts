@@ -28,7 +28,8 @@ const USER_TABLES = [
   ["coach_messages", "created_at"],
 ] as const;
 
-export type ExportFormat = "pdf" | "json";
+/** "daily" and "food" are spreadsheets (CSV): one row per day, or one row per logged food. */
+export type ExportFormat = "pdf" | "json" | "daily" | "food";
 
 /** First and last day keys to export, inclusive. */
 export interface ExportRange {
@@ -64,6 +65,9 @@ export async function exportAllData(userId: string, format: ExportFormat, range:
     // Loaded on demand so the PDF library stays out of the main bundle.
     const { buildPdf } = await import("./exportPdf");
     blob = buildPdf(tables, exportedAt, range).output("blob");
+  } else if (format === "daily" || format === "food") {
+    const { buildDailyCsv, buildFoodCsv } = await import("./exportCsv");
+    blob = format === "daily" ? buildDailyCsv(tables) : buildFoodCsv(tables);
   } else {
     const payload = { exportedAt: exportedAt.toISOString(), range: range ?? "all", ...tables };
     blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
@@ -73,7 +77,9 @@ export async function exportAllData(userId: string, format: ExportFormat, range:
   const a = document.createElement("a");
   a.href = url;
   const span = !range ? "all" : range.from === range.to ? range.from : `${range.from}_to_${range.to}`;
-  a.download = `fikko-export-${span}.${format}`;
+  a.download = format === "daily" || format === "food"
+    ? `fikko-${format === "daily" ? "daily" : "food-diary"}-${span}.csv`
+    : `fikko-export-${span}.${format}`;
   a.click();
   // Revoking straight away can cancel the download in some browsers.
   setTimeout(() => URL.revokeObjectURL(url), 1000);

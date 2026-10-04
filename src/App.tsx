@@ -319,6 +319,7 @@ export default function App() {
           <nav aria-label="Legal" className="flex gap-4">
             <a href="/privacy.html" className="hover:text-foreground">Privacy</a>
             <a href="/terms.html" className="hover:text-foreground">Terms</a>
+            <a href="/food-data-sources.html" className="hover:text-foreground">Food data</a>
             <a href="mailto:hello@fikko.io" className="hover:text-foreground">Contact</a>
           </nav>
         </div>

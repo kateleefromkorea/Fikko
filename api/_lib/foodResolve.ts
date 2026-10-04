@@ -2,7 +2,7 @@
 // the member can log: matches it to USDA FoodData Central when a close match exists,
 // otherwise keeps Claude's own calorie estimate. Shared by voice check-ins and photo logging.
 
-import { normalizeQuery, searchUsda, type FoodSearchHit } from "./foods.js";
+import { normalizeQuery, searchRegional, searchUsda, type FoodSearchHit } from "./foods.js";
 
 export const MEALS = ["breakfast", "lunch", "dinner", "snacks"] as const;
 export type Meal = (typeof MEALS)[number];
@@ -63,7 +63,13 @@ export async function resolveFood(f: ClaudeFood): Promise<ProposedFood | null> {
   if (!grams || kcal == null || !name || !MEALS.includes(f.meal)) return null;
   let match: FoodSearchHit | null = null;
   try {
-    match = bestMatch(f.search_term || name, grams, kcal, await searchUsda(normalizeQuery(f.search_term || name)));
+    const term = normalizeQuery(f.search_term || name);
+    // USDA and the regional databases together, so "laksa" or "nasi lemak" can match too.
+    const [usda, regional] = await Promise.allSettled([searchUsda(term), searchRegional(term)]);
+    match = bestMatch(f.search_term || name, grams, kcal, [
+      ...(usda.status === "fulfilled" ? usda.value : []),
+      ...(regional.status === "fulfilled" ? regional.value : []),
+    ]);
   } catch { /* database unavailable: fall back to the estimate */ }
   if (match) {
     return {

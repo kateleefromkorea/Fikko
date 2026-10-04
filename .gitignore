@@ -19,3 +19,6 @@ logs/
 # beside it.
 /.plugins/
 /.opencode-skills/
+
+# Food database CSVs made by scripts/build-regional-foods.mjs (loaded into Supabase, not kept in git)
+out/

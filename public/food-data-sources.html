@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Food data sources · Fikko</title>
+  <meta name="description" content="Where the food and nutrition data in Fikko comes from." />
+  <link rel="icon" href="/icon-192.png" />
+  <style>
+    :root { --fg: #171717; --muted: #5f6368; --primary: #157954; --border: #e5e5e5; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #fff; color: var(--fg); font: 16px/1.65 Inter, system-ui, -apple-system, "Segoe UI", sans-serif; }
+    header { border-bottom: 1px solid var(--border); }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 0 20px; }
+    header .wrap { height: 64px; display: flex; align-items: center; justify-content: space-between; }
+    .brand { font-weight: 700; letter-spacing: .04em; color: var(--fg); text-decoration: none; }
+    header a.back { color: var(--primary); text-decoration: none; font-size: 14px; }
+    main { padding: 48px 0 80px; }
+    h1 { font-size: 36px; line-height: 1.15; letter-spacing: -.02em; margin: 0 0 8px; }
+    h2 { font-size: 20px; letter-spacing: -.01em; margin: 40px 0 8px; }
+    p, li { color: #2b2b2b; }
+    .meta { color: var(--muted); font-size: 14px; margin: 0 0 32px; }
+    ul { padding-left: 22px; }
+    li { margin: 6px 0; }
+    a { color: var(--primary); }
+    .note { background: #f6f7f8; border-radius: 12px; padding: 16px 20px; font-size: 15px; }
+    footer { border-top: 1px solid var(--border); color: var(--muted); font-size: 14px; padding: 24px 0; }
+  </style>
+</head>
+<body>
+  <header><div class="wrap"><a class="brand" href="/">FIKKO</a><a class="back" href="/">Back to Fikko</a></div></header>
+  <main class="wrap">
+    <h1>Food data sources</h1>
+    <p class="meta">Last updated 4 October 2026</p>
+
+    <p>When you search for a food in Fikko, the calories and nutrients come from the public databases below. We thank the organisations that maintain them.</p>
+
+    <div class="note">Food composition values are averages. The nutrient content of a food varies with the season, how it was grown and prepared, the brand and the portion, so treat every figure as a close estimate rather than an exact measurement.</div>
+
+    <h2>Australian Food Composition Database (AFCD)</h2>
+    <p>Food composition data for Australian foods comes from the <a href="https://www.foodstandards.gov.au/science-data/food-nutrient-databases/afcd">Australian Food Composition Database</a>, &copy; Food Standards Australia New Zealand (FSANZ), published under a Creative Commons Attribution-ShareAlike 3.0 Australia licence (<a href="http://creativecommons.org/licenses/by-sa/3.0/au/deed.en">licence terms</a>; see also FSANZ&rsquo;s <a href="https://www.foodstandards.gov.au/science-data/monitoringnutrients/afcd/datauserlicenceagreement">Data User Licence Agreement</a>).</p>
+    <p><strong>Changes we made:</strong> we use only each food&rsquo;s energy, protein, carbohydrate and fat. We convert energy from kilojoules to calories and show values per 100&nbsp;g. We have not otherwise altered the data. Fikko is not endorsed by FSANZ.</p>
+    <p><strong>Limitations:</strong> there are limitations associated with food composition databases. The values may represent an average of the nutrient content of a sample of foods and ingredients measured at one time, and can vary substantially between batches and brands because of changes in season, processing practices, ingredient source and methods of calculation.</p>
+    <p><strong>Australian data:</strong> this database is based on Australian foods, and Australian data may not suit other countries.</p>
+
+    <h2>USDA FoodData Central</h2>
+    <p>Whole foods and prepared dishes come from <a href="https://fdc.nal.usda.gov/">FoodData Central</a>, published by the U.S. Department of Agriculture, Agricultural Research Service. It is in the public domain.</p>
+
+    <h2>Open Food Facts</h2>
+    <p>Packaged products and barcode lookups use <a href="https://world.openfoodfacts.org/">Open Food Facts</a>, a collaborative database whose contents are available under the <a href="https://opendatacommons.org/licenses/odbl/1-0/">Open Database Licence</a>. Contains information from Open Food Facts.</p>
+
+    <h2>Your own foods and estimates</h2>
+    <p>Foods you add yourself use the values you enter. When the AI estimates the calories in a meal from your voice or a photo, Fikko marks it as an estimate.</p>
+  </main>
+  <footer><div class="wrap">Fikko &middot; <a href="/privacy.html">Privacy</a> &middot; <a href="/terms.html">Terms</a> &middot; <a href="mailto:hello@fikko.io">hello@fikko.io</a></div></footer>
+</body>
+</html>

@@ -1,20 +1,29 @@
 // Food databases shared by the food search and voice check-ins:
-//   • USDA FoodData Central for generic whole foods (the key stays on the server).
+//   • USDA FoodData Central for generic whole foods and prepared dishes (the key stays on the server).
 //   • Open Food Facts for branded, packaged products and barcodes.
+//   • Regional food composition databases (Australia's AFCD, and others as they're
+//     licensed), loaded into the regional_foods table. See migration 024.
+
+import { admin, supabaseReady } from "./devices.js";
 
 const USDA_URL = "https://api.nal.usda.gov/fdc/v1/foods/search";
-// Generic whole foods only; USDA's branded entries are noisy, and Open Food Facts covers brands.
-const DATA_TYPES = "Foundation,SR Legacy";
+// Whole foods (Foundation, SR Legacy) plus FNDDS, USDA's list of prepared dishes
+// ("Bibimbap, Korean", "Pad Thai with chicken", "Soup, pho"). USDA's branded entries
+// are left out because they're noisy, and Open Food Facts covers brands.
+const DATA_TYPES = ["Foundation", "SR Legacy", "Survey (FNDDS)"];
 const OFF_SEARCH_URL = "https://search.openfoodfacts.org/search";
 const OFF_PRODUCT_URL = "https://world.openfoodfacts.org/api/v2/product";
 // Open Food Facts asks every app to identify itself.
 const OFF_HEADERS = { "User-Agent": "Fikko/1.0 (hello@fikko.io)" };
 const OFF_FIELDS = "code,product_name,brands,nutriments,serving_quantity";
 const BRANDED_RESULTS = 10;
+const REGIONAL_RESULTS = 15;
 
 export interface FoodSearchHit {
   id: string;
   name: string;
+  /** The regional database a hit came from ("afcd"), when it wasn't USDA. */
+  origin?: string;
   brand?: string;
   caloriesPer100g: number;
   proteinPer100g: number | null;
@@ -47,12 +56,14 @@ export async function searchUsda(query: string): Promise<FoodSearchHit[]> {
   // fallback so the existing Vercel variable keeps working during the switch.
   const apiKey = process.env.USDA_API_KEY ?? process.env.VITE_USDA_API_KEY;
   if (!apiKey) throw new Error("not configured");
-  const url = new URL(USDA_URL);
-  url.searchParams.set("api_key", apiKey);
-  url.searchParams.set("query", query);
-  url.searchParams.set("pageSize", "25");
-  url.searchParams.set("dataType", DATA_TYPES);
-  const res = await fetch(url);
+  // POST with a JSON body: as a query string, the "Survey (FNDDS)" name is intermittently
+  // rejected by USDA's front server with a 400 (seen for "bibimbap", "kimchi").
+  const res = await fetch(`${USDA_URL}?api_key=${encodeURIComponent(apiKey)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ query, pageSize: 25, dataType: DATA_TYPES }),
+    signal: AbortSignal.timeout(8000),
+  });
   if (!res.ok) throw new Error(`USDA ${res.status}`);
 
   const data = (await res.json()) as { foods?: UsdaFood[] };
@@ -76,6 +87,60 @@ export async function searchUsda(query: string): Promise<FoodSearchHit[]> {
     });
   }
   return foods;
+}
+
+// ── Regional databases ─────────────────────────────────────────────────────
+
+interface RegionalRow {
+  source: string;
+  source_id: string;
+  name: string;
+  name_local: string | null;
+  calories_per_100g: number;
+  protein_per_100g: number | null;
+  carbs_per_100g: number | null;
+  fat_per_100g: number | null;
+}
+
+/**
+ * Foods from the regional databases whose name (English or local) contains every
+ * word of the query. Plain foods rank first (exact name, then names that start
+ * with the query, then shorter names). An empty list when the table is empty, and
+ * a throw when it doesn't exist yet or the server isn't set up; callers carry on without it.
+ */
+export async function searchRegional(query: string): Promise<FoodSearchHit[]> {
+  if (!supabaseReady()) throw new Error("not configured");
+  const words = query.split(" ").filter(Boolean).slice(0, 4);
+  if (!words.length) return [];
+  let q = admin()
+    .from("regional_foods")
+    .select("source, source_id, name, name_local, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g");
+  for (const w of words) {
+    // % and _ are wildcards in LIKE; \ escapes them. The backslash itself is escaped first.
+    q = q.ilike("search_text", `%${w.replace(/[\\%_]/g, "\\$&")}%`);
+  }
+  const { data, error } = await q.limit(60);
+  if (error) throw new Error(error.message);
+
+  const lower = query.toLowerCase();
+  const rank = (r: RegionalRow) => {
+    const name = r.name.toLowerCase();
+    const first = name.split(",")[0].trim();
+    return (first === lower || r.name_local === query ? 0 : first.startsWith(lower) ? 1 : 2) * 1000 + name.length;
+  };
+  return ((data ?? []) as RegionalRow[])
+    .sort((a, b) => rank(a) - rank(b))
+    .slice(0, REGIONAL_RESULTS)
+    .map((r) => ({
+      id: `${r.source}-${r.source_id}`,
+      origin: r.source,
+      name: r.name_local && !/[\u3131-\uD79D]/.test(r.name) ? `${r.name} (${r.name_local})` : r.name,
+      caloriesPer100g: r1(Number(r.calories_per_100g)),
+      proteinPer100g: r.protein_per_100g == null ? null : r1(Number(r.protein_per_100g)),
+      carbsPer100g: r.carbs_per_100g == null ? null : r1(Number(r.carbs_per_100g)),
+      fatPer100g: r.fat_per_100g == null ? null : r1(Number(r.fat_per_100g)),
+      source: "generic" as const,
+    }));
 }
 
 // ── Open Food Facts ────────────────────────────────────────────────────────

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { exportAllData, type ExportFormat } from "../../lib/account";
 import { describeRange, periodRange, todayKey, type Period } from "../../lib/dates";
-import { Download, FileJson, FileText, Loader2, type LucideIcon } from "lucide-react";
+import { Download, FileJson, FileSpreadsheet, FileText, Loader2, Sheet, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,8 @@ const PERIODS: { key: Period | "all"; label: string; pick?: string }[] = [
 
 const FORMATS: { key: ExportFormat; label: string; description: string; icon: LucideIcon }[] = [
   { key: "pdf", label: "PDF report", description: "Easy to read and print", icon: FileText },
+  { key: "daily", label: "Daily spreadsheet", description: "CSV, one row per day", icon: FileSpreadsheet },
+  { key: "food", label: "Food diary", description: "CSV, one row per food", icon: Sheet },
   { key: "json", label: "JSON file", description: "For moving to another app", icon: FileJson },
 ];
 

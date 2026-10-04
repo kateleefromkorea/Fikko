@@ -15,6 +15,8 @@ import { useBiometrics } from "@/hooks/useBiometrics";
 import { useHabitData } from "@/hooks/useHabitData";
 import { useMedications } from "@/hooks/useMedications";
 import { useProfile } from "@/hooks/useProfile";
+import { useConsents } from "@/hooks/useConsents";
+import { hasRequiredConsent } from "@/lib/consent";
 import { completion } from "@/lib/completion";
 import { todayKey } from "@/lib/dates";
 import { dietsOf, tracksMacros } from "@/lib/preferences";
@@ -26,6 +28,7 @@ import HabitsScreen from "@mobile/screens/HabitsScreen";
 
 const Dashboard = lazy(() => import("@/components/Dashboard"));
 const OnboardingModal = lazy(() => import("@/onboarding/OnboardingModal"));
+const ConsentPrompt = lazy(() => import("@/components/ConsentPrompt"));
 const CommunityView = lazy(() => import("@/components/CommunityView"));
 const RecipesView = lazy(() => import("@/components/RecipesView"));
 const ProfileView = lazy(() => import("@/components/ProfileView"));
@@ -55,6 +58,7 @@ export default function MobileApp() {
   const [tab, setTab] = useState<Tab>("habits");
   const { data: loggedData, setData } = useHabitData(userId);
   const { profile, updateProfile, loading: profileLoading } = useProfile(userId);
+  const consent = useConsents(userId);
   const medications = useMedications(userId);
   const data = useMemo(
     () => ({ ...loggedData, tracksMedications: medications.loading ? undefined : medications.medications.length > 0 }),
@@ -85,6 +89,8 @@ export default function MobileApp() {
   const email = session.user.email ?? "";
   const initials = (profile.name || email || "?").split(/\s+/).map((s) => s[0]).join("").slice(0, 2).toUpperCase();
   const needsOnboarding = !profileLoading && !profile.onboarding_completed_at;
+  // Same privacy consent gate as the website (see src/App.tsx).
+  const needsConsent = !consent.loading && !hasRequiredConsent(consent.consents);
   const { done, total } = completion(data, todayKey(), profile.water_goal);
 
   const open = (next: Tab) => {
@@ -189,7 +195,14 @@ export default function MobileApp() {
               await updateProfile(patch);
               open("dashboard");
             }}
+            consent={needsConsent ? { region: consent.region, save: consent.save } : undefined}
           />
+        </Suspense>
+      )}
+
+      {!needsOnboarding && needsConsent && !profileLoading && (
+        <Suspense fallback={null}>
+          <ConsentPrompt region={consent.region} aiGranted={!!consent.consents.ai_processing?.granted} onSave={consent.save} />
         </Suspense>
       )}
 

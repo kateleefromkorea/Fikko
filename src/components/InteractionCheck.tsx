@@ -95,6 +95,13 @@ export default function InteractionCheck({ names, onClose }: { names: string[]; 
                 Try again tomorrow.
               </p>
             )}
+            {result.ai === "off" && (
+              <p className="text-xs text-muted-foreground">
+                {listNames(result.unrecognised)} {result.unrecognised.length === 1 ? "isn't" : "aren't"} on Fikko's
+                built-in list, and AI features are turned off, so {result.unrecognised.length === 1 ? "it wasn't" : "they weren't"} checked.
+                You can turn them on in Profile → Privacy.
+              </p>
+            )}
             {result.ai === "unavailable" && (
               <p className="text-xs text-muted-foreground">
                 {listNames(result.unrecognised)} {result.unrecognised.length === 1 ? "isn't" : "aren't"} on Fikko's

@@ -9,6 +9,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { admin, json, memberFrom, supabaseReady } from "./_lib/devices.js";
 import { DAILY_AI_LIMIT, clampOffset, recordUse, usedToday } from "./_lib/aiUsage.js";
+import { consentError } from "./_lib/consent.js";
 import { groupsOf, listFindings, type Finding, type Severity } from "./_lib/interactions.js";
 import { OPTIONS, withCors } from "./_lib/cors.js";
 
@@ -51,7 +52,7 @@ const TOOL: Anthropic.Tool = {
 };
 
 /** How the AI part of the check went, so the app can say so plainly. */
-type AiStatus = "not-needed" | "used" | "limit" | "unavailable";
+type AiStatus = "not-needed" | "used" | "limit" | "unavailable" | "off";
 
 async function handlePOST(request: Request) {
   if (!supabaseReady()) return json({ error: "The interaction check isn't configured on the server." }, 503);
@@ -75,6 +76,8 @@ async function handlePOST(request: Request) {
     json({ findings: [...findings].sort((x, y) => SEVERITIES.indexOf(x.severity) - SEVERITIES.indexOf(y.severity)), ai, unrecognised });
   if (!unrecognised.length) return reply("not-needed");
   if (!process.env.ANTHROPIC_API_KEY) return reply("unavailable");
+  // Without AI consent the names stay on Fikko's side; the built-in findings still apply.
+  if (await consentError(db, member.id, ["health_data", "ai_processing"])) return reply("off");
   const tzOffset = clampOffset(body.tzOffset);
   if ((await usedToday(db, member.id, tzOffset)) >= DAILY_AI_LIMIT) return reply("limit");
 

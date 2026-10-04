@@ -3,6 +3,7 @@
 // for the browser to open. The provider sends the member back to device-callback.
 
 import { admin, json, memberFrom, pkceChallenge, providerFor, randomToken, redirectUri, supabaseReady } from "./_lib/devices.js";
+import { consentError } from "./_lib/consent.js";
 import { OPTIONS, withCors } from "./_lib/cors.js";
 
 async function handlePOST(request: Request) {
@@ -14,6 +15,8 @@ async function handlePOST(request: Request) {
   const db = admin();
   const member = await memberFrom(request, db);
   if (!member) return json({ error: `Sign in again to connect ${provider.name}.` }, 401);
+  const blocked = await consentError(db, member.id, ["health_data", "overseas_transfer"]);
+  if (blocked) return blocked;
 
   const state = randomToken();
   const verifier = randomToken(48);

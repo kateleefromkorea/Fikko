@@ -11,6 +11,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { admin, json, memberFrom, supabaseReady } from "./_lib/devices.js";
 import { DAILY_AI_LIMIT, clampOffset, limitMessage, recordUse, usedToday } from "./_lib/aiUsage.js";
+import { consentError } from "./_lib/consent.js";
 import { MEALS, resolveFood, type ClaudeFood, type Meal, type ProposedFood } from "./_lib/foodResolve.js";
 import { OPTIONS, withCors } from "./_lib/cors.js";
 
@@ -71,6 +72,8 @@ async function handlePOST(request: Request) {
   const db = admin();
   const member = await memberFrom(request, db);
   if (!member) return json({ error: "Sign in again to continue." }, 401);
+  const blocked = await consentError(db, member.id, ["health_data", "ai_processing"]);
+  if (blocked) return blocked;
 
   const body = (await request.json().catch(() => ({}))) as { image?: unknown; meal?: unknown; tzOffset?: unknown };
   const image = typeof body.image === "string" ? body.image : "";

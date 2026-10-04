@@ -12,6 +12,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { admin, json, memberFrom, supabaseReady } from "./_lib/devices.js";
 import { DAILY_AI_LIMIT, clampOffset, limitMessage, recordUse, usedToday } from "./_lib/aiUsage.js";
+import { consentError } from "./_lib/consent.js";
 import { OPTIONS, withCors } from "./_lib/cors.js";
 import { FIXED_REPLIES, classifyMessage, phraseScreen, reviewReply, type ScreenLabel } from "./_lib/coachSafety.js";
 
@@ -250,6 +251,8 @@ async function handlePOST(request: Request) {
   const db = admin();
   const member = await memberFrom(request, db);
   if (!member) return json({ error: "Sign in again to continue." }, 401);
+  const blocked = await consentError(db, member.id, ["health_data", "ai_processing"]);
+  if (blocked) return blocked;
 
   const body = (await request.json().catch(() => ({}))) as { message?: unknown; tzOffset?: unknown };
   const message = typeof body.message === "string" ? body.message.trim() : "";

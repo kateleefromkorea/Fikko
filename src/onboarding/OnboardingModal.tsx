@@ -13,6 +13,8 @@ import StepLifestyle from "./steps/StepLifestyle";
 import StepTargets from "./steps/StepTargets";
 import { GOAL_FOCUS, inferredTrackingStyle } from "../lib/preferences";
 import StepResult from "./steps/StepResult";
+import ConsentForm from "../components/ConsentForm";
+import type { ConsentKey, Region } from "../lib/consent";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -33,9 +35,11 @@ interface Props {
   onAddMedication: (name: string) => void;
   /** Persists the answers; the modal closes once this resolves. */
   onComplete: (patch: Partial<ProfileRow>, baseline: Baseline) => Promise<void>;
+  /** Set until the member agrees to the privacy notice, which comes right after the welcome step. */
+  consent?: { region: Region; save: (region: Region, choices: Record<ConsentKey, boolean>) => Promise<void> };
 }
 
-export default function OnboardingModal({ profile, userId, deviceOutcome, onAddMedication, onComplete }: Props) {
+export default function OnboardingModal({ profile, userId, deviceOutcome, onAddMedication, onComplete, consent }: Props) {
   // Answers parked before leaving for a device's sign-in, if this is the way back.
   const [draft] = useState(() => readDraft(userId));
   const api = useOnboardingState(profile, draft);
@@ -46,6 +50,8 @@ export default function OnboardingModal({ profile, userId, deviceOutcome, onAddM
   // half-filled step is never scolded mid-typing.
   const [showError, setShowError] = useState(false);
   const [saving, setSaving] = useState(false);
+  // The consent form, shown between the welcome and step 2 (nothing is saved before it).
+  const [consenting, setConsenting] = useState(false);
 
   const baseline = useMemo(
     () =>
@@ -67,6 +73,10 @@ export default function OnboardingModal({ profile, userId, deviceOutcome, onAddM
       return;
     }
     setShowError(false);
+    if (step === 1 && consent) {
+      setConsenting(true);
+      return;
+    }
     setStep((n) => Math.min(n + 1, RESULT_STEP));
   }
 
@@ -147,7 +157,26 @@ export default function OnboardingModal({ profile, userId, deviceOutcome, onAddM
         {/* ── Step body ── */}
         <div className="flex-1 overflow-y-auto">
           <div key={step} className="onboarding-step px-6 py-8 sm:px-8">
-            {step === 1 && <StepWelcome name={s.name} />}
+            {step === 1 && !consenting && <StepWelcome name={s.name} />}
+            {step === 1 && consenting && consent && (
+              <ConsentForm
+                initialRegion={consent.region}
+                title="Your privacy, your choice"
+                subtitle="Before we ask about you, here's what Fikko collects, why, and where it's kept. Tick what you agree to."
+                submitLabel="Agree and continue"
+                onSubmit={async (region, choices) => {
+                  await consent.save(region, choices);
+                  setConsenting(false);
+                  setStep(2);
+                }}
+                secondary={
+                  <Button variant="ghost" onClick={() => setConsenting(false)} className="h-10 px-3 text-muted-foreground">
+                    <ArrowLeft />
+                    Back
+                  </Button>
+                }
+              />
+            )}
             {step === 2 && <StepBiometrics api={api} showError={showError} />}
             {step === 3 && <StepGoals api={api} showError={showError} />}
             {step === 4 && <StepDiet api={api} />}
@@ -179,7 +208,7 @@ export default function OnboardingModal({ profile, userId, deviceOutcome, onAddM
         </div>
 
         {/* ── Footer controls (the result step carries its own CTA) ── */}
-        {!onResult && (
+        {!onResult && !consenting && (
           <div className="flex shrink-0 items-center gap-2 border-t bg-muted/40 px-6 py-4 sm:px-8">
             {step > 1 && (
               <Button variant="ghost" onClick={goBack} className="h-9 px-3 text-muted-foreground">

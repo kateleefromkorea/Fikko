@@ -12,6 +12,8 @@ import SetupNeeded from "./auth/SetupNeeded";
 import { isSupabaseConfigured } from "./lib/supabase";
 import { useHabitData } from "./hooks/useHabitData";
 import { useProfile } from "./hooks/useProfile";
+import { useConsents } from "./hooks/useConsents";
+import { hasRequiredConsent } from "./lib/consent";
 import { useMedications } from "./hooks/useMedications";
 import { useBiometrics } from "./hooks/useBiometrics";
 import { cn } from "@/lib/utils";
@@ -38,6 +40,7 @@ import { trackView } from "./lib/track";
 // slow down the first load of the Habits page.
 const Dashboard = lazy(() => import("./components/Dashboard"));
 const OnboardingModal = lazy(() => import("./onboarding/OnboardingModal"));
+const ConsentPrompt = lazy(() => import("./components/ConsentPrompt"));
 const CommunityView = lazy(() => import("./components/CommunityView"));
 const RecipesView = lazy(() => import("./components/RecipesView"));
 const ProfileView = lazy(() => import("./components/ProfileView"));
@@ -79,6 +82,7 @@ export default function App() {
   }, [deviceOutcome]);
   const { data: loggedData, setData } = useHabitData(userId);
   const { profile, updateProfile, loading: profileLoading } = useProfile(userId);
+  const consent = useConsents(userId);
   const medications = useMedications(userId);
   // Medications only counts towards the day for members who've listed some.
   const data = useMemo(
@@ -141,6 +145,9 @@ export default function App() {
   // completion timestamp. Held back while the profile loads so a returning
   // user never sees it flash.
   const needsOnboarding = !profileLoading && !profile.onboarding_completed_at;
+  // Members must agree to the current privacy notice: new ones inside
+  // onboarding, everyone else (joined earlier, or the policy changed) here.
+  const needsConsent = !consent.loading && !hasRequiredConsent(consent.consents);
 
   const { done, total } = completion(data, todayKey(), profile.water_goal);
   const pct = Math.round((done / total) * 100);
@@ -280,12 +287,23 @@ export default function App() {
             userId={session.user.id}
             deviceOutcome={deviceOutcome}
             onAddMedication={(name) => medications.addMedication(name, "breakfast")}
+            consent={needsConsent ? { region: consent.region, save: consent.save } : undefined}
             onComplete={async (patch) => {
               await updateProfile(patch);
               // Instant gratification: land on the dashboard, where the numbers
               // we just worked out are waiting at the top.
               setTab("dashboard");
             }}
+          />
+        </Suspense>
+      )}
+
+      {!needsOnboarding && needsConsent && !profileLoading && (
+        <Suspense fallback={null}>
+          <ConsentPrompt
+            region={consent.region}
+            aiGranted={!!consent.consents.ai_processing?.granted}
+            onSave={consent.save}
           />
         </Suspense>
       )}

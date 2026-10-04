@@ -84,7 +84,7 @@ async function memberContext(db: SupabaseClient, userId: string, tzOffset: numbe
   const from = dayKey(new Date(now.getTime() - (HISTORY_DAYS - 1) * 864e5));
   const foodFrom = dayKey(new Date(now.getTime() - 6 * 864e5));
 
-  const [profileRes, habitsRes, customRes, customEntriesRes, foodRes, bioRes, medsRes, lastRes] = await Promise.all([
+  const [profileRes, habitsRes, customRes, customEntriesRes, foodRes, bioRes, medsRes, lastRes, goalsRes] = await Promise.all([
     db.from("profiles").select("onboarding_completed_at, name, gender, date_of_birth, height_cm, weight_kg, activity_level, primary_goal, target_weight_kg, weekly_rate_kg, dietary_pattern, dietary_patterns, goal_focus, allergies, calorie_goal, water_goal, sleep_goal, tracking_style").eq("user_id", userId).maybeSingle(),
     db.from("habit_entries").select("category, date, value, note").eq("user_id", userId).gte("date", from).lte("date", today).order("date"),
     db.from("custom_habits").select("id, name, unit, target").eq("user_id", userId),
@@ -97,7 +97,10 @@ async function memberContext(db: SupabaseClient, userId: string, tzOffset: numbe
     db.from("medications").select("id", { count: "exact", head: true }).eq("user_id", userId).is("archived_at", null),
     // The most recent log before this window, to tell a new member from one coming back.
     db.from("habit_entries").select("date").eq("user_id", userId).lt("date", from).order("date", { ascending: false }).limit(1).maybeSingle(),
+    // Every goal picked (migration 021). Asked for on its own so a database without the column still works.
+    db.from("profiles").select("goals").eq("user_id", userId).maybeSingle(),
   ]);
+  const otherGoals = ((goalsRes.data?.goals as string[] | undefined) ?? []).filter((g) => g !== profileRes.data?.primary_goal);
 
   const p = profileRes.data;
   const lines: string[] = [];
@@ -116,6 +119,7 @@ async function memberContext(db: SupabaseClient, userId: string, tzOffset: numbe
       p.weight_kg && `Weight: ${p.weight_kg} kg`,
       p.activity_level && `Activity level: ${p.activity_level}`,
       p.primary_goal && `Goal: ${p.primary_goal}`,
+      otherGoals.length && `Also working on: ${otherGoals.join(", ")}`,
       p.target_weight_kg && `Target weight: ${p.target_weight_kg} kg`,
       p.primary_goal === "muscle_building" && p.weekly_rate_kg === 0 && "Approach: body recomposition (build muscle while losing fat, calories at maintenance)",
       p.weekly_rate_kg && `Planned pace: ${p.weekly_rate_kg} kg a week`,

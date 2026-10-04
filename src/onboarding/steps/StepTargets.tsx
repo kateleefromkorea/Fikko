@@ -122,14 +122,14 @@ export default function StepTargets({ api, showError }: { api: Api; showError: b
           {s.medications.length > 0 && (
             <ul className="flex flex-wrap gap-2" aria-label="Added">
               {s.medications.map((m) => (
-                <li key={m} className="flex h-8 items-center gap-1.5 rounded-full bg-foreground pr-1 pl-3 text-sm text-background">
+                <li key={m} className="flex h-8 items-center gap-1.5 rounded-full bg-primary pr-1 pl-3 text-sm text-primary-foreground">
                   <Pill className="size-3.5" aria-hidden="true" />
                   {m}
                   <button
                     type="button"
                     onClick={() => set("medications", s.medications.filter((x) => x !== m))}
                     aria-label={`Remove ${m}`}
-                    className="grid size-6 place-items-center rounded-full hover:bg-background/20"
+                    className="grid size-6 place-items-center rounded-full hover:bg-white/20 active:bg-white/30"
                   >
                     <X className="size-3.5" />
                   </button>

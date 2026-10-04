@@ -39,6 +39,8 @@ export interface ProfileRow {
   dietary_patterns: string[];
   /** Keys from GOAL_FOCUS for the member's goal. */
   goal_focus: string[];
+  /** Added by migration 021: every goal picked. primary_goal keeps the one that sets the calories. Read through goalsOf(). */
+  goals: string[];
 }
 
 const EMPTY_PROFILE: ProfileRow = {
@@ -58,6 +60,7 @@ const EMPTY_PROFILE: ProfileRow = {
   dietary_pattern: null,
   dietary_patterns: [],
   goal_focus: [],
+  goals: [],
   allergies: [],
   wearable: null,
   tracking_style: null,
@@ -112,7 +115,11 @@ export function useProfile(userId: string | null) {
   async function updateProfile(patch: Partial<ProfileRow>) {
     setProfileState((p) => ({ ...p, ...patch }));
     if (!userId) return;
-    await supabase.from("profiles").update(patch).eq("user_id", userId);
+    // goals (migration 021) is saved on its own, so a database without that column
+    // yet still saves everything else.
+    const { goals, ...rest } = patch;
+    if (Object.keys(rest).length) await supabase.from("profiles").update(rest).eq("user_id", userId);
+    if (goals !== undefined) await supabase.from("profiles").update({ goals }).eq("user_id", userId);
   }
 
   return { profile, updateProfile, loading };

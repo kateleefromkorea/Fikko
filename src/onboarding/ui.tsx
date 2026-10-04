@@ -12,8 +12,8 @@ import { Label } from "@/components/ui/label";
 
 export const inputCls = "h-9";
 
-/** The selected state for every choice in onboarding: dark, so it reads as chosen at a glance. */
-export const selectedCls = "border-foreground bg-foreground text-background hover:bg-foreground/90";
+/** The selected state for every choice in onboarding: Fikko green with white text, so it reads as chosen at a glance. */
+export const selectedCls = "border-primary bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/85";
 
 export const selectCls =
   "h-9 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
@@ -57,7 +57,7 @@ export function Field({ label, hint, children }: { label: string; hint?: string;
   );
 }
 
-/** Single-select card with an icon, title and supporting line. */
+/** Selectable card with an icon, title and supporting line. */
 export function SelectCard({
   selected, onClick, icon: Icon, label, description,
 }: {
@@ -80,7 +80,7 @@ export function SelectCard({
       <span
         className={cn(
           "grid size-10 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground",
-          selected && "bg-background/15 text-background",
+          selected && "bg-white/15 text-primary-foreground",
         )}
         aria-hidden="true"
       >
@@ -88,7 +88,7 @@ export function SelectCard({
       </span>
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-medium">{label}</span>
-        {description && <span className={cn("mt-0.5 block text-sm text-muted-foreground", selected && "text-background/70")}>{description}</span>}
+        {description && <span className={cn("mt-0.5 block text-sm text-muted-foreground", selected && "text-primary-foreground/80")}>{description}</span>}
       </span>
       {selected && <Check className="size-4 shrink-0" aria-hidden="true" />}
     </button>
@@ -139,7 +139,7 @@ export function Segmented<T extends string>({
           aria-pressed={value === o.value}
           className={cn(
             "h-full rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground",
-            value === o.value && "bg-foreground text-background shadow-sm hover:text-background",
+            value === o.value && "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/85",
           )}
         >
           {o.label}

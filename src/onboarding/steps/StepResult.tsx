@@ -1,4 +1,4 @@
-import { ArrowRight, Loader2, TriangleAlert } from "lucide-react";
+import { ArrowRight, TriangleAlert } from "lucide-react";
 import type { Baseline } from "../../lib/metabolics";
 import { goalByKey } from "../../lib/metabolics";
 import { Button } from "@/components/ui/button";
@@ -8,10 +8,9 @@ interface Props {
   goalKey: string | null;
   name: string;
   onDone: () => void;
-  saving: boolean;
 }
 
-export default function StepResult({ baseline, goalKey, name, onDone, saving }: Props) {
+export default function StepResult({ baseline, goalKey, name, onDone }: Props) {
   const goal = goalByKey(goalKey);
   const { bmr, tdee, calorieTarget, adjustment, clampedToFloor } = baseline;
 
@@ -68,10 +67,9 @@ export default function StepResult({ baseline, goalKey, name, onDone, saving }: 
         big changes.
       </p>
 
-      <Button onClick={onDone} disabled={saving} className="mt-6 h-10 w-full">
-        {saving ? <Loader2 className="animate-spin" /> : null}
-        {saving ? "Saving…" : "Go to my dashboard"}
-        {!saving && <ArrowRight />}
+      <Button onClick={onDone} className="mt-6 h-10 w-full">
+        Continue
+        <ArrowRight />
       </Button>
     </div>
   );

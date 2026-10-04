@@ -6,7 +6,8 @@ import {
   LIMITS, inRange, ageFromDob, goalByKey,
 } from "../lib/metabolics";
 import { DB_LIMITS } from "../lib/limits";
-import { GOAL_FOCUS, MAX_DIET_PATTERNS, dietsOf } from "../lib/preferences";
+import { MAX_DIET_PATTERNS, dietsOf } from "../lib/preferences";
+import { focusGroupsFor, focusWithin, mainGoal, toggleGoal as toggleGoalIn } from "../lib/goals";
 
 export type HeightUnit = "cm" | "ft";
 export type WeightUnit = "kg" | "lb";
@@ -29,11 +30,12 @@ export interface OnboardingState {
   heightIn: string;
   weightUnit: WeightUnit;
   weight: string;
-  goalKey: string | null;
+  /** Every goal picked; at most one sets the calories (see lib/goals). */
+  goals: string[];
   targetWeight: string;
   /** Magnitude in kg/week; the goal decides whether it is a loss or a gain. */
   weeklyRate: number | null;
-  /** Specific aims under the goal (GOAL_FOCUS keys), when the goal has them. */
+  /** Specific aims under the goals (GOAL_FOCUS keys), for goals that have them. */
   goalFocus: string[];
   /** Up to MAX_DIET_PATTERNS. */
   dietaryPatterns: string[];
@@ -65,7 +67,7 @@ function initialState(profile: ProfileRow): OnboardingState {
     heightIn: ftIn ? String(ftIn.inches) : "",
     weightUnit: "kg",
     weight: profile.weight_kg != null ? String(profile.weight_kg) : "",
-    goalKey: null,
+    goals: [],
     targetWeight: "",
     weeklyRate: null,
     goalFocus: profile.goal_focus ?? [],
@@ -94,6 +96,8 @@ export interface OnboardingDerived {
    * recomposition (build muscle, lose fat), so calories stay at maintenance.
    */
   recomposition: boolean;
+  /** The goal that sets the calories, or the first one picked. */
+  goalKey: string | null;
 }
 
 function num(s: string): number | null {
@@ -124,7 +128,8 @@ function derive(s: OnboardingState): OnboardingDerived {
     }
   }
 
-  const direction = goalByKey(s.goalKey)?.weightManaging;
+  const goalKey = mainGoal(s.goals);
+  const direction = goalByKey(goalKey)?.weightManaging;
   const weightKg = toKg(num(s.weight));
   const targetWeightKg = toKg(num(s.targetWeight));
   const recomposition = direction === "gain" && weightKg != null && targetWeightKg != null && targetWeightKg <= weightKg;
@@ -142,6 +147,7 @@ function derive(s: OnboardingState): OnboardingDerived {
     age: dob ? ageFromDob(dob) : null,
     weeklyRateKg,
     recomposition,
+    goalKey,
   };
 }
 
@@ -155,8 +161,9 @@ function stepErrors(s: OnboardingState, d: OnboardingDerived): Record<number, st
   else if (d.weightKg == null || !inRange(d.weightKg, LIMITS.weightKg)) biometrics = `Weight must be between ${LIMITS.weightKg.min} and ${LIMITS.weightKg.max} kg.`;
 
   let goals: string | null = null;
-  const goal = goalByKey(s.goalKey);
-  if (!goal) goals = "Pick the goal that fits you best.";
+  const goal = goalByKey(d.goalKey);
+  const unfocused = focusGroupsFor(s.goals).find((g) => !g.options.some((o) => s.goalFocus.includes(o.key)));
+  if (!goal) goals = "Pick at least one goal.";
   else if (goal.weightManaging) {
     if (d.targetWeightKg == null || !inRange(d.targetWeightKg, LIMITS.weightKg)) {
       goals = `Target weight must be between ${LIMITS.weightKg.min} and ${LIMITS.weightKg.max} kg.`;
@@ -166,8 +173,9 @@ function stepErrors(s: OnboardingState, d: OnboardingDerived): Record<number, st
       // A muscle-building target at or below today's weight is recomposition, which needs no pace.
       goals = "Choose how quickly you want to get there.";
     }
-  } else if (GOAL_FOCUS[goal.key] && s.goalFocus.length === 0) {
-    goals = "Pick at least one thing to focus on.";
+  }
+  if (!goals && unfocused) {
+    goals = `Pick at least one thing to focus on for ${goalByKey(unfocused.goal)?.label ?? "that goal"}.`;
   }
 
   const water = num(s.waterGoal), sleep = num(s.sleepGoal);
@@ -187,7 +195,12 @@ function stepErrors(s: OnboardingState, d: OnboardingDerived): Record<number, st
 }
 
 export function useOnboardingState(profile: ProfileRow, draft: OnboardingDraft | null = null) {
-  const [state, setState] = useState<OnboardingState>(() => (draft ? { ...initialState(profile), ...draft.state } : initialState(profile)));
+  const [state, setState] = useState<OnboardingState>(() => {
+    if (!draft) return initialState(profile);
+    // Answers parked before goals became multi-select carry a single goalKey.
+    const old = draft.state as Partial<OnboardingState> & { goalKey?: string | null };
+    return { ...initialState(profile), ...draft.state, goals: old.goals ?? (old.goalKey ? [old.goalKey] : []) };
+  });
 
   const derived = useMemo(() => derive(state), [state]);
   const errors = useMemo(() => stepErrors(state, derived), [state, derived]);
@@ -252,5 +265,21 @@ export function useOnboardingState(profile: ProfileRow, draft: OnboardingDraft |
     }));
   }
 
-  return { state, derived, errors, set, setHeightUnit, setWeightUnit, toggleAllergy, toggleDiet, toggleFocus };
+  /** Adds or removes a goal, dropping answers that only belonged to the old set. */
+  function toggleGoal(key: string) {
+    setState((p) => {
+      const goals = toggleGoalIn(p.goals, key);
+      const before = goalByKey(mainGoal(p.goals))?.weightManaging ?? null;
+      const after = goalByKey(mainGoal(goals))?.weightManaging ?? null;
+      return {
+        ...p,
+        goals,
+        goalFocus: focusWithin(p.goalFocus, goals),
+        // A pace picked for losing doesn't apply to gaining, or to no weight goal.
+        weeklyRate: before === after ? p.weeklyRate : null,
+      };
+    });
+  }
+
+  return { state, derived, errors, set, setHeightUnit, setWeightUnit, toggleAllergy, toggleDiet, toggleFocus, toggleGoal };
 }

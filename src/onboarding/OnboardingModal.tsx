@@ -11,8 +11,10 @@ import StepGoals from "./steps/StepGoals";
 import StepDiet from "./steps/StepDiet";
 import StepLifestyle from "./steps/StepLifestyle";
 import StepTargets from "./steps/StepTargets";
-import { GOAL_FOCUS, inferredTrackingStyle } from "../lib/preferences";
+import { inferredTrackingStyle } from "../lib/preferences";
+import { focusWithin } from "../lib/goals";
 import StepResult from "./steps/StepResult";
+import StepPrivacy from "./steps/StepPrivacy";
 import ConsentForm from "../components/ConsentForm";
 import type { ConsentKey, Region } from "../lib/consent";
 import { ArrowLeft } from "lucide-react";
@@ -22,6 +24,8 @@ import { Progress } from "@/components/ui/progress";
 /** The six questionnaire steps; step 7 is the result, which is not counted. */
 const TOTAL_STEPS = 6;
 const RESULT_STEP = 7;
+/** Final, informational step after the plan; finishing happens here. */
+const PRIVACY_STEP = 8;
 
 /** Steps the user may move past without answering anything. */
 const SKIPPABLE = new Set([4]);
@@ -61,10 +65,10 @@ export default function OnboardingModal({ profile, userId, deviceOutcome, onAddM
         heightCm: derived.heightCm,
         weightKg: derived.weightKg,
         activityLevel: s.activityLevel,
-        goalKey: s.goalKey,
+        goalKey: derived.goalKey,
         weeklyRateKg: derived.weeklyRateKg,
       }),
-    [s.sex, s.activityLevel, s.goalKey, derived],
+    [s.sex, s.activityLevel, derived],
   );
 
   function goNext() {
@@ -77,7 +81,7 @@ export default function OnboardingModal({ profile, userId, deviceOutcome, onAddM
       setConsenting(true);
       return;
     }
-    setStep((n) => Math.min(n + 1, RESULT_STEP));
+    setStep((n) => Math.min(n + 1, PRIVACY_STEP));
   }
 
   function goBack() {
@@ -88,8 +92,8 @@ export default function OnboardingModal({ profile, userId, deviceOutcome, onAddM
   async function finish() {
     if (!baseline || saving) return;
     setSaving(true);
-    // Focus areas only mean something for the goal they were picked under.
-    const focus = s.goalKey && GOAL_FOCUS[s.goalKey] ? s.goalFocus : [];
+    // Focus areas only mean something for the goals they were picked under.
+    const focus = focusWithin(s.goalFocus, s.goals);
     try {
       for (const name of s.medications) onAddMedication(name);
       await onComplete(
@@ -100,10 +104,11 @@ export default function OnboardingModal({ profile, userId, deviceOutcome, onAddM
           height_cm: derived.heightCm == null ? null : Math.round(derived.heightCm * 10) / 10,
           weight_kg: derived.weightKg == null ? null : Math.round(derived.weightKg * 10) / 10,
           activity_level: s.activityLevel,
-          primary_goal: s.goalKey,
+          primary_goal: derived.goalKey,
+          goals: s.goals,
           // Only weight goals have a target; one typed before switching goal is dropped.
           target_weight_kg:
-            derived.targetWeightKg == null || !goalByKey(s.goalKey)?.weightManaging
+            derived.targetWeightKg == null || !goalByKey(derived.goalKey)?.weightManaging
               ? null
               : Math.round(derived.targetWeightKg * 10) / 10,
           weekly_rate_kg: derived.weeklyRateKg,
@@ -131,7 +136,7 @@ export default function OnboardingModal({ profile, userId, deviceOutcome, onAddM
     }
   }
 
-  const onResult = step === RESULT_STEP;
+  const onResult = step >= RESULT_STEP;
   // Counts the step you are on as progress, so the bar is never empty.
   const pct = onResult ? 100 : Math.round((step / TOTAL_STEPS) * 100);
 
@@ -184,14 +189,16 @@ export default function OnboardingModal({ profile, userId, deviceOutcome, onAddM
               <StepLifestyle api={api} showError={showError} userId={userId} outcome={draft ? deviceOutcome : null} />
             )}
             {step === 6 && <StepTargets api={api} showError={showError} />}
-            {onResult &&
+            {step === PRIVACY_STEP && baseline && (
+              <StepPrivacy onDone={finish} onBack={() => setStep(RESULT_STEP)} saving={saving} />
+            )}
+            {onResult && step === RESULT_STEP &&
               (baseline ? (
                 <StepResult
                   baseline={baseline}
-                  goalKey={s.goalKey}
+                  goalKey={derived.goalKey}
                   name={s.name}
-                  onDone={finish}
-                  saving={saving}
+                  onDone={() => setStep(PRIVACY_STEP)}
                 />
               ) : (
                 // Only reachable if an answer was cleared after passing step 2.

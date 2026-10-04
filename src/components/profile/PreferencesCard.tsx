@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Pencil } from "lucide-react";
 import type { ProfileRow } from "../../hooks/useProfile";
 import { GAIN_RATES, GOALS, LIMITS, LOSS_RATES, computeBaseline, goalByKey, inRange } from "../../lib/metabolics";
-import { ALLERGY_CHOICES, DIET_PATTERNS, GOAL_FOCUS, MAX_DIET_PATTERNS, TRACKING_STYLES, dietsOf, focusLabel } from "../../lib/preferences";
+import { ALLERGY_CHOICES, DIET_PATTERNS, MAX_DIET_PATTERNS, TRACKING_STYLES, dietsOf, focusLabel } from "../../lib/preferences";
+import { focusGroupsFor, focusWithin, goalsOf, mainGoal, toggleGoal } from "../../lib/goals";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 
 interface Draft {
-  goalKey: string | null;
+  /** Every goal picked; at most one sets the calories (see lib/goals). */
+  goals: string[];
   targetWeight: string;
   /** Pace as a positive kg/week; the goal's direction gives the sign. */
   rate: number | null;
@@ -25,7 +27,7 @@ interface Draft {
 
 function toDraft(p: ProfileRow): Draft {
   return {
-    goalKey: p.primary_goal,
+    goals: goalsOf(p),
     targetWeight: p.target_weight_kg != null ? String(p.target_weight_kg) : "",
     rate: p.weekly_rate_kg != null ? Math.abs(p.weekly_rate_kg) : null,
     diets: dietsOf(p),
@@ -59,10 +61,11 @@ export default function PreferencesCard({ profile, onUpdateProfile, className }:
   const [draft, setDraft] = useState<Draft>(() => toDraft(profile));
   const [error, setError] = useState<string | null>(null);
 
-  const goal = goalByKey(draft.goalKey);
+  const goalKey = mainGoal(draft.goals);
+  const goal = goalByKey(goalKey);
   const direction = goal?.weightManaging ?? null;
   const rates = direction === "gain" ? GAIN_RATES : LOSS_RATES;
-  const focusOptions = draft.goalKey ? GOAL_FOCUS[draft.goalKey] ?? null : null;
+  const focusOptions = focusGroupsFor(draft.goals).flatMap((g) => g.options);
   const targetKg = draft.targetWeight.trim() ? parseFloat(draft.targetWeight) : null;
   // Muscle building towards a weight at or below today's: build muscle while losing fat, at maintenance.
   const recomposition = direction === "gain" && profile.weight_kg != null && targetKg != null && targetKg <= profile.weight_kg;
@@ -74,10 +77,10 @@ export default function PreferencesCard({ profile, onUpdateProfile, className }:
     heightCm: profile.height_cm,
     weightKg: profile.weight_kg,
     activityLevel: profile.activity_level,
-    goalKey: draft.goalKey,
+    goalKey,
     weeklyRateKg: signedRate,
   });
-  const goalChanged = draft.goalKey !== profile.primary_goal || signedRate !== profile.weekly_rate_kg;
+  const goalChanged = goalKey !== profile.primary_goal || signedRate !== profile.weekly_rate_kg;
 
   const toggleAllergy = (a: string) =>
     setDraft((d) => {
@@ -111,14 +114,16 @@ export default function PreferencesCard({ profile, onUpdateProfile, className }:
       }
       if (!draft.rate && !recomposition) return setError("Choose a pace.");
     }
+    if (!draft.goals.length) return setError("Pick at least one goal.");
     setError(null);
     onUpdateProfile({
-      primary_goal: draft.goalKey,
+      primary_goal: goalKey,
+      goals: draft.goals,
       target_weight_kg: direction ? target : null,
       weekly_rate_kg: signedRate,
       dietary_pattern: draft.diets[0] ?? null,
       dietary_patterns: draft.diets,
-      goal_focus: focusOptions ? draft.focus.filter((k) => focusOptions.some((f) => f.key === k)) : [],
+      goal_focus: focusWithin(draft.focus, draft.goals),
       allergies: draft.allergies,
       tracking_style: draft.trackingStyle,
       reminders_enabled: draft.reminders,
@@ -139,7 +144,7 @@ export default function PreferencesCard({ profile, onUpdateProfile, className }:
   const allergyLabel = (profile.allergies ?? []).filter((a) => a !== "None");
 
   const rows = [
-    { label: "Goal", value: goalByKey(profile.primary_goal)?.label ?? "—" },
+    { label: goalsOf(profile).length > 1 ? "Goals" : "Goal", value: goalsOf(profile).map((g) => goalByKey(g)?.label ?? g).join(", ") || "—" },
     { label: "Target weight", value: profile.target_weight_kg != null ? `${profile.target_weight_kg} kg` : "—" },
     { label: "Pace", value: paceLabel },
     ...(profile.goal_focus?.length ? [{ label: "Focus", value: profile.goal_focus.map(focusLabel).join(", ") }] : []),
@@ -167,20 +172,30 @@ export default function PreferencesCard({ profile, onUpdateProfile, className }:
         {editing ? (
           <div className="space-y-6">
             <div className="grid gap-5 sm:grid-cols-2">
-              <Field label="Goal" htmlFor="pref-goal">
-                <Select
-                  value={draft.goalKey ?? ""}
-                  onValueChange={(v) => setDraft((d) => {
-                    const sameDirection = goalByKey(v)?.weightManaging === direction;
-                    return { ...d, goalKey: v, rate: sameDirection ? d.rate : null };
+              <fieldset className="space-y-2 sm:col-span-2">
+                <legend className="text-sm text-muted-foreground">Goals · weight loss, muscle building and maintenance set your calories, so pick one of those</legend>
+                <div className="flex flex-wrap gap-2">
+                  {GOALS.map((g) => {
+                    const on = draft.goals.includes(g.key);
+                    return (
+                      <button
+                        key={g.key}
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() => setDraft((d) => {
+                          const goals = toggleGoal(d.goals, g.key);
+                          // A pace picked for losing doesn't apply to gaining.
+                          const sameDirection = goalByKey(mainGoal(goals))?.weightManaging === direction;
+                          return { ...d, goals, rate: sameDirection ? d.rate : null };
+                        })}
+                        className={chipCls(on)}
+                      >
+                        {g.label}
+                      </button>
+                    );
                   })}
-                >
-                  <SelectTrigger id="pref-goal" className="h-9 w-full"><SelectValue placeholder="Choose a goal" /></SelectTrigger>
-                  <SelectContent>
-                    {GOALS.map((g) => <SelectItem key={g.key} value={g.key}>{g.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </Field>
+                </div>
+              </fieldset>
 
               {direction && (
                 <>
@@ -222,7 +237,7 @@ export default function PreferencesCard({ profile, onUpdateProfile, className }:
               </Field>
             </div>
 
-            {focusOptions && (
+            {focusOptions.length > 0 && (
               <fieldset className="space-y-2">
                 <legend className="text-sm text-muted-foreground">Focus</legend>
                 <div className="flex flex-wrap gap-2">

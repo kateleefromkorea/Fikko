@@ -1,14 +1,15 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import {
   Activity, Annoyed, Apple, BedDouble, Brain, CalendarDays, Check, ChevronLeft, ChevronRight, Coffee, Droplet, Dumbbell,
   BatteryLow, CloudRain, Frown, Laugh, Leaf, Meh, Moon, SunMedium, Zap, Pill, Plus, Smartphone, Smile, SmilePlus, Sparkles, Sun, Sunrise, Sunset, Thermometer,
-  ShieldCheck, Trash2, Utensils, Volume2, Watch, Wine, X, type LucideIcon,
+  Mic, ShieldCheck, Trash2, Utensils, Volume2, Watch, Wine, X, type LucideIcon,
 } from "lucide-react";
 import { DB_LIMITS, clamp } from "../lib/limits";
 import { completion, EXERCISE_TARGET_MIN, type CoreHabit } from "../lib/completion";
 import type { HabitData, BiometricData, HabitEntry, CustomHabit, MealKey, TimeOfDay } from "../types";
 import type { useMedications } from "../hooks/useMedications";
 import { useFoodLog } from "../hooks/useFoodLog";
+import { useAiCredits } from "../hooks/useAiCredits";
 import { useCustomFoods } from "../hooks/useCustomFoods";
 import FoodLogModal from "./FoodLogModal";
 import VoiceCheckIn from "./VoiceCheckIn";
@@ -202,17 +203,19 @@ function HabitChip({ icon: Icon, label, done, onClick }: { icon: LucideIcon; lab
   );
 }
 
-function TodaySummary({ data, activeDate, onDateChange, profileName, waterGoal, voice }: {
+function TodaySummary({ data, activeDate, onDateChange, profileName, waterGoal, voice, sectionRef }: {
   data: HabitData; activeDate: string; onDateChange: (d: string) => void; profileName: string; waterGoal: number;
   /** The voice check-in, shown under the greeting. */
   voice?: ReactNode;
+  /** Watched by the sticky day bar, which appears once this scrolls away. */
+  sectionRef?: RefObject<HTMLElement | null>;
 }) {
   const { core, custom, done, total } = completion(data, activeDate, waterGoal);
   const isToday = activeDate === TODAY;
   const dateLabel = new Date(activeDate + "T00:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
   return (
-    <section className="fresh-panel overflow-hidden rounded-2xl border border-teal/20 p-6 shadow-sm sm:p-8">
+    <section ref={sectionRef} className="fresh-panel overflow-hidden rounded-2xl border border-teal/20 p-6 shadow-sm sm:p-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <p className="text-xs font-semibold tracking-wider text-primary uppercase">
           {isToday ? `Today · ${dateLabel}` : dateLabel}
@@ -264,6 +267,144 @@ function TodaySummary({ data, activeDate, onDateChange, profileName, waterGoal, 
         </ProgressRing>
       </div>
     </section>
+  );
+}
+
+/* ─── Sticky day bar ─── */
+/** Height of the app header the bar sits under (App.tsx's h-16). */
+const APP_HEADER_PX = 64;
+
+/** True once the element has scrolled up under the app header. */
+function useScrolledPast(ref: RefObject<HTMLElement | null>) {
+  const [past, setPast] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setPast(!entry.isIntersecting && entry.boundingClientRect.top < APP_HEADER_PX),
+      { rootMargin: `-${APP_HEADER_PX}px 0px 0px 0px` },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ref]);
+  return past;
+}
+
+/**
+ * A slim bar under the app header once the Today summary scrolls away: AI
+ * credits left, the day being viewed, how many habits are done, and a Speak
+ * button for the voice check-in.
+ */
+function StickyDayBar({ show, data, activeDate, onDateChange, waterGoal, onSpeak, onDateClick }: {
+  show: boolean; data: HabitData; activeDate: string; onDateChange: (d: string) => void; waterGoal: number;
+  /** Missing when voice check-ins aren't available (signed out). */
+  onSpeak?: () => void;
+  /** Takes the member back to the full summary, with its date picker. */
+  onDateClick: () => void;
+}) {
+  const { core, custom, done, total } = completion(data, activeDate, waterGoal);
+  const credits = useAiCredits();
+  const isToday = activeDate === TODAY;
+  const dateLabel = new Date(activeDate + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  const shift = (days: number) => {
+    const next = shiftDateKey(activeDate, days);
+    if (next <= TODAY) onDateChange(next);
+  };
+  const out = credits.left === 0;
+
+  return (
+    <div
+      aria-hidden={!show}
+      inert={!show}
+      className={cn(
+        "fixed inset-x-0 top-16 z-30 border-b bg-white/95 shadow-sm backdrop-blur transition-[translate,opacity] duration-200 motion-reduce:transition-none",
+        show ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-full opacity-0",
+      )}
+    >
+      <div className={cn("border-b", out ? "border-destructive/15 bg-destructive/5" : "border-primary/10 bg-primary/5")}>
+        <div className="mx-auto flex h-7 max-w-screen-2xl items-center gap-2 px-4 text-xs sm:px-6">
+          <Sparkles className={cn("size-3.5", out ? "text-destructive" : "text-primary")} aria-hidden="true" />
+          <span className="font-medium">AI credits</span>
+          {credits.left != null && (
+            <>
+              <span
+                className="h-1.5 w-16 overflow-hidden rounded-full bg-foreground/10 sm:w-24"
+                role="meter"
+                aria-label="AI credits left today"
+                aria-valuemin={0}
+                aria-valuemax={credits.limit}
+                aria-valuenow={credits.left}
+              >
+                <span
+                  className={cn("block h-full rounded-full", out ? "bg-destructive" : "bg-primary")}
+                  style={{ width: `${(credits.left / credits.limit) * 100}%` }}
+                />
+              </span>
+              <span className={cn("tabular-nums", out ? "text-destructive" : "text-muted-foreground")}>
+                {out ? "None left today · resets at midnight" : `${credits.left} of ${credits.limit} left today`}
+              </span>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="mx-auto flex h-12 max-w-screen-2xl items-center gap-3 px-4 sm:gap-5 sm:px-6">
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon-sm" onClick={() => shift(-1)} aria-label="Previous day">
+            <ChevronLeft />
+          </Button>
+          <button
+            onClick={onDateClick}
+            className="min-w-0 rounded-md px-1 text-sm font-semibold whitespace-nowrap text-primary hover:underline"
+            aria-label={`${isToday ? "Today" : dateLabel}. Back to the summary`}
+          >
+            {isToday ? <>Today<span className="hidden font-normal text-muted-foreground sm:inline"> · {dateLabel}</span></> : dateLabel}
+          </button>
+          <Button variant="ghost" size="icon-sm" onClick={() => shift(1)} disabled={isToday} aria-label="Next day">
+            <ChevronRight />
+          </Button>
+        </div>
+
+        <div className="flex min-w-0 flex-1 items-center gap-3" aria-label={`${done} of ${total} habits done`}>
+          <span className="text-sm font-semibold whitespace-nowrap tabular-nums">
+            {done}<span className="text-muted-foreground">/{total}</span>
+            <span className="ml-1 hidden font-normal text-muted-foreground sm:inline">done</span>
+          </span>
+          <ul className="hidden min-w-0 items-center gap-1 overflow-hidden md:flex">
+            {core.map(({ key, done }) => {
+              const Icon = CORE_META[key].icon;
+              return (
+                <li key={key}>
+                  <button
+                    onClick={() => scrollToCard(`habit-${key}`)}
+                    title={`${CORE_META[key].label}${done ? ", done" : ""}`}
+                    aria-label={`${CORE_META[key].label}, ${done ? "done" : "not done yet"}`}
+                    className={cn(
+                      "grid size-7 place-items-center rounded-full transition-colors",
+                      done ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-foreground/5",
+                    )}
+                  >
+                    {done ? <Check className="size-3.5" strokeWidth={3} /> : <Icon className="size-3.5" />}
+                  </button>
+                </li>
+              );
+            })}
+            {custom.length > 0 && (
+              <li className="pl-1 text-xs whitespace-nowrap text-muted-foreground">
+                +{custom.filter((c) => c.done).length}/{custom.length} custom
+              </li>
+            )}
+          </ul>
+        </div>
+
+        {onSpeak && (
+          <Button onClick={onSpeak} size="sm" className="h-8 shrink-0 gap-1.5 rounded-full px-3.5">
+            <Mic />
+            Speak
+          </Button>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -1296,18 +1437,34 @@ export default function HabitsView({ data, onChange: saveData, biometrics, medic
   // Shared by the Calories card and voice check-ins, so both see the same meals.
   const foodLog = useFoodLog(userId, activeDate, data, onChange);
   const celebrating = useDayCompleteCelebration(data, goals.water, userId, memberActed);
+  const summaryRef = useRef<HTMLElement>(null);
+  const summaryGone = useScrolledPast(summaryRef);
+  const [listenRequest, setListenRequest] = useState(0);
+  const backToSummary = () => scrollToCard("today-summary");
 
   return (
     <div className="space-y-12">
+      <StickyDayBar
+        show={summaryGone}
+        data={data}
+        activeDate={activeDate}
+        onDateChange={setActiveDate}
+        waterGoal={goals.water}
+        onDateClick={backToSummary}
+        onSpeak={userId ? () => { backToSummary(); setListenRequest((n) => n + 1); } : undefined}
+      />
+      <div id="today-summary" className="scroll-mt-20">
       <TodaySummary
         data={data}
         activeDate={activeDate}
         onDateChange={setActiveDate}
         profileName={profileName}
         waterGoal={goals.water}
+        sectionRef={summaryRef}
         voice={userId && (
           <VoiceCheckIn
             key={activeDate}
+            listenRequest={listenRequest}
             data={data}
             date={activeDate}
             isToday={activeDate === todayKey()}
@@ -1316,6 +1473,7 @@ export default function HabitsView({ data, onChange: saveData, biometrics, medic
           />
         )}
       />
+      </div>
 
       <section className="space-y-4">
         <SectionLabel>Nutrition & movement</SectionLabel>

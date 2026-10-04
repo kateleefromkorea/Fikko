@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { notifyAiUsed } from "./aiCredits";
 
 // The AI coach. Messages are read straight from the database (members can
 // see and clear their own); sending goes through /api/coach, which holds the
@@ -71,6 +72,7 @@ export async function sendCoachMessage(message: string, onText: (soFar: string) 
     const cut = text.indexOf(ERROR_MARKER);
     onText(cut === -1 ? text : text.slice(0, cut));
   }
+  notifyAiUsed();
   const cut = text.indexOf(ERROR_MARKER);
   // A reply that failed part-way isn't saved or counted; show why instead.
   if (cut !== -1) throw new Error(text.slice(cut + ERROR_MARKER.length));

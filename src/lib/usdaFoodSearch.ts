@@ -44,10 +44,22 @@ function relevanceScore(description: string, query: string) {
   return score;
 }
 
+/** The query as the server normalises it, so repeat searches hit its cache. */
+const normalizeSearch = (query: string) => query.trim().toLowerCase().replace(/\s+/g, " ");
+
+// Answers already fetched this session, so going back over a word ("chick",
+// "chicke", "chick") shows its options instantly instead of asking again.
+const searchCache = new Map<string, FoodResult[]>();
+const CACHE_SIZE = 60;
+
+/** The options for this search if they were fetched earlier this session. */
+export const cachedSearch = (query: string) => searchCache.get(normalizeSearch(query)) ?? null;
+
 export async function searchFoods(query: string): Promise<FoodResult[]> {
-  // Normalised the same way as the server so repeat searches hit its cache.
-  const q = query.trim().toLowerCase().replace(/\s+/g, " ");
+  const q = normalizeSearch(query);
   if (!q) return [];
+  const hit = searchCache.get(q);
+  if (hit) return hit;
 
   const { data: auth } = await supabase.auth.getSession();
   const res = await fetch(`/api/food-search?q=${encodeURIComponent(q)}`, {
@@ -66,7 +78,10 @@ export async function searchFoods(query: string): Promise<FoodResult[]> {
     .slice(0, GENERIC_RESULTS)
     .map((r) => r.result);
   const branded = foods.filter((f) => f.source === "branded").slice(0, BRANDED_RESULTS);
-  return [...generic, ...branded];
+  const ranked = [...generic, ...branded];
+  if (searchCache.size >= CACHE_SIZE) searchCache.delete(searchCache.keys().next().value!);
+  searchCache.set(q, ranked);
+  return ranked;
 }
 
 /** The product with this barcode, or null when Open Food Facts doesn't know it. */

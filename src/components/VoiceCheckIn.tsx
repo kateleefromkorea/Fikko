@@ -25,13 +25,15 @@ interface Props {
   medications: { id: string; name: string }[];
   /** Saves the habit changes and logs the foods together. */
   onSave: (data: HabitData, foods: (NewFood & { meal: MealKey })[]) => void;
+  /** Bumped by the sticky day bar's Speak button to start listening. */
+  listenRequest?: number;
 }
 
 /**
  * "Tell Fikko about your day": speak (or type) what you did, check what Fikko
  * understood, and save it to your habits in one tap.
  */
-export default function VoiceCheckIn({ data, date, isToday, medications, onSave }: Props) {
+export default function VoiceCheckIn({ data, date, isToday, medications, onSave, listenRequest = 0 }: Props) {
   const [stage, setStage] = useState<Stage>("idle");
   const [transcript, setTranscript] = useState("");
   const [interim, setInterim] = useState("");
@@ -42,6 +44,17 @@ export default function VoiceCheckIn({ data, date, isToday, medications, onSave 
   const canListen = speechRecognition() != null;
 
   useEffect(() => () => recognizer.current?.abort(), []);
+
+  // Starts on a new request only, not one already handled before a remount (changing day remounts this).
+  const handledRequest = useRef(listenRequest);
+  useEffect(() => {
+    if (listenRequest === handledRequest.current) return;
+    handledRequest.current = listenRequest;
+    if (stage === "listening" || stage === "thinking") return;
+    if (canListen) listen();
+    else setStage("typing");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listenRequest]);
 
   function reset() {
     recognizer.current?.abort();

@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { notifyAiUsed } from "./aiCredits";
 
 // The supplement and medication interaction check; see api/interactions.ts.
 
@@ -29,6 +30,7 @@ export async function checkInteractions(names: string[]): Promise<InteractionRes
     body: JSON.stringify({ names, tzOffset: new Date().getTimezoneOffset() }),
   });
   const out = (await res.json().catch(() => ({}))) as Partial<InteractionResult> & { error?: string };
+  notifyAiUsed();
   if (!res.ok || !out.findings) throw new Error(out.error ?? "We couldn't run the check. Please try again.");
   return { findings: out.findings, ai: out.ai ?? "not-needed", unrecognised: out.unrecognised ?? [] };
 }

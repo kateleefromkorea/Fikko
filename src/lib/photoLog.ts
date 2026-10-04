@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { notifyAiUsed } from "./aiCredits";
 import type { MealKey } from "../types";
 import type { ProposedFood } from "./voice";
 
@@ -55,6 +56,7 @@ export async function recognizePhoto(base64: string, meal: MealKey): Promise<Pho
     body: JSON.stringify({ image: base64, meal, tzOffset: new Date().getTimezoneOffset() }),
   });
   const out = (await res.json().catch(() => ({}))) as Partial<PhotoProposal> & { error?: string };
+  notifyAiUsed();
   if (!res.ok || !out.foods) throw new Error(out.error ?? "Something went wrong. Please try again.");
   return { foods: out.foods, notUnderstood: out.notUnderstood ?? null };
 }

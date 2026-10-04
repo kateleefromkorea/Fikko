@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { notifyAiUsed } from "./aiCredits";
 import type { HabitData, HabitEntry, MealKey } from "../types";
 import type { NewFood } from "../hooks/useFoodLog";
 
@@ -67,6 +68,7 @@ export async function interpret(
     body: JSON.stringify({ transcript, tzOffset: new Date().getTimezoneOffset(), meds, customHabits }),
   });
   const out = (await res.json().catch(() => ({}))) as { proposal?: VoiceProposal; error?: string };
+  notifyAiUsed();
   if (!res.ok || !out.proposal) throw new Error(out.error ?? "Something went wrong. Please try again.");
   return out.proposal;
 }

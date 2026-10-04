@@ -202,3 +202,8 @@
 @media (prefers-reduced-motion: reduce) {
   .onboarding-step { animation: none; }
 }
+
+/* The website's Habits page has the sticky day bar under the header, so jumping to a card leaves room for both. */
+[data-page="habits"] [id^="habit-"] {
+  scroll-margin-top: 9.5rem;
+}

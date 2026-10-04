@@ -1,10 +1,13 @@
 import { cn } from "@/lib/utils";
 
-/** Fikko, the AI coach: the app's sprout mark on a mint circle (the same drawing as public/favicon.svg). */
-export default function FikkoAvatar({ className }: { className?: string }) {
+/**
+ * The Fikko sprout on a mint circle (the same drawing as public/favicon.svg):
+ * the AI coach's picture. `plain` drops the circle, for a quiet brand mark.
+ */
+export default function FikkoAvatar({ className, plain }: { className?: string; plain?: boolean }) {
   return (
     <svg viewBox="0 0 32 32" className={cn("size-8 shrink-0", className)} role="img" aria-label="Fikko">
-      <circle cx="16" cy="16" r="15.25" fill="#E3F6F1" stroke="#2DC4B2" strokeOpacity="0.55" strokeWidth="1.5" />
+      {!plain && <circle cx="16" cy="16" r="15.25" fill="#E3F6F1" stroke="#2DC4B2" strokeOpacity="0.55" strokeWidth="1.5" />}
       <g transform="translate(3.3 2.9) scale(1.05)">
         <path d="M12 22.5V11.5" stroke="#157954" strokeWidth="2.2" strokeLinecap="round" fill="none" />
         <path d="M12 14.5C6.8 14.6 3.6 11.4 3.4 6.2 8.6 6 11.9 9.3 12 14.5Z" fill="#22A06B" />

@@ -13,8 +13,15 @@ import Anthropic from "@anthropic-ai/sdk";
 import { admin, json, memberFrom, supabaseReady } from "./_lib/devices.js";
 import { DAILY_AI_LIMIT, clampOffset, limitMessage, recordUse, usedToday } from "./_lib/aiUsage.js";
 import { MEALS, clampNum, resolveFood, type ClaudeFood, type ProposedFood } from "./_lib/foodResolve.js";
+import { OPTIONS, withCors } from "./_lib/cors.js";
 
 const MODEL = "claude-haiku-4-5";
+
+// The moods members can pick on the Mood card (HabitsView's MOOD_OPTIONS), each on the 1–5 scale.
+const MOOD_VALUES: Record<string, number> = {
+  rough: 1, sad: 1, stressed: 2, tired: 2, meh: 2, okay: 3, calm: 4, good: 4, happy: 5, great: 5,
+};
+const MOOD_KEYS = Object.keys(MOOD_VALUES);
 const MAX_TRANSCRIPT = 1500;
 
 const SYSTEM_PROMPT = `You turn what a member of Fikko, a habit tracking app, said out loud into updates for their habits. Record it by calling record_check_in once.
@@ -23,8 +30,8 @@ Rules:
 - Only include what they clearly said. Leave everything else null or empty. Never guess habits they didn't mention.
 - Water is counted in glasses (about 250 ml). Convert bottles or litres to glasses. Use mode "add" for amounts just drunk ("I had two glasses") and "total" for a day's total ("I've had six glasses today").
 - Activity is minutes of exercise or brisk movement. Same add/total rule. Convert hours to minutes. Put what they did in "what".
-- Mood is 1 to 5: 1 rough, 2 meh, 3 okay, 4 good, 5 great.
-- Sleep is last night: bedtime and wake time as 24-hour HH:MM, and rest from 1 (exhausted) to 5 (fully rested) if they said how they felt.
+- Mood is how they feel emotionally, and only when they actually said so ("I'm happy", "feeling stressed", "it's been a meh day"). Pick the closest of: ${MOOD_KEYS.join(", ")}. Otherwise null.
+- Sleep is last night: bedtime and wake time as 24-hour HH:MM, and rest from 1 (exhausted) to 5 (fully rested) if they said how they felt. Words about sleep or energy ("well rested", "slept badly", "still tired") are sleep rest only. Never turn them into a mood.
 - Medications: only from the member's list below. Set all to true if they said they took all their meds or vitamins; otherwise list the ids of the ones they named.
 - Custom habits: only from the member's list below, with the amount in that habit's unit.
 - Foods: one entry per food or dish. "search_term" is a short generic name a nutrition database would know ("fried rice", "banana", "chicken breast grilled"). Estimate the grams they ate from the portion they described, using typical portion sizes when they didn't say. "kcal" is your best estimate of the calories for that portion. Choose the meal they said; if they didn't say, use the time of day.
@@ -47,7 +54,7 @@ const TOOL: Anthropic.Tool = {
         properties: { minutes: { type: "number" }, mode: { type: "string", enum: ["add", "total"] }, what: { type: "string" } },
         required: ["minutes", "mode"],
       },
-      mood: { type: ["integer", "null"], minimum: 1, maximum: 5 },
+      mood: { type: ["string", "null"], enum: [...MOOD_KEYS, null] },
       sleep: {
         type: ["object", "null"],
         properties: {
@@ -91,7 +98,7 @@ const TOOL: Anthropic.Tool = {
 interface ToolInput {
   water: { glasses: number; mode: "add" | "total" } | null;
   activity: { minutes: number; mode: "add" | "total"; what?: string } | null;
-  mood: number | null;
+  mood: string | null;
   sleep: { bedtime?: string | null; wake?: string | null; rest?: number | null } | null;
   medications: { all?: boolean; ids?: string[] } | null;
   custom_habits: { id: string; amount: number; mode: "add" | "total" }[];
@@ -101,7 +108,7 @@ interface ToolInput {
 
 const isClock = (t: unknown): t is string => typeof t === "string" && /^([01]?\d|2[0-3]):[0-5]\d$/.test(t);
 
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   if (!supabaseReady()) return json({ error: "Voice check-ins aren't configured on the server." }, 503);
   if (!process.env.ANTHROPIC_API_KEY) return json({ error: "Voice check-ins aren't set up yet. Please try again later." }, 503);
 
@@ -156,7 +163,7 @@ export async function POST(request: Request) {
   const customIds = new Set(custom.map((h) => h.id));
   const glasses = clampNum(input.water?.glasses, 0, 30);
   const minutes = clampNum(input.activity?.minutes, 0, 600);
-  const mood = clampNum(input.mood, 1, 5);
+  const moodKey = typeof input.mood === "string" && MOOD_VALUES[input.mood] ? input.mood : null;
   const rest = clampNum(input.sleep?.rest, 1, 5);
   const foods = (await Promise.all((Array.isArray(input.foods) ? input.foods : []).slice(0, 15).map(resolveFood)))
     .filter((f): f is ProposedFood => f != null);
@@ -166,7 +173,7 @@ export async function POST(request: Request) {
     activity: minutes != null && minutes > 0
       ? { minutes: Math.round(minutes), mode: input.activity!.mode === "total" ? "total" : "add", what: typeof input.activity!.what === "string" ? input.activity!.what.slice(0, 60) : "" }
       : null,
-    mood: mood != null ? Math.round(mood) : null,
+    mood: moodKey ? { key: moodKey, value: MOOD_VALUES[moodKey] } : null,
     sleep: input.sleep && (isClock(input.sleep.bedtime) || isClock(input.sleep.wake) || rest != null)
       ? {
           bedtime: isClock(input.sleep.bedtime) ? input.sleep.bedtime.padStart(5, "0") : null,
@@ -187,3 +194,7 @@ export async function POST(request: Request) {
   await recordUse(db, member.id);
   return json({ proposal, transcript });
 }
+
+// The mobile apps call these from another origin (see _lib/cors.ts).
+export const POST = withCors(handlePOST);
+export { OPTIONS };

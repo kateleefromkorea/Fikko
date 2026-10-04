@@ -3,8 +3,9 @@
 // for the browser to open. The provider sends the member back to device-callback.
 
 import { admin, json, memberFrom, pkceChallenge, providerFor, randomToken, redirectUri, supabaseReady } from "./_lib/devices.js";
+import { OPTIONS, withCors } from "./_lib/cors.js";
 
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   const { provider: id } = (await request.json().catch(() => ({}))) as { provider?: string };
   const provider = providerFor(id);
   if (!provider) return json({ error: "Unknown device." }, 400);
@@ -23,3 +24,7 @@ export async function POST(request: Request) {
 
   return json({ url: provider.authorizeUrl(redirectUri(request), state, await pkceChallenge(verifier)) });
 }
+
+// The mobile apps call these from another origin (see _lib/cors.ts).
+export const POST = withCors(handlePOST);
+export { OPTIONS };

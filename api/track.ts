@@ -8,12 +8,13 @@
 // them without a CORS preflight. Nothing useful is sent back.
 
 import { admin, supabaseReady } from "./_lib/devices.js";
+import { OPTIONS, withCors } from "./_lib/cors.js";
 
 const BOT = /bot|crawl|spider|slurp|preview|headless|lighthouse|monitor|facebookexternalhit|curl|wget|python|axios|node-fetch/i;
 
 const noContent = () => new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } });
 
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   if (!supabaseReady()) return noContent();
   const ua = request.headers.get("user-agent") ?? "";
   if (!ua || BOT.test(ua)) return noContent();
@@ -68,3 +69,7 @@ async function sha256(s: string) {
   const bytes = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)));
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
+
+// The mobile apps call these from another origin (see _lib/cors.ts).
+export const POST = withCors(handlePOST);
+export { OPTIONS };

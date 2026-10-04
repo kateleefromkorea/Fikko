@@ -1378,3 +1378,11 @@ function useDayCompleteCelebration(
 
   return { show, dismiss: () => setShow(false) };
 }
+
+// Building blocks for the mobile app's own Habits page (mobile/src/screens/HabitsScreen.tsx),
+// which arranges the same cards under a sticky date bar. The web page above doesn't use these exports.
+export {
+  CORE_META, CustomHabitsSection, ExerciseCard, FoodCard, HabitChip, MedicationCard, MoodCard, SleepCard, WaterCard,
+  greeting, progressSubtitle, scrollToCard, useDayCompleteCelebration,
+};
+export type { Props as HabitCardProps };

@@ -12,6 +12,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { admin, json, memberFrom, supabaseReady } from "./_lib/devices.js";
 import { DAILY_AI_LIMIT, clampOffset, limitMessage, recordUse, usedToday } from "./_lib/aiUsage.js";
 import { MEALS, resolveFood, type ClaudeFood, type Meal, type ProposedFood } from "./_lib/foodResolve.js";
+import { OPTIONS, withCors } from "./_lib/cors.js";
 
 // Haiku 4.5 is cheap (about $0.003 a photo). A Sonnet-class model estimates portions better
 // at about three times the price; change it here if accuracy matters more than cost.
@@ -63,7 +64,7 @@ interface ToolInput {
 /** True when the string starts like a JPEG once decoded ("/9j/" is base64 for FF D8 FF). */
 const looksLikeJpeg = (b64: string) => b64.startsWith("/9j/");
 
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   if (!supabaseReady()) return json({ error: "Photo logging isn't configured on the server." }, 503);
   if (!process.env.ANTHROPIC_API_KEY) return json({ error: "Photo logging isn't set up yet. Please try again later." }, 503);
 
@@ -116,3 +117,7 @@ export async function POST(request: Request) {
     notUnderstood: typeof input.not_understood === "string" && input.not_understood.trim() ? input.not_understood.trim().slice(0, 300) : null,
   });
 }
+
+// The mobile apps call these from another origin (see _lib/cors.ts).
+export const POST = withCors(handlePOST);
+export { OPTIONS };

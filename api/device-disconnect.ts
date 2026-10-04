@@ -3,8 +3,9 @@
 // readings synced from that provider.
 
 import { admin, json, memberFrom, providerFor } from "./_lib/devices.js";
+import { OPTIONS, withCors } from "./_lib/cors.js";
 
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   const { provider: id, deleteData } = (await request.json().catch(() => ({}))) as { provider?: string; deleteData?: boolean };
   const provider = providerFor(id);
   if (!provider) return json({ error: "Unknown device." }, 400);
@@ -19,3 +20,7 @@ export async function POST(request: Request) {
   if (deleteData) await db.from("biometric_entries").delete().eq("user_id", member.id).eq("source", provider.id);
   return json({ disconnected: true });
 }
+
+// The mobile apps call these from another origin (see _lib/cors.ts).
+export const POST = withCors(handlePOST);
+export { OPTIONS };

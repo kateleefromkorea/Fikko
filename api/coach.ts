@@ -12,6 +12,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { admin, json, memberFrom, supabaseReady } from "./_lib/devices.js";
 import { DAILY_AI_LIMIT, clampOffset, limitMessage, recordUse, usedToday } from "./_lib/aiUsage.js";
+import { OPTIONS, withCors } from "./_lib/cors.js";
 
 const MODEL = "claude-haiku-4-5";
 const MAX_MESSAGE_LENGTH = 2000;
@@ -231,7 +232,7 @@ async function memberContext(db: SupabaseClient, userId: string, tzOffset: numbe
 
 // ── Endpoint ───────────────────────────────────────────────────────────────
 
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   if (!supabaseReady()) return json({ error: "The coach isn't configured on the server." }, 503);
   if (!process.env.ANTHROPIC_API_KEY) return json({ error: "The coach isn't set up yet. Please try again later." }, 503);
 
@@ -332,3 +333,7 @@ export async function POST(request: Request) {
     },
   });
 }
+
+// The mobile apps call these from another origin (see _lib/cors.ts).
+export const POST = withCors(handlePOST);
+export { OPTIONS };

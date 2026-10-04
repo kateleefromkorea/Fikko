@@ -1,13 +1,15 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
+import { appAuthRedirect, authRedirectUrl } from "./redirect";
 
 interface AuthContextValue {
   session: Session | null;
   user: User | null;
   loading: boolean;
   signInWithPassword: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUpWithPassword: (email: string, password: string) => Promise<{ error: string | null }>;
+  /** `exists` is true when the email already has an account, including one scheduled for deletion. */
+  signUpWithPassword: (email: string, password: string) => Promise<{ error: string | null; exists?: boolean }>;
   /** Emails the sign-up confirmation link again, for an account that isn't confirmed yet. */
   resendConfirmation: (email: string) => Promise<{ error: string | null }>;
   signInWithGoogle: () => Promise<{ error: string | null }>;
@@ -15,6 +17,8 @@ interface AuthContextValue {
   updatePassword: (password: string) => Promise<{ error: string | null }>;
   /** True after arriving from a password-reset email, until a new password is set. */
   recovering: boolean;
+  /** Shows "choose a new password" after a reset link the app opened itself (the mobile app's links). */
+  startRecovery: () => void;
   signOut: () => Promise<void>;
 }
 
@@ -51,25 +55,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signUpWithPassword(email: string, password: string) {
-    const { error } = await supabase.auth.signUp({ email, password });
-    return { error: error?.message ?? null };
+    // The website uses Supabase's Site URL; the mobile app needs its own link address.
+    const app = appAuthRedirect();
+    const { data, error } = await supabase.auth.signUp({ email, password, options: app ? { emailRedirectTo: app.url } : undefined });
+    // For an email that's already registered, Supabase reports success but sends
+    // nothing, and returns a placeholder user with no identities.
+    const exists = !error && !!data.user && data.user.identities?.length === 0;
+    return { error: error?.message ?? null, exists };
   }
 
   async function resendConfirmation(email: string) {
-    const { error } = await supabase.auth.resend({ type: "signup", email, options: { emailRedirectTo: window.location.origin } });
+    const { error } = await supabase.auth.resend({ type: "signup", email, options: { emailRedirectTo: authRedirectUrl() } });
     return { error: error?.message ?? null };
   }
 
   async function signInWithGoogle() {
-    const { error } = await supabase.auth.signInWithOAuth({
+    const app = appAuthRedirect();
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin },
+      options: { redirectTo: authRedirectUrl(), skipBrowserRedirect: !!app },
     });
+    // In the mobile app, Google's page opens in the phone's browser instead.
+    if (app && data.url) await app.open(data.url);
     return { error: error?.message ?? null };
   }
 
   async function sendPasswordReset(email: string) {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: authRedirectUrl() });
     return { error: error?.message ?? null };
   }
 
@@ -97,6 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         sendPasswordReset,
         updatePassword,
         recovering,
+        startRecovery: () => setRecovering(true),
         signOut,
       }}
     >

@@ -19,6 +19,11 @@ This is the canonical project structure. Start with task-relevant files below. O
 - `package.json` - Project dependencies and the Vite build, development, preview, and formatting scripts
 - `vite.config.ts` - Vite configuration with React, Tailwind CSS v4, and Figma Make plugins plus the `@` alias for `src`
 - `.mise.toml` - Toolchain versions for Node.js and pnpm
+- `mobile/` - The iOS and Android app (Capacitor), a separate Vite app with its own shell and screens; see `mobile/README.md`
+
+### Web and mobile are separate
+
+`src/` is the web app and also the shared layer (hooks, auth, `lib/`, `components/ui/`, habit cards). `mobile/src` may import from `src/` via `@/`, but `src/` must never import from `mobile/`. Make phone-app-only changes in `mobile/src` (via `@mobile/`), not by editing shared files or the web pages, so they never reach the website. The bottom tab bar in `src/App.tsx` is the website's own phone layout, not the mobile app.
 
 ## Dependencies
 

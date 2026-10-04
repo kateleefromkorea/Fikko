@@ -18,7 +18,8 @@ export interface ProposedFood extends NewFood {
 export interface VoiceProposal {
   water: { glasses: number; mode: Mode } | null;
   activity: { minutes: number; mode: Mode; what: string } | null;
-  mood: number | null;
+  /** A key from the Mood card's options, with its 1–5 value. */
+  mood: { key: string; value: number } | null;
   sleep: { bedtime: string | null; wake: string | null; rest: number | null } | null;
   medications: { all: boolean; ids: string[] } | null;
   customHabits: { id: string; amount: number; mode: Mode }[];
@@ -96,7 +97,7 @@ export function applyProposal(data: HabitData, p: VoiceProposal, date: string, m
   if (p.activity) {
     next = { ...next, exercise: upsert(next.exercise, date, Math.min(1440, combine(valueOn(next.exercise, date), p.activity.minutes, p.activity.mode))) };
   }
-  if (p.mood) next = { ...next, mood: upsert(next.mood, date, p.mood) };
+  if (p.mood) next = { ...next, mood: upsert(next.mood, date, p.mood.value, p.mood.key) };
   if (p.sleep) {
     const entry = next.sleep.find((e) => e.date === date);
     const note = { ...(parse<Record<string, unknown>>(entry?.note) ?? {}) };

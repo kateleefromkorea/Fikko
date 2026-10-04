@@ -4,8 +4,9 @@
 //   "Authorization: Bearer <CRON_SECRET>", which is checked before anything runs.
 
 import { admin, json, memberFrom, providerFor, supabaseReady, syncMember } from "./_lib/devices.js";
+import { OPTIONS, withCors } from "./_lib/cors.js";
 
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   const { provider: id } = (await request.json().catch(() => ({}))) as { provider?: string };
   const provider = providerFor(id);
   if (!provider) return json({ error: "Unknown device." }, 400);
@@ -20,7 +21,7 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET(request: Request) {
+async function handleGET(request: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) return json({ error: "Not allowed." }, 401);
   if (!supabaseReady()) return json({ error: "Not configured." }, 503);
@@ -37,3 +38,8 @@ export async function GET(request: Request) {
   }
   return json({ synced, failed });
 }
+
+// The mobile apps call these from another origin (see _lib/cors.ts).
+export const POST = withCors(handlePOST);
+export const GET = withCors(handleGET);
+export { OPTIONS };

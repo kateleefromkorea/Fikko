@@ -16,10 +16,11 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { admin, json, memberFrom, providerFor, supabaseReady } from "./_lib/devices.js";
+import { OPTIONS, withCors } from "./_lib/cors.js";
 
 const GRACE_DAYS = 30;
 
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   if (!supabaseReady()) return json({ error: "Account deletion isn't configured on the server." }, 500);
   const db = admin();
   const member = await memberFrom(request, db);
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
   return json({ scheduledFor });
 }
 
-export async function GET(request: Request) {
+async function handleGET(request: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) return json({ error: "Not allowed." }, 401);
   if (!supabaseReady()) return json({ error: "Not configured." }, 503);
@@ -78,3 +79,8 @@ async function purgeAccount(db: SupabaseClient, userId: string) {
   const { error } = await db.auth.admin.deleteUser(userId);
   if (error) throw error;
 }
+
+// The mobile apps call these from another origin (see _lib/cors.ts).
+export const POST = withCors(handlePOST);
+export const GET = withCors(handleGET);
+export { OPTIONS };

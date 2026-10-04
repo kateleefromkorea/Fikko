@@ -10,6 +10,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { admin, json, memberFrom, supabaseReady } from "./_lib/devices.js";
 import { DAILY_AI_LIMIT, clampOffset, recordUse, usedToday } from "./_lib/aiUsage.js";
 import { groupsOf, listFindings, type Finding, type Severity } from "./_lib/interactions.js";
+import { OPTIONS, withCors } from "./_lib/cors.js";
 
 const MODEL = "claude-haiku-4-5";
 const SEVERITIES: Severity[] = ["avoid", "caution", "timing", "overlap"];
@@ -52,7 +53,7 @@ const TOOL: Anthropic.Tool = {
 /** How the AI part of the check went, so the app can say so plainly. */
 type AiStatus = "not-needed" | "used" | "limit" | "unavailable";
 
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   if (!supabaseReady()) return json({ error: "The interaction check isn't configured on the server." }, 503);
   const db = admin();
   const member = await memberFrom(request, db);
@@ -121,3 +122,7 @@ export async function POST(request: Request) {
   await recordUse(db, member.id);
   return reply("used");
 }
+
+// The mobile apps call these from another origin (see _lib/cors.ts).
+export const POST = withCors(handlePOST);
+export { OPTIONS };

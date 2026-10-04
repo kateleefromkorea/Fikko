@@ -1,5 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500&display=swap');
-@import 'tailwindcss';
+/* Classes are collected from src/ only, so the mobile app (mobile/) never
+   adds to the web stylesheet. */
+@import 'tailwindcss' source('.');
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 

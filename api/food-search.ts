@@ -17,6 +17,7 @@
 
 import { admin, supabaseReady } from "./_lib/devices.js";
 import { lookupBarcode, normalizeQuery, searchBranded, searchUsda } from "./_lib/foods.js";
+import { OPTIONS, withCors } from "./_lib/cors.js";
 
 export type { FoodSearchHit } from "./_lib/foods.js";
 
@@ -43,7 +44,7 @@ async function signedIn(request: Request) {
   return !error && !!data.user;
 }
 
-export async function GET(request: Request) {
+async function handleGET(request: Request) {
   const params = new URL(request.url).searchParams;
   const barcode = params.get("barcode")?.trim();
 
@@ -76,3 +77,7 @@ export async function GET(request: Request) {
   const complete = generic.status === "fulfilled" && branded.status === "fulfilled";
   return json({ foods }, 200, cached(complete ? 86400 : 600));
 }
+
+// The mobile apps call these from another origin (see _lib/cors.ts).
+export const GET = withCors(handleGET);
+export { OPTIONS };

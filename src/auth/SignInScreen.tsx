@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Loader2, MailCheck } from "lucide-react";
 import { useAuth } from "./AuthProvider";
+import { DELETION_GRACE_DAYS } from "../lib/account";
 import TestimonialLoop from "./TestimonialLoop";
 import { SHOW_TESTIMONIALS } from "./testimonials";
 import { Button } from "@/components/ui/button";
@@ -45,6 +46,8 @@ export default function SignInScreen() {
   const [resent, setResent] = useState<"sent" | string | null>(null);
   // Signing in before confirming the email offers the link again too.
   const [unconfirmed, setUnconfirmed] = useState(false);
+  // Signing up with an email that already has an account (or one in its deletion grace period).
+  const [exists, setExists] = useState(false);
 
   useEffect(() => {
     if (!resendAt) return;
@@ -82,15 +85,19 @@ export default function SignInScreen() {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
-    const { error } =
+    const result =
       mode === "signin"
         ? await signInWithPassword(email, password)
         : mode === "signup"
           ? await signUpWithPassword(email, password)
           : await sendPasswordReset(email);
+    const { error } = result;
     setSubmitting(false);
     setUnconfirmed(false);
-    if (error) {
+    setExists(false);
+    if ("exists" in result && result.exists) {
+      setExists(true);
+    } else if (error) {
       setError(error);
       if (mode === "signin" && /not confirmed/i.test(error)) setUnconfirmed(true);
     } else if (mode !== "signin") {
@@ -209,6 +216,20 @@ export default function SignInScreen() {
                   </div>
                   )}
                   {error && <p className="text-sm text-destructive">{error}</p>}
+                  {exists && (
+                    <p className="text-sm text-destructive">
+                      There&apos;s already a Fikko account for this email.{" "}
+                      <Button
+                        type="button"
+                        variant="link"
+                        onClick={() => { setMode("signin"); setExists(false); }}
+                        className="h-auto p-0 text-sm"
+                      >
+                        Sign in instead
+                      </Button>
+                      . If you deleted it in the last {DELETION_GRACE_DAYS} days, signing in lets you restore it.
+                    </p>
+                  )}
                   {unconfirmed && (
                     <Button type="button" variant="link" onClick={() => void resendFromSignIn()} className="h-auto p-0 text-sm">
                       Send the confirmation link again
@@ -243,6 +264,7 @@ export default function SignInScreen() {
                       setMode(mode === "signin" ? "signup" : "signin");
                       setError(null);
                       setUnconfirmed(false);
+                      setExists(false);
                     }}
                     className="h-auto p-0"
                   >

@@ -7,12 +7,12 @@ import type { NewFood } from "../hooks/useFoodLog";
 import {
   applyProposal, interpret, isEmptyProposal, speechRecognition, type SpeechRecognitionLike, type VoiceProposal,
 } from "../lib/voice";
+import { moodOption } from "./HabitsView";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
-const MOODS = ["", "Rough", "Meh", "Okay", "Good", "Great"];
 const REST = ["", "Exhausted", "Still tired", "Okay", "Rested", "Fully rested"];
 const MEAL_LABEL: Record<MealKey, string> = { breakfast: "Breakfast", lunch: "Lunch", dinner: "Dinner", snacks: "Snacks" };
 
@@ -244,7 +244,7 @@ export default function VoiceCheckIn({ data, date, isToday, medications, onSave 
                 </Line>
               )}
               {proposal.mood && (
-                <Line icon={SmilePlus} onRemove={() => drop({ mood: null })}>Mood: {MOODS[proposal.mood]}</Line>
+                <Line icon={SmilePlus} onRemove={() => drop({ mood: null })}>Mood: {moodOption(proposal.mood.value, proposal.mood.key)?.label}</Line>
               )}
               {proposal.sleep && (
                 <Line icon={Moon} onRemove={() => drop({ sleep: null })}>

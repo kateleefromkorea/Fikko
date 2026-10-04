@@ -1,0 +1,24 @@
+/* The mobile app's stylesheet: the web app's theme and tokens, plus rules
+   that apply only inside the iOS and Android apps. */
+@import "../../src/index.css";
+
+/* index.css collects classes from the web src/ only; add the mobile screens. */
+@source ".";
+
+:root {
+  /* Height of the app's top bar, including the notch / status bar area. */
+  --mobile-header-h: calc(3.5rem + env(safe-area-inset-top));
+  /* Height of the Habits page's sticky date bar. */
+  --mobile-datebar-h: 7.25rem;
+}
+
+html, body {
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Jumping to a habit card lands it below the top bar and the date bar
+   instead of underneath them. */
+.mobile-app [id^="habit-"] {
+  scroll-margin-top: calc(var(--mobile-header-h) + var(--mobile-datebar-h) + 1rem);
+}

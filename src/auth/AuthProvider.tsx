@@ -8,8 +8,7 @@ interface AuthContextValue {
   user: User | null;
   loading: boolean;
   signInWithPassword: (email: string, password: string) => Promise<{ error: string | null }>;
-  /** `exists` is true when the email already has an account, including one scheduled for deletion. */
-  signUpWithPassword: (email: string, password: string) => Promise<{ error: string | null; exists?: boolean }>;
+  signUpWithPassword: (email: string, password: string) => Promise<{ error: string | null }>;
   /** Emails the sign-up confirmation link again, for an account that isn't confirmed yet. */
   resendConfirmation: (email: string) => Promise<{ error: string | null }>;
   signInWithGoogle: () => Promise<{ error: string | null }>;
@@ -57,11 +56,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function signUpWithPassword(email: string, password: string) {
     // The website uses Supabase's Site URL; the mobile app needs its own link address.
     const app = appAuthRedirect();
-    const { data, error } = await supabase.auth.signUp({ email, password, options: app ? { emailRedirectTo: app.url } : undefined });
-    // For an email that's already registered, Supabase reports success but sends
-    // nothing, and returns a placeholder user with no identities.
-    const exists = !error && !!data.user && data.user.identities?.length === 0;
-    return { error: error?.message ?? null, exists };
+    const { error } = await supabase.auth.signUp({ email, password, options: app ? { emailRedirectTo: app.url } : undefined });
+    return { error: error?.message ?? null };
   }
 
   async function resendConfirmation(email: string) {

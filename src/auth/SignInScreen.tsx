@@ -46,8 +46,6 @@ export default function SignInScreen() {
   const [resent, setResent] = useState<"sent" | string | null>(null);
   // Signing in before confirming the email offers the link again too.
   const [unconfirmed, setUnconfirmed] = useState(false);
-  // Signing up with an email that already has an account (or one in its deletion grace period).
-  const [exists, setExists] = useState(false);
 
   useEffect(() => {
     if (!resendAt) return;
@@ -85,19 +83,15 @@ export default function SignInScreen() {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
-    const result =
+    const { error } =
       mode === "signin"
         ? await signInWithPassword(email, password)
         : mode === "signup"
           ? await signUpWithPassword(email, password)
           : await sendPasswordReset(email);
-    const { error } = result;
     setSubmitting(false);
     setUnconfirmed(false);
-    setExists(false);
-    if ("exists" in result && result.exists) {
-      setExists(true);
-    } else if (error) {
+    if (error) {
       setError(error);
       if (mode === "signin" && /not confirmed/i.test(error)) setUnconfirmed(true);
     } else if (mode !== "signin") {
@@ -141,6 +135,21 @@ export default function SignInScreen() {
                 <span className="font-medium text-foreground">{email}</span>
                 {mode === "reset" ? ". It may take a minute to arrive." : " to finish signing up."}
               </p>
+              {mode === "signup" && (
+                // Supabase sends nothing to an email that already has an account (including one
+                // deleted in the last DELETION_GRACE_DAYS days) and, for privacy, doesn't say so.
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Already have a Fikko account with this email? No email will arrive.{" "}
+                  <Button
+                    variant="link"
+                    onClick={() => { setCheckEmail(false); setMode("signin"); setError(null); setResent(null); }}
+                    className="h-auto p-0 text-sm"
+                  >
+                    Sign in instead
+                  </Button>
+                  . If you deleted your account in the last {DELETION_GRACE_DAYS} days, signing in lets you restore it.
+                </p>
+              )}
               <div className="mt-5 w-full space-y-2 border-t pt-5">
                 <p className="text-sm text-muted-foreground">Didn&apos;t get it? Check your spam folder, or</p>
                 <Button variant="outline" onClick={() => void resend()} disabled={wait > 0 || resending} className="h-9 w-full">
@@ -216,20 +225,6 @@ export default function SignInScreen() {
                   </div>
                   )}
                   {error && <p className="text-sm text-destructive">{error}</p>}
-                  {exists && (
-                    <p className="text-sm text-destructive">
-                      There&apos;s already a Fikko account for this email.{" "}
-                      <Button
-                        type="button"
-                        variant="link"
-                        onClick={() => { setMode("signin"); setExists(false); }}
-                        className="h-auto p-0 text-sm"
-                      >
-                        Sign in instead
-                      </Button>
-                      . If you deleted it in the last {DELETION_GRACE_DAYS} days, signing in lets you restore it.
-                    </p>
-                  )}
                   {unconfirmed && (
                     <Button type="button" variant="link" onClick={() => void resendFromSignIn()} className="h-auto p-0 text-sm">
                       Send the confirmation link again
@@ -264,7 +259,6 @@ export default function SignInScreen() {
                       setMode(mode === "signin" ? "signup" : "signin");
                       setError(null);
                       setUnconfirmed(false);
-                      setExists(false);
                     }}
                     className="h-auto p-0"
                   >

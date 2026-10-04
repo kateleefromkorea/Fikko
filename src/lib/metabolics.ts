@@ -37,7 +37,8 @@ export function ageFromDob(dob: string): number {
 export const LIMITS = {
   heightCm: { min: 100, max: 250 },
   weightKg: { min: 30, max: 300 },
-  age: { min: 13, max: 120 },
+  // 14 is Fikko's minimum age: Korea's PIPA needs a guardian's consent below it.
+  age: { min: 14, max: 120 },
 };
 
 export const inRange = (v: number, { min, max }: { min: number; max: number }) =>

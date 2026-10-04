@@ -7,7 +7,7 @@ import ChangePassword from "./profile/ChangePassword";
 import DeleteAccountDialog from "./profile/DeleteAccountDialog";
 import ExportDialog from "./profile/ExportDialog";
 import ResetDataDialog from "./profile/ResetDataDialog";
-import { computeBaseline, LIMITS, inRange } from "../lib/metabolics";
+import { ageFromDob, computeBaseline, LIMITS, inRange } from "../lib/metabolics";
 import { DB_LIMITS, clamp } from "../lib/limits";
 import { exportAllData, type ExportFormat } from "../lib/account";
 import { Activity, Download, Droplet, KeyRound, Loader2, LogOut, Moon, Pencil, Utensils, type LucideIcon } from "lucide-react";
@@ -150,6 +150,10 @@ export default function ProfileView({ email, profile, onUpdateProfile, userId, o
     }
     if (weight !== null && !inRange(weight, LIMITS.weightKg)) {
       setInfoError(`Weight must be between ${LIMITS.weightKg.min} and ${LIMITS.weightKg.max} kg.`);
+      return;
+    }
+    if (draft.dob && ageFromDob(draft.dob) < LIMITS.age.min) {
+      setInfoError(`Fikko is for people aged ${LIMITS.age.min} and over.`);
       return;
     }
     setInfoError(null);

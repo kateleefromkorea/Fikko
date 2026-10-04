@@ -1,4 +1,5 @@
 import type { useOnboardingState } from "../useOnboardingState";
+import { LIMITS } from "../../lib/metabolics";
 import { Input } from "@/components/ui/input";
 import { Chip, ErrorText, Field, inputCls, selectCls, StepHeading, Segmented } from "../ui";
 
@@ -13,7 +14,7 @@ const MONTHS = [
 
 const THIS_YEAR = new Date().getFullYear();
 // Matches LIMITS.age — offering years outside it would only invite an error.
-const YEARS = Array.from({ length: 108 }, (_, i) => THIS_YEAR - 13 - i);
+const YEARS = Array.from({ length: LIMITS.age.max - LIMITS.age.min + 1 }, (_, i) => THIS_YEAR - LIMITS.age.min - i);
 const DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
 
 export default function StepBiometrics({ api, showError }: { api: Api; showError: boolean }) {

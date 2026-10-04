@@ -149,6 +149,7 @@ function derive(s: OnboardingState): OnboardingDerived {
 function stepErrors(s: OnboardingState, d: OnboardingDerived): Record<number, string | null> {
   let biometrics: string | null = null;
   if (!d.dob) biometrics = "Pick a full, valid date of birth.";
+  else if (d.age != null && d.age < LIMITS.age.min) biometrics = `Fikko is for people aged ${LIMITS.age.min} and over.`;
   else if (d.age == null || !inRange(d.age, LIMITS.age)) biometrics = `Age must be between ${LIMITS.age.min} and ${LIMITS.age.max}.`;
   else if (d.heightCm == null || !inRange(d.heightCm, LIMITS.heightCm)) biometrics = `Height must be between ${LIMITS.heightCm.min} and ${LIMITS.heightCm.max} cm.`;
   else if (d.weightKg == null || !inRange(d.weightKg, LIMITS.weightKg)) biometrics = `Weight must be between ${LIMITS.weightKg.min} and ${LIMITS.weightKg.max} kg.`;

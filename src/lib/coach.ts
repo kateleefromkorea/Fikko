@@ -24,7 +24,7 @@ export async function fetchCoachMessages(): Promise<CoachMessage[]> {
   return (data ?? []).map((m) => ({ id: m.id, role: m.role, content: m.content, createdAt: m.created_at }));
 }
 
-/** Ends a reply that failed part-way; keep in step with api/coach.ts. */
+/** Ended a streamed reply that failed part-way. The server now checks and sends whole replies, so this only guards older deploys. */
 const ERROR_MARKER = "\u0000coach-error:";
 
 /**

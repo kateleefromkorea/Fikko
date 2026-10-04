@@ -12,6 +12,8 @@ interface AuthContextValue {
   /** Emails the sign-up confirmation link again, for an account that isn't confirmed yet. */
   resendConfirmation: (email: string) => Promise<{ error: string | null }>;
   signInWithGoogle: () => Promise<{ error: string | null }>;
+  /** Signs in with the ID token from Google's own button (see GoogleButton). */
+  signInWithGoogleToken: (token: string, nonce: string) => Promise<{ error: string | null }>;
   sendPasswordReset: (email: string) => Promise<{ error: string | null }>;
   updatePassword: (password: string) => Promise<{ error: string | null }>;
   /** True after arriving from a password-reset email, until a new password is set. */
@@ -76,6 +78,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null };
   }
 
+  async function signInWithGoogleToken(token: string, nonce: string) {
+    const { error } = await supabase.auth.signInWithIdToken({ provider: "google", token, nonce });
+    return { error: error?.message ?? null };
+  }
+
   async function sendPasswordReset(email: string) {
     const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: authRedirectUrl() });
     return { error: error?.message ?? null };
@@ -102,6 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signUpWithPassword,
         resendConfirmation,
         signInWithGoogle,
+        signInWithGoogleToken,
         sendPasswordReset,
         updatePassword,
         recovering,

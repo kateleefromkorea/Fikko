@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { ArrowUp, Loader2, Sparkles, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
+import { ArrowUp, Loader2, Trash2 } from "lucide-react";
+import FikkoAvatar from "./FikkoAvatar";
 import PageHeader from "./PageHeader";
 import {
   COACH_DAILY_LIMIT, clearCoachChat, fetchCoachMessages, fetchUsedToday, sendCoachMessage, type CoachMessage,
@@ -43,7 +44,24 @@ function Formatted({ text }: { text: string }) {
   );
 }
 
-/** The AI coach: a chat grounded in what the member has logged in Fikko. */
+/** A message from Fikko: the sprout avatar, then the bubble. `named` adds "Fikko · AI" above the first of a run. */
+function FikkoMessage({ named, children }: { named: boolean; children: ReactNode }) {
+  return (
+    <div className="flex items-end gap-2.5">
+      <FikkoAvatar className={cn(!named && "invisible")} />
+      <div className="max-w-[85%] min-w-0">
+        {named && (
+          <p className="mb-1 ml-1 text-xs font-medium text-muted-foreground">
+            Fikko <span className="font-normal">· AI coach</span>
+          </p>
+        )}
+        <div className="rounded-2xl rounded-bl-md bg-muted px-4 py-3 text-sm leading-relaxed">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+/** The AI coach, Fikko: a chat grounded in what the member has logged in Fikko. */
 export default function CoachView({ profileName }: { profileName: string }) {
   const [messages, setMessages] = useState<CoachMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -85,7 +103,7 @@ export default function CoachView({ profileName }: { profileName: string }) {
     } catch (err) {
       setMessages((m) => m.filter((x) => x.id !== `local-${now}`));
       setDraft(message);
-      setError(err instanceof Error ? err.message : "The coach couldn't reply. Please try again.");
+      setError(err instanceof Error ? err.message : "Fikko couldn't reply. Please try again.");
     } finally {
       setStreaming(null);
     }
@@ -120,10 +138,10 @@ export default function CoachView({ profileName }: { profileName: string }) {
     <div className="space-y-8">
       <PageHeader
         eyebrow="AI Coach"
-        title="Ask about your week."
+        title="Ask Fikko about your week."
         subtitle={loading
-          ? "It reads your last four weeks of logs."
-          : `It reads your last four weeks of logs. ${left === 0 ? "No questions left today; back at midnight." : `${left} ${left === 1 ? "question" : "questions"} left today.`}`}
+          ? "Fikko reads your last four weeks of logs."
+          : `Fikko reads your last four weeks of logs. ${left === 0 ? "No questions left today; back at midnight." : `${left} ${left === 1 ? "question" : "questions"} left today.`}`}
         action={messages.length > 0 && (
           <Button variant="ghost" onClick={() => setConfirmClear(true)} disabled={busy} className="h-9 text-muted-foreground">
             <Trash2 />
@@ -142,12 +160,10 @@ export default function CoachView({ profileName }: { profileName: string }) {
 
           {empty && (
             <div className="flex flex-col items-center py-10 text-center">
-              <span className="grid size-12 place-items-center rounded-2xl bg-primary/10 text-primary" aria-hidden="true">
-                <Sparkles className="size-6" />
-              </span>
-              <h2 className="mt-4 text-xl font-semibold">Hi{firstName ? ` ${firstName}` : ""}, what can I help with?</h2>
+              <FikkoAvatar className="size-14" />
+              <h2 className="mt-4 text-xl font-semibold">Hi{firstName ? ` ${firstName}` : ""}, I'm Fikko.</h2>
               <p className="mt-2 max-w-md text-sm text-muted-foreground">
-                Ask about your meals, sleep, activity or mood. I look at your last four weeks in Fikko, so the more you log, the more useful I get.
+                I'm your AI habit coach. Ask about your meals, water, sleep, activity or mood. I look at your last four weeks of logs, so the more you log, the more useful I get.
               </p>
               <div className="mt-6 flex max-w-xl flex-wrap justify-center gap-2">
                 {STARTERS.map((s) => (
@@ -159,26 +175,27 @@ export default function CoachView({ profileName }: { profileName: string }) {
             </div>
           )}
 
-          {messages.map((m) => (
-            <div key={m.id} className={cn("flex", m.role === "user" ? "justify-end" : "justify-start")}>
-              <div className={cn(
-                "max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed",
-                m.role === "user" ? "rounded-br-md bg-primary text-primary-foreground" : "rounded-bl-md bg-muted",
-              )}>
-                {m.role === "user" ? <p className="whitespace-pre-wrap">{m.content}</p> : <Formatted text={m.content} />}
+          {messages.map((m, i) => m.role === "user" ? (
+            <div key={m.id} className="flex justify-end">
+              <div className="max-w-[85%] rounded-2xl rounded-br-md bg-primary px-4 py-3 text-sm leading-relaxed text-primary-foreground">
+                <p className="whitespace-pre-wrap">{m.content}</p>
               </div>
             </div>
+          ) : (
+            <FikkoMessage key={m.id} named={messages[i - 1]?.role !== "assistant"}>
+              <Formatted text={m.content} />
+            </FikkoMessage>
           ))}
 
           {busy && (
-            <div className="flex justify-start" aria-live="polite">
-              <div className="max-w-[85%] rounded-2xl rounded-bl-md bg-muted px-4 py-3 text-sm leading-relaxed">
+            <div aria-live="polite">
+              <FikkoMessage named>
                 {streaming ? <Formatted text={streaming} /> : (
                   <span className="flex items-center gap-2 text-muted-foreground">
-                    <Loader2 className="size-4 animate-spin" /> Looking at your data…
+                    <Loader2 className="size-4 animate-spin" /> Fikko is looking at your data…
                   </span>
                 )}
-              </div>
+              </FikkoMessage>
             </div>
           )}
           <div ref={endRef} />
@@ -191,8 +208,8 @@ export default function CoachView({ profileName }: { profileName: string }) {
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={onKeyDown}
-              placeholder={left === 0 ? "You've used today's messages. Back at midnight." : "Ask your coach…"}
-              aria-label="Message your coach"
+              placeholder={left === 0 ? "You've used today's messages. Back at midnight." : "Ask Fikko…"}
+              aria-label="Message Fikko"
               maxLength={2000}
               rows={1}
               disabled={left === 0}
@@ -203,7 +220,7 @@ export default function CoachView({ profileName }: { profileName: string }) {
             </Button>
           </div>
           <p className="mt-2 flex flex-wrap justify-between gap-x-4 gap-y-1 text-xs text-muted-foreground">
-            <span>The coach can make mistakes and isn't medical advice.</span>
+            <span>Fikko is an AI. It can make mistakes and isn't medical advice.</span>
             {!loading && <span className="tabular-nums">{left} of {COACH_DAILY_LIMIT} AI messages left today</span>}
           </p>
         </form>
@@ -212,7 +229,7 @@ export default function CoachView({ profileName }: { profileName: string }) {
       <Dialog open={confirmClear} onOpenChange={setConfirmClear}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Clear your coach chat?</DialogTitle>
+            <DialogTitle>Clear your chat with Fikko?</DialogTitle>
             <DialogDescription>
               This permanently deletes your conversation. It doesn't change your daily message count or anything you've logged.
             </DialogDescription>

@@ -1,5 +1,5 @@
 // The admin site at /admin: visitor stats for the app and the marketing site,
-// plus sign-ups. Everything comes from one database call (admin_stats in
+// plus sign-ups and AI spend (admin_ai_costs in migration 024). Everything comes from one database call (admin_stats in
 // migration 016), which refuses anyone not listed in the admins table or
 // who hasn't entered a code from their authenticator app (migration 017).
 
@@ -153,6 +153,8 @@ function StatsView() {
           </p>
         </>
       )}
+
+      <AiSpend days={days} />
     </Shell>
   );
 }
@@ -199,6 +201,153 @@ function List({ title, rows }: { title: string; rows: [string, number][] }) {
                 <span className="absolute inset-y-0 left-0 rounded bg-primary/8" style={{ width: `${(Number(n) / max) * 100}%` }} aria-hidden="true" />
                 <span className="relative truncate">{name}</span>
                 <span className="relative tabular-nums text-muted-foreground">{Number(n).toLocaleString()}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── AI spend ───────────────────────────────────────────────────────────────
+
+interface AiCosts {
+  daily: { day: string; cost: number; calls: number; members: number; per_member: number }[];
+  features: { feature: string; cost: number; calls: number }[];
+  top_member_days: { day: string; member: string; cost: number; calls: number }[];
+  cache_hit_rate: number;
+  today: number;
+  month_to_date: number;
+  days_into_month: number;
+  days_in_month: number;
+}
+
+const FEATURE_LABEL: Record<string, string> = {
+  coach: "Coach replies",
+  coach_screen: "Coach safety screen",
+  coach_review: "Coach reply review",
+  voice: "Voice check-ins",
+  photo: "Photo logging",
+  interactions: "Interaction check",
+};
+
+/** US$ with enough decimals to see fractions of a cent. */
+const usd = (n: number) => {
+  const v = Number(n);
+  return `US$${v >= 10 ? v.toFixed(2) : v >= 0.1 ? v.toFixed(3) : v.toFixed(4)}`;
+};
+
+function AiSpend({ days }: { days: number }) {
+  const [data, setData] = useState<AiCosts | null>(null);
+  const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+
+  useEffect(() => {
+    let live = true;
+    supabase.rpc("admin_ai_costs", { p_days: days }).then(({ data, error }) => {
+      if (!live) return;
+      if (error) return setState("error");
+      setData(data as AiCosts);
+      setState("ready");
+    });
+    return () => { live = false; };
+  }, [days]);
+
+  if (state === "error") {
+    return <p className="text-sm text-destructive">Couldn't load AI spend. Has migration 024 been run?</p>;
+  }
+  if (!data) return null;
+
+  const projected = data.days_into_month > 0 ? (Number(data.month_to_date) / data.days_into_month) * data.days_in_month : 0;
+  const withMembers = data.daily.filter((d) => d.members > 0);
+  const perMember = withMembers.length ? withMembers.reduce((n, d) => n + Number(d.per_member), 0) / withMembers.length : 0;
+
+  return (
+    <>
+      <h2 className="pt-4 text-lg font-semibold">AI spend</h2>
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <MoneyTile label="Today so far" value={usd(data.today)} />
+        <MoneyTile label="This month so far" value={usd(data.month_to_date)} />
+        <MoneyTile label="This month, projected" value={usd(projected)} />
+        <MoneyTile label={`Per member per day (${days}-day average)`} value={usd(perMember)} />
+      </div>
+
+      <Card>
+        <CardHeader><CardTitle>Daily AI spend (US$)</CardTitle></CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={data.daily}>
+              <CartesianGrid stroke={C.grid} vertical={false} />
+              <XAxis dataKey="day" tickFormatter={shortDay} {...ax} minTickGap={24} />
+              <YAxis width={48} {...ax} tickFormatter={(v) => `$${Number(v).toFixed(2)}`} />
+              <Tooltip contentStyle={ttStyle} labelFormatter={(d) => shortDay(String(d))} formatter={(v) => usd(Number(v))} />
+              <Bar dataKey="cost" name="Spend" fill={C.primary} radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Spend per member per day (US$)</CardTitle></CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={160}>
+            <LineChart data={data.daily}>
+              <CartesianGrid stroke={C.grid} vertical={false} />
+              <XAxis dataKey="day" tickFormatter={shortDay} {...ax} minTickGap={24} />
+              <YAxis width={56} {...ax} tickFormatter={(v) => `$${Number(v).toFixed(3)}`} />
+              <Tooltip contentStyle={ttStyle} labelFormatter={(d) => shortDay(String(d))} formatter={(v) => usd(Number(v))} />
+              <Line dataKey="per_member" name="Average per member using AI" stroke={C.teal} strokeWidth={2} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Average across members who used an AI feature that day. Coach prompt cache hit rate: {Math.round(Number(data.cache_hit_rate) * 100)}%.
+          </p>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <MoneyList
+          title="By feature"
+          rows={data.features.map((f) => [FEATURE_LABEL[f.feature] ?? f.feature, Number(f.cost), `${f.calls.toLocaleString()} calls`])}
+        />
+        <MoneyList
+          title="Highest member-days"
+          rows={data.top_member_days.map((m) => [`${shortDay(m.day)} · member ${m.member}`, Number(m.cost), `${m.calls} calls`])}
+        />
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Worked out from token counts at Anthropic's list prices (api/_lib/aiCost.ts), so it can differ slightly from the invoice. Days are in UTC. Members are shown by the start of their id only.
+      </p>
+    </>
+  );
+}
+
+function MoneyTile({ label, value }: { label: string; value: string }) {
+  return (
+    <Card size="sm">
+      <CardContent>
+        <p className="text-sm text-muted-foreground">{label}</p>
+        <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function MoneyList({ title, rows }: { title: string; rows: [string, number, string][] }) {
+  const max = Math.max(0.000001, ...rows.map((r) => r[1]));
+  return (
+    <Card>
+      <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
+      <CardContent>
+        {rows.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nothing yet.</p>
+        ) : (
+          <ul className="space-y-1.5">
+            {rows.map(([name, cost, note]) => (
+              <li key={name} className="relative flex items-center justify-between gap-3 px-2 py-1 text-sm">
+                <span className="absolute inset-y-0 left-0 rounded bg-primary/8" style={{ width: `${(cost / max) * 100}%` }} aria-hidden="true" />
+                <span className="relative truncate">{name}</span>
+                <span className="relative shrink-0 tabular-nums text-muted-foreground">{usd(cost)} · {note}</span>
               </li>
             ))}
           </ul>

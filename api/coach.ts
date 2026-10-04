@@ -12,9 +12,10 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { admin, json, memberFrom, supabaseReady } from "./_lib/devices.js";
 import { DAILY_AI_LIMIT, clampOffset, limitMessage, recordUse, usedToday } from "./_lib/aiUsage.js";
+import { recordCosts, type CallUsage } from "./_lib/aiCost.js";
 import { consentError } from "./_lib/consent.js";
 import { OPTIONS, withCors } from "./_lib/cors.js";
-import { FIXED_REPLIES, classifyMessage, phraseScreen, reviewReply, type ScreenLabel } from "./_lib/coachSafety.js";
+import { FIXED_REPLIES, SAFETY_MODEL, classifyMessage, phraseScreen, reviewReply, type ScreenLabel } from "./_lib/coachSafety.js";
 
 const MODEL = "claude-haiku-4-5";
 const MAX_MESSAGE_LENGTH = 2000;
@@ -134,6 +135,7 @@ async function memberContext(db: SupabaseClient, userId: string, tzOffset: numbe
     lines.push("", "Profile:", ...facts.map((f) => `- ${f}`));
   }
   lines.push("", "Habit targets in Fikko: activity counts as done at 30+ minutes; sleep at a rest score of 3/5 or better; medications when everything scheduled is ticked.");
+  lines.push("Activity minutes here are only workouts the member logged themselves. Fikko also counts active minutes from a connected Fitbit or Pixel Watch, but those aren't shared with you, so low or missing activity doesn't necessarily mean they were inactive. Don't claim they missed their activity goal; ask if it matters.");
 
   const loggedRecently = (habitsRes.data?.length ?? 0) > 0 || (customEntriesRes.data ?? []).some((e) => Number(e.value) > 0);
   if (!loggedRecently) {
@@ -160,7 +162,14 @@ async function memberContext(db: SupabaseClient, userId: string, tzOffset: numbe
         break;
       }
       case "water": add(e.date, `water ${v} glasses`); break;
-      case "exercise": if (v > 0) add(e.date, `activity ${v} min`); break;
+      case "exercise": {
+        if (v <= 0) break;
+        // Named workouts the member logged ("yoga 20 min"); older days are just minutes.
+        const list = parse<{ workouts?: { name?: string; minutes?: number }[] }>(e.note)?.workouts;
+        const named = Array.isArray(list) ? list.filter((w) => w?.name && Number(w.minutes) > 0).map((w) => `${w.name} ${Number(w.minutes)}`) : [];
+        add(e.date, `activity ${v} min logged${named.length ? ` (${named.join(", ")})` : ""}`);
+        break;
+      }
       case "mood": {
         if (v <= 0) break;
         // The specific mood picked ("stressed", "calm"), when it says more than the scale.
@@ -301,6 +310,9 @@ async function handlePOST(request: Request) {
   // side by side to save time; a reply to a message the screen flags is thrown away.
   let reply: string;
   let outcome: ScreenLabel | "review_failed" | "passed";
+  // Every call is billed, including the safety checks and calls before a failure, so all are recorded.
+  const calls: CallUsage[] = [];
+  const track = (feature: CallUsage["feature"], model: string) => (usage: Anthropic.Usage) => calls.push({ feature, model, usage });
   try {
     const phrase = phraseScreen(message);
     if (phrase) {
@@ -308,7 +320,7 @@ async function handlePOST(request: Request) {
       reply = FIXED_REPLIES[phrase];
     } else {
       const [label, final] = await Promise.all([
-        classifyMessage(client, message, previousReply),
+        classifyMessage(client, message, previousReply, track("coach_screen", SAFETY_MODEL)),
         client.messages.create({
           model: MODEL,
           max_tokens: 1024,
@@ -319,6 +331,7 @@ async function handlePOST(request: Request) {
           messages,
         }),
       ]);
+      track("coach", MODEL)(final.usage);
       // Token counts only, no member data. cache_read > 0 means the prompt cache hit.
       const u = final.usage;
       console.log(`[coach] usage input=${u.input_tokens} cache_read=${u.cache_read_input_tokens ?? 0} cache_write=${u.cache_creation_input_tokens ?? 0} output=${u.output_tokens}`);
@@ -335,7 +348,7 @@ async function handlePOST(request: Request) {
         outcome = "review_failed";
         reply = FIXED_REPLIES.review_failed;
       } else {
-        const review = await reviewReply(client, message, generated);
+        const review = await reviewReply(client, message, generated, track("coach_review", SAFETY_MODEL));
         outcome = review.pass ? "passed" : "review_failed";
         reply = review.pass ? generated : FIXED_REPLIES.review_failed;
       }
@@ -343,6 +356,7 @@ async function handlePOST(request: Request) {
   } catch (err) {
     // Fail closed: if a check can't run, nothing generated is shown, saved or counted.
     console.error("[coach] failed:", err instanceof Error ? err.name : "unknown");
+    await recordCosts(db, member.id, calls);
     const busy = err instanceof Anthropic.RateLimitError;
     return json({ error: busy ? "Fikko is busy right now. Please try again in a minute." : "Sorry, something went wrong on our side. Please try again." }, busy ? 429 : 502);
   }
@@ -351,6 +365,7 @@ async function handlePOST(request: Request) {
 
   const at = Date.now();
   await recordUse(db, member.id);
+  await recordCosts(db, member.id, calls);
   await db.from("coach_messages").insert([
     { user_id: member.id, role: "user", content: message, created_at: new Date(at).toISOString() },
     { user_id: member.id, role: "assistant", content: reply.slice(0, 8000), created_at: new Date(at + 1).toISOString() },

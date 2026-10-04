@@ -76,6 +76,10 @@ export interface GTemp { dailySleepTemperatureDerivations: { date: GDate; nightl
 export interface GVo2 { dailyVo2Max: { date: GDate; vo2Max?: number } }
 export interface GStepsRoll { civilStartTime?: { date?: GDate }; steps?: { countSum?: string } }
 export interface GKcalRoll { civilStartTime?: { date?: GDate }; activeEnergyBurned?: { kcalSum?: number } }
+export interface GActiveRoll {
+  civilStartTime?: { date?: GDate };
+  activeMinutes?: { activeMinutesRollupByActivityLevel?: { activityLevel?: string; activeMinutesSum?: string }[] };
+}
 
 /**
  * Google's data points as Fikko readings. Sleep comes from each day's main
@@ -84,7 +88,7 @@ export interface GKcalRoll { civilStartTime?: { date?: GDate }; activeEnergyBurn
  */
 export function toReadings(d: {
   sleep: GSleep[]; restingHr: GRestingHr[]; hrv: GHrv[]; spo2: GSpo2[]; resp: GResp[]; temp: GTemp[]; vo2: GVo2[];
-  steps: GStepsRoll[]; kcal: GKcalRoll[];
+  steps: GStepsRoll[]; kcal: GKcalRoll[]; active?: GActiveRoll[];
 }): Reading[] {
   const out: Reading[] = [];
   const add = (metric: string, date: string | null, value: number | null | undefined) => {
@@ -125,6 +129,14 @@ export function toReadings(d: {
   for (const { dailyVo2Max: x } of d.vo2) add("vo2max", iso(x.date), x.vo2Max == null ? null : r1(x.vo2Max));
   for (const p of d.steps) add("steps", p.civilStartTime?.date ? iso(p.civilStartTime.date) : null, num(p.steps?.countSum));
   for (const p of d.kcal) add("activeCalories", p.civilStartTime?.date ? iso(p.civilStartTime.date) : null, p.activeEnergyBurned?.kcalSum == null ? null : Math.round(p.activeEnergyBurned.kcalSum));
+  // Moderate and vigorous only, like the Activity goal: light movement such as pottering about doesn't count.
+  for (const p of d.active ?? []) {
+    const levels = p.activeMinutes?.activeMinutesRollupByActivityLevel ?? [];
+    const minutes = levels
+      .filter((l) => l.activityLevel === "MODERATE" || l.activityLevel === "VIGOROUS")
+      .reduce((sum, l) => sum + (num(l.activeMinutesSum) ?? 0), 0);
+    add("activeMinutes", p.civilStartTime?.date ? iso(p.civilStartTime.date) : null, levels.length ? minutes : null);
+  }
   return out;
 }
 
@@ -160,7 +172,7 @@ export const google: ProviderAdapter = {
   async fetchReadings(token, start, end) {
     const until = nextDay(end);
     const daily = (member: string) => `${member}.date >= "${start}" AND ${member}.date < "${until}"`;
-    const [sleep, restingHr, hrv, spo2, resp, temp, vo2, steps, kcal] = await Promise.all([
+    const [sleep, restingHr, hrv, spo2, resp, temp, vo2, steps, kcal, active] = await Promise.all([
       list<GSleep>(token, "sleep", `sleep.interval.end_time >= "${start}T00:00:00Z" AND sleep.interval.end_time < "${until}T23:59:59Z"`, 25),
       list<GRestingHr>(token, "daily-resting-heart-rate", daily("dailyRestingHeartRate"), 400),
       list<GHrv>(token, "daily-heart-rate-variability", daily("dailyHeartRateVariability"), 400),
@@ -170,7 +182,8 @@ export const google: ProviderAdapter = {
       list<GVo2>(token, "daily-vo2-max", daily("dailyVo2Max"), 400),
       rollUp<GStepsRoll>(token, "steps", start, end),
       rollUp<GKcalRoll>(token, "active-energy-burned", start, end),
+      rollUp<GActiveRoll>(token, "active-minutes", start, end),
     ]);
-    return toReadings({ sleep, restingHr, hrv, spo2, resp, temp, vo2, steps, kcal });
+    return toReadings({ sleep, restingHr, hrv, spo2, resp, temp, vo2, steps, kcal, active });
   },
 };

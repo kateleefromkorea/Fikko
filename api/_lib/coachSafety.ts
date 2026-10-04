@@ -84,8 +84,10 @@ When unsure between in_scope and another label, choose the other label. Reply wi
 
 const LABELS: ScreenLabel[] = ["in_scope", "off_topic", "medical", "emergency", "crisis", "eating_disorder", "manipulation"];
 
-/** Labels the message; throws if the classifier gives no usable label. */
-export async function classifyMessage(client: Anthropic, message: string, previousReply?: string): Promise<ScreenLabel> {
+/** Labels the message; throws if the classifier gives no usable label. `track` receives the token usage. */
+export async function classifyMessage(
+  client: Anthropic, message: string, previousReply?: string, track?: (usage: Anthropic.Usage) => void,
+): Promise<ScreenLabel> {
   const context = previousReply ? `Fikko's previous reply, for context:\n<previous_reply>\n${previousReply.slice(0, 1500)}\n</previous_reply>\n\n` : "";
   const res = await client.messages.create({
     model: SAFETY_MODEL,
@@ -94,6 +96,7 @@ export async function classifyMessage(client: Anthropic, message: string, previo
     system: SCREEN_PROMPT,
     messages: [{ role: "user", content: `${context}The member's latest message:\n<message>\n${message}\n</message>` }],
   });
+  track?.(res.usage);
   const text = res.content.map((b) => (b.type === "text" ? b.text : "")).join("").trim().toLowerCase();
   const label = LABELS.find((l) => text.startsWith(l));
   if (!label) throw new Error(`Unrecognised screen label: ${text.slice(0, 40)}`);
@@ -120,8 +123,10 @@ It still PASSES when it gives everyday tips on meals, water, sleep, activity, mo
 
 Answer PASS or FAIL, then a few words on the reason.`;
 
-/** True if the reply may be shown; throws if the review couldn't run. */
-export async function reviewReply(client: Anthropic, message: string, reply: string): Promise<{ pass: boolean; reason: string }> {
+/** True if the reply may be shown; throws if the review couldn't run. `track` receives the token usage. */
+export async function reviewReply(
+  client: Anthropic, message: string, reply: string, track?: (usage: Anthropic.Usage) => void,
+): Promise<{ pass: boolean; reason: string }> {
   const res = await client.messages.create({
     model: SAFETY_MODEL,
     max_tokens: 40,
@@ -132,6 +137,7 @@ export async function reviewReply(client: Anthropic, message: string, reply: str
       content: `The member asked:\n<message>\n${message}\n</message>\n\nFikko's reply to review:\n<reply>\n${reply}\n</reply>`,
     }],
   });
+  track?.(res.usage);
   const text = res.content.map((b) => (b.type === "text" ? b.text : "")).join("").trim();
   if (/^PASS\b/i.test(text)) return { pass: true, reason: "" };
   if (/^FAIL\b/i.test(text)) return { pass: false, reason: text.slice(4).trim().slice(0, 80) };

@@ -12,6 +12,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { admin, json, memberFrom, supabaseReady } from "./_lib/devices.js";
 import { DAILY_AI_LIMIT, clampOffset, limitMessage, recordUse, usedToday } from "./_lib/aiUsage.js";
+import { recordCosts } from "./_lib/aiCost.js";
 import { consentError } from "./_lib/consent.js";
 import { MEALS, clampNum, resolveFood, type ClaudeFood, type ProposedFood } from "./_lib/foodResolve.js";
 import { OPTIONS, withCors } from "./_lib/cors.js";
@@ -30,7 +31,7 @@ const SYSTEM_PROMPT = `You turn what a member of Fikko, a habit tracking app, sa
 Rules:
 - Only include what they clearly said. Leave everything else null or empty. Never guess habits they didn't mention.
 - Water is counted in glasses (about 250 ml). Convert bottles or litres to glasses. Use mode "add" for amounts just drunk ("I had two glasses") and "total" for a day's total ("I've had six glasses today").
-- Activity is minutes of exercise or brisk movement. Same add/total rule. Convert hours to minutes. Put what they did in "what".
+- Activity is minutes of exercise or brisk movement. Same add/total rule. Convert hours to minutes. Put what they did in "what" as a short workout name ("yoga", "run", "tennis"), or leave it empty if they didn't say.
 - Mood is how they feel emotionally, and only when they actually said so ("I'm happy", "feeling stressed", "it's been a meh day"). Pick the closest of: ${MOOD_KEYS.join(", ")}. Otherwise null.
 - Sleep is last night: bedtime and wake time as 24-hour HH:MM, and rest from 1 (exhausted) to 5 (fully rested) if they said how they felt. Words about sleep or energy ("well rested", "slept badly", "still tired") are sleep rest only. Never turn them into a mood.
 - Medications: only from the member's list below. Set all to true if they said they took all their meds or vitamins; otherwise list the ids of the ones they named.
@@ -153,6 +154,7 @@ async function handlePOST(request: Request) {
       tool_choice: { type: "tool", name: TOOL.name },
       messages: [{ role: "user", content: `What the member said:\n"""${transcript}"""` }],
     });
+    await recordCosts(db, member.id, [{ feature: "voice", model: MODEL, usage: res.usage }]);
     const call = res.content.find((b): b is Anthropic.ToolUseBlock => b.type === "tool_use");
     if (!call) return json({ error: "Sorry, we couldn't make sense of that. Try saying it another way?" }, 422);
     input = call.input as ToolInput;

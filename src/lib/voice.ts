@@ -1,5 +1,7 @@
 import { supabase } from "./supabase";
 import { notifyAiUsed } from "./aiCredits";
+import { activityMinutes } from "./completion";
+import { newWorkout, workoutsEntry, workoutsOf } from "./workouts";
 import type { HabitData, HabitEntry, MealKey } from "../types";
 import type { NewFood } from "../hooks/useFoodLog";
 
@@ -97,7 +99,17 @@ export function applyProposal(data: HabitData, p: VoiceProposal, date: string, m
   let next: HabitData = { ...data };
   if (p.water) next = { ...next, water: upsert(next.water, date, combine(valueOn(next.water, date), p.water.glasses, p.water.mode)) };
   if (p.activity) {
-    next = { ...next, exercise: upsert(next.exercise, date, Math.min(1440, combine(valueOn(next.exercise, date), p.activity.minutes, p.activity.mode))) };
+    // Logged as a named workout. A day's "total" counts wearable minutes too,
+    // so only the part not yet covered is added.
+    const current = workoutsOf(next.exercise.find((e) => e.date === date));
+    const { total } = activityMinutes(next, date);
+    const minutes = p.activity.mode === "add" ? p.activity.minutes : p.activity.minutes - total;
+    const name = p.activity.what ? p.activity.what.charAt(0).toUpperCase() + p.activity.what.slice(1) : "";
+    const w = newWorkout(name, minutes);
+    if (w) {
+      const entry = workoutsEntry(date, [...current, w]);
+      next = { ...next, exercise: upsert(next.exercise, date, entry.value, entry.note) };
+    }
   }
   if (p.mood) next = { ...next, mood: upsert(next.mood, date, p.mood.value, p.mood.key) };
   if (p.sleep) {

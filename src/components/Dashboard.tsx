@@ -12,7 +12,7 @@ import {
 import type { HabitData, BiometricData, HabitEntry, BiometricEntry } from "../types";
 import type { ProfileRow } from "../hooks/useProfile";
 import { goalByKey } from "../lib/metabolics";
-import { CORE_HABITS, WATER_TARGET } from "../lib/completion";
+import { CORE_HABITS, WATER_TARGET, withDeviceActivity } from "../lib/completion";
 import { PERIOD_DAYS, byDate, dayRange, habitStats, overview, type Period } from "../lib/dashboardStats";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -200,7 +200,9 @@ function WearableComingSoon() {
   );
 }
 
-export default function Dashboard({ data, biometrics, profile }: Props) {
+export default function Dashboard({ data: logged, biometrics, profile }: Props) {
+  // Activity here is the day's total: logged workouts plus wearable minutes.
+  const data = useMemo(() => withDeviceActivity(logged), [logged]);
   const [period, setPeriod] = useState<Period>("week");
 
   const days = PERIOD_DAYS[period];

@@ -30,6 +30,13 @@ export interface HabitData {
    * means it counts.
    */
   tracksMedications?: boolean;
+  /**
+   * Active minutes from the member's wearables, per day. Set by the app from
+   * biometrics and never saved with the habits: `exercise` holds only the
+   * workouts the member logged themselves, and the two add up to the day's
+   * activity (see activityMinutes in lib/completion).
+   */
+  deviceExercise?: HabitEntry[];
 }
 
 export type MealKey = "breakfast" | "lunch" | "dinner" | "snacks";
@@ -65,6 +72,7 @@ export interface BiometricData {
   bodyTemp: BiometricEntry[];        // °C deviation from personal baseline
   steps: BiometricEntry[];           // daily step count
   activeCalories: BiometricEntry[];  // kcal burned (active)
+  activeMinutes: BiometricEntry[];   // moderate + vigorous minutes
   vo2max: BiometricEntry[];          // ml/kg/min
   standHours: BiometricEntry[];      // hours with at least 1 min standing
   sleepRem: BiometricEntry[];        // hours of REM sleep
@@ -82,7 +90,7 @@ export interface BiometricData {
  */
 export const EMPTY_BIOMETRICS: BiometricData = {
   heartRate: [], hrv: [], spo2: [], respiratoryRate: [], bodyTemp: [],
-  steps: [], activeCalories: [], vo2max: [], standHours: [],
+  steps: [], activeCalories: [], activeMinutes: [], vo2max: [], standHours: [],
   sleepRem: [], sleepDeep: [], sleepCore: [],
   recoveryScore: [], stressScore: [], weight: [],
 };

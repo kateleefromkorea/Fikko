@@ -9,6 +9,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { admin, json, memberFrom, supabaseReady } from "./_lib/devices.js";
 import { DAILY_AI_LIMIT, clampOffset, recordUse, usedToday } from "./_lib/aiUsage.js";
+import { recordCosts } from "./_lib/aiCost.js";
 import { consentError } from "./_lib/consent.js";
 import { groupsOf, listFindings, type Finding, type Severity } from "./_lib/interactions.js";
 import { OPTIONS, withCors } from "./_lib/cors.js";
@@ -99,6 +100,7 @@ async function handlePOST(request: Request) {
       tool_choice: { type: "tool", name: TOOL.name },
       messages: [{ role: "user", content: context }],
     });
+    await recordCosts(db, member.id, [{ feature: "interactions", model: MODEL, usage: res.usage }]);
     raw = res.content.find((b): b is Anthropic.ToolUseBlock => b.type === "tool_use")?.input;
   } catch {
     return reply("unavailable");

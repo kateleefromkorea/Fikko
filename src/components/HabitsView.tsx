@@ -5,7 +5,8 @@ import {
   Mic, ShieldCheck, Trash2, Utensils, Volume2, Watch, Wine, X, type LucideIcon,
 } from "lucide-react";
 import { DB_LIMITS, clamp } from "../lib/limits";
-import { completion, EXERCISE_TARGET_MIN, type CoreHabit } from "../lib/completion";
+import { activityMinutes, completion, EXERCISE_TARGET_MIN, type CoreHabit } from "../lib/completion";
+import { MAX_WORKOUTS, WORKOUT_NAME_MAX, newWorkout, workoutsEntry, workoutsOf, type Workout } from "../lib/workouts";
 import type { HabitData, BiometricData, HabitEntry, CustomHabit, MealKey, TimeOfDay } from "../types";
 import type { useMedications } from "../hooks/useMedications";
 import { useFoodLog } from "../hooks/useFoodLog";
@@ -100,7 +101,7 @@ function progressSubtitle(data: HabitData, date: string, waterGoal: number) {
     const off = waterGoal - (data.water.find((e) => e.date === date)?.value ?? 0);
     detail = ` You're ${off} ${off === 1 ? "glass" : "glasses"} off.`;
   } else if (left.includes("exercise")) {
-    const off = EXERCISE_TARGET_MIN - (data.exercise.find((e) => e.date === date)?.value ?? 0);
+    const off = EXERCISE_TARGET_MIN - activityMinutes(data, date).total;
     detail = ` ${off} active minutes would do it.`;
   }
   return lead.charAt(0).toUpperCase() + lead.slice(1) + detail;
@@ -522,19 +523,33 @@ function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog }: Pro
 
 /* ─── Exercise ─── */
 const QUICK_MINUTES = [10, 20, 30];
+const WORKOUT_SUGGESTIONS = ["Walk", "Run", "Gym", "Yoga", "Cycling", "Swim"];
 
 function ExerciseCard({ data, onChange, activeDate, biometrics }: Props) {
-  const minutes    = getEntry(data.exercise, activeDate)?.value ?? 0;
+  const { device, total } = activityMinutes(data, activeDate);
+  const workouts = workoutsOf(getEntry(data.exercise, activeDate));
   const steps      = biometrics?.steps?.find((e) => e.date === activeDate)?.value ?? null;
   const activeCal  = biometrics?.activeCalories?.find((e) => e.date === activeDate)?.value ?? null;
   const standHours = biometrics?.standHours?.find((e) => e.date === activeDate)?.value ?? null;
   const vo2        = biometrics?.vo2max?.find((e) => e.date === activeDate)?.value ?? null;
+  // A wearable that reports activity, so logging here is for what it missed.
+  const hasDevice = (biometrics?.activeMinutes?.length ?? 0) > 0;
 
+  const [name, setName] = useState("");
   const [customMinutes, setCustomMinutes] = useState("");
-  const setMinutes = (n: number) =>
-    onChange({ ...data, exercise: setDateValue(data.exercise, activeDate, clamp(n, DB_LIMITS.habitValue)) });
+  const save = (next: Workout[]) => {
+    const entry = workoutsEntry(activeDate, next);
+    onChange({ ...data, exercise: setDateValue(data.exercise, activeDate, entry.value, entry.note) });
+  };
+  const add = (minutes: number) => {
+    const w = newWorkout(name, minutes);
+    if (!w || workouts.length >= MAX_WORKOUTS) return;
+    save([...workouts, w]);
+    setName("");
+    setCustomMinutes("");
+  };
 
-  const done = minutes >= EXERCISE_TARGET_MIN;
+  const done = total >= EXERCISE_TARGET_MIN;
 
   return (
     <HabitCard
@@ -543,19 +558,72 @@ function ExerciseCard({ data, onChange, activeDate, biometrics }: Props) {
       hue="exercise"
       title="Activity"
       description={`Goal ${EXERCISE_TARGET_MIN} active minutes`}
-      action={<Figure value={minutes} unit="min" />}
+      action={<Figure value={total} unit="min" />}
       done={done}
-      comment={activityComment({ minutes, target: EXERCISE_TARGET_MIN, steps }, momentFor(activeDate, todayKey()))}
+      comment={activityComment({ minutes: total, target: EXERCISE_TARGET_MIN, steps }, momentFor(activeDate, todayKey()))}
     >
       <div className="space-y-2">
-        <HabitBar value={minutes} max={EXERCISE_TARGET_MIN} hue="exercise" />
+        <HabitBar value={total} max={EXERCISE_TARGET_MIN} hue="exercise" />
       </div>
 
+      {(device > 0 || workouts.length > 0) && (
+        <ul className="mt-4 space-y-1.5" aria-label="Today's activity">
+          {device > 0 && (
+            <li className="flex items-center gap-2.5 rounded-lg bg-foreground/[0.04] px-3 py-2 text-sm">
+              <Watch className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+              <span className="min-w-0 flex-1 truncate">Your wearable</span>
+              <span className="tabular-nums text-muted-foreground">{device} min</span>
+              {/* Lines up with the remove buttons below. */}
+              <span className="w-7" aria-hidden="true" />
+            </li>
+          )}
+          {workouts.map((w, i) => (
+            <li key={i} className="flex items-center gap-2.5 rounded-lg bg-foreground/[0.04] py-1 pr-1 pl-3 text-sm">
+              <Dumbbell className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+              <span className="min-w-0 flex-1 truncate">{w.name || "Workout"}</span>
+              <span className="tabular-nums text-muted-foreground">{w.minutes} min</span>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => save(workouts.filter((_, j) => j !== i))}
+                aria-label={`Remove ${w.name || "workout"}, ${w.minutes} minutes`}
+                className="text-muted-foreground"
+              >
+                <X />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+
       <div className="mt-6 space-y-3">
-        <GroupLabel>Log a workout</GroupLabel>
+        <GroupLabel>{hasDevice ? "Add a workout your device missed" : "Log a workout"}</GroupLabel>
+        <div className="space-y-2">
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            maxLength={WORKOUT_NAME_MAX}
+            placeholder="What did you do? (optional)"
+            aria-label="Workout name"
+            className="h-9"
+          />
+          <div className="flex flex-wrap gap-1.5">
+            {WORKOUT_SUGGESTIONS.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setName(name === s ? "" : s)}
+                aria-pressed={name === s}
+                className={cn(optionCls, "px-2.5 py-1 text-xs")}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="grid grid-cols-3 gap-2">
           {QUICK_MINUTES.map((m) => (
-            <Button key={m} variant="outline" onClick={() => setMinutes(minutes + m)} className="h-9">
+            <Button key={m} variant="outline" onClick={() => add(m)} className="h-9">
               +{m} min
             </Button>
           ))}
@@ -564,8 +632,7 @@ function ExerciseCard({ data, onChange, activeDate, biometrics }: Props) {
           className="flex gap-2"
           onSubmit={(e) => {
             e.preventDefault();
-            const n = Math.round(Number(customMinutes));
-            if (n > 0) { setMinutes(minutes + n); setCustomMinutes(""); }
+            add(Number(customMinutes));
           }}
         >
           <Input
@@ -581,11 +648,6 @@ function ExerciseCard({ data, onChange, activeDate, biometrics }: Props) {
           />
           <Button type="submit" variant="outline" className="h-9" disabled={!(Number(customMinutes) > 0)}>Add</Button>
         </form>
-        {minutes > 0 && (
-          <Button variant="link" onClick={() => setMinutes(0)} className="h-auto p-0 text-muted-foreground">
-            Clear today's minutes
-          </Button>
-        )}
       </div>
 
       {steps !== null ? (
@@ -598,7 +660,7 @@ function ExerciseCard({ data, onChange, activeDate, biometrics }: Props) {
       ) : (
         <p className="mt-auto flex items-center gap-2 pt-6 text-xs text-muted-foreground">
           <Watch className="size-3.5 shrink-0" aria-hidden="true" />
-          Connect a wearable in Profile to see steps and heart rate here.
+          Connect a wearable in Profile to see your active minutes and steps here.
         </p>
       )}
     </HabitCard>
@@ -860,10 +922,19 @@ function MedicationCard({ data, onChange, activeDate, medications }: Props) {
                 Add medication or supplement
               </Button>
               {medList.length >= 2 && (
-                <Button variant="outline" onClick={() => setChecking(medList.map((m) => m.name))} className="h-9">
-                  <ShieldCheck />
-                  Check interactions
-                </Button>
+                <>
+                  <Button variant="outline" onClick={() => setChecking(medList.map((m) => m.name))} className="h-9">
+                    <ShieldCheck />
+                    Check interactions
+                  </Button>
+                  <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                    <Sparkles className="mt-0.5 size-3 shrink-0 text-primary" aria-hidden="true" />
+                    <span>
+                      Uses 1 AI credit if anything isn&apos;t on Fikko&apos;s built-in list, so our AI can review it.
+                      Common medications are checked free.
+                    </span>
+                  </p>
+                </>
               )}
             </div>
           )}

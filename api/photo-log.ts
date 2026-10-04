@@ -11,6 +11,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { admin, json, memberFrom, supabaseReady } from "./_lib/devices.js";
 import { DAILY_AI_LIMIT, clampOffset, limitMessage, recordUse, usedToday } from "./_lib/aiUsage.js";
+import { recordCosts } from "./_lib/aiCost.js";
 import { consentError } from "./_lib/consent.js";
 import { MEALS, resolveFood, type ClaudeFood, type Meal, type ProposedFood } from "./_lib/foodResolve.js";
 import { OPTIONS, withCors } from "./_lib/cors.js";
@@ -102,6 +103,7 @@ async function handlePOST(request: Request) {
         ],
       }],
     });
+    await recordCosts(db, member.id, [{ feature: "photo", model: MODEL, usage: res.usage }]);
     const call = res.content.find((b): b is Anthropic.ToolUseBlock => b.type === "tool_use");
     if (!call) return json({ error: "Sorry, we couldn't make sense of that photo. Try another?" }, 422);
     input = call.input as ToolInput;

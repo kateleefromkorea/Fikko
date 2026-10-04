@@ -60,11 +60,17 @@ export default function MobileApp() {
   const { profile, updateProfile, loading: profileLoading } = useProfile(userId);
   const consent = useConsents(userId);
   const medications = useMedications(userId);
-  const data = useMemo(
-    () => ({ ...loggedData, tracksMedications: medications.loading ? undefined : medications.medications.length > 0 }),
-    [loggedData, medications.loading, medications.medications.length],
-  );
   const { biometrics, reload: reloadBiometrics } = useBiometrics(userId);
+  // Medications only counts towards the day for members who've listed some.
+  // Wearable active minutes add to the workouts the member logs.
+  const data = useMemo(
+    () => ({
+      ...loggedData,
+      tracksMedications: medications.loading ? undefined : medications.medications.length > 0,
+      deviceExercise: biometrics.activeMinutes,
+    }),
+    [loggedData, medications.loading, medications.medications.length, biometrics.activeMinutes],
+  );
 
   const signedIn = !!session;
   useEffect(() => {

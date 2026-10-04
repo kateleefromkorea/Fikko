@@ -85,13 +85,13 @@ export default function InteractionCheck({ names, onClose }: { names: string[]; 
               <p className="text-xs text-muted-foreground">
                 {listNames(result.unrecognised)} {result.unrecognised.length === 1 ? "isn't" : "aren't"} on Fikko's
                 built-in list, so our AI reviewed {result.unrecognised.length === 1 ? "it" : "them"}. This used 1 of your
-                {" "}{COACH_DAILY_LIMIT} daily AI messages.
+                {" "}{COACH_DAILY_LIMIT} daily AI credits.
               </p>
             )}
             {result.ai === "limit" && (
               <p className="text-xs text-muted-foreground">
                 {listNames(result.unrecognised)} {result.unrecognised.length === 1 ? "isn't" : "aren't"} on Fikko's
-                built-in list, and you've used today's AI messages, so {result.unrecognised.length === 1 ? "it wasn't" : "they weren't"} checked.
+                built-in list, and you've used today's AI credits, so {result.unrecognised.length === 1 ? "it wasn't" : "they weren't"} checked.
                 Try again tomorrow.
               </p>
             )}

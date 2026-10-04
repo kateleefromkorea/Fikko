@@ -11,6 +11,29 @@ function valueOn(entries: { date: string; value: number }[], date: string): numb
   return entries.find((e) => e.date === date)?.value ?? 0;
 }
 
+/**
+ * A day's activity: workouts the member logged plus their wearable's active
+ * minutes. Logging is meant for what the device missed, so the two add up.
+ */
+export function activityMinutes(data: HabitData, date: string) {
+  const logged = valueOn(data.exercise, date);
+  const device = valueOn(data.deviceExercise ?? [], date);
+  return { logged, device, total: logged + device };
+}
+
+/**
+ * The habits with activity as the day's total, for read-only views such as
+ * the Dashboard and reports. Never save this back: `exercise` must stay as
+ * just the member's own workouts.
+ */
+export function withDeviceActivity(data: HabitData): HabitData {
+  const device = data.deviceExercise ?? [];
+  if (!device.length) return data;
+  const dates = new Set([...data.exercise, ...device].map((e) => e.date));
+  const exercise = [...dates].map((date) => ({ date, value: activityMinutes(data, date).total }));
+  return { ...data, exercise, deviceExercise: [] };
+}
+
 /** When a built-in habit counts as done for a day. Water uses the member's own goal from Profile. */
 export function coreDone(data: HabitData, key: CoreHabit, date: string, waterTarget = WATER_TARGET): boolean {
   switch (key) {
@@ -18,7 +41,7 @@ export function coreDone(data: HabitData, key: CoreHabit, date: string, waterTar
     // The medication entry's value is 1 once every scheduled item is ticked.
     case "medication": return valueOn(data.medication, date) === 1;
     case "food": return valueOn(data.food, date) > 0;
-    case "exercise": return valueOn(data.exercise, date) >= EXERCISE_TARGET_MIN;
+    case "exercise": return activityMinutes(data, date).total >= EXERCISE_TARGET_MIN;
     // Rest score of "Okay" or better.
     case "sleep": return valueOn(data.sleep, date) >= 3;
     case "mood": return valueOn(data.mood, date) > 0;

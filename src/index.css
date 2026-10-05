@@ -299,3 +299,24 @@
 [data-page="habits"] [id^="habit-"] {
   scroll-margin-top: 9.5rem;
 }
+
+/* My Fikko: the plant sways gently while it's growing, and the butterfly
+   companion flaps its wings. */
+@keyframes fikko-sway {
+  50% { transform: rotate(1.6deg); }
+}
+.fikko-sway {
+  transform-origin: 100px 178px;
+  animation: fikko-sway 5s ease-in-out infinite;
+}
+@keyframes fikko-flutter {
+  50% { transform: scaleX(0.6); }
+}
+.fikko-flutter {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: fikko-flutter 0.9s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fikko-sway, .fikko-flutter { animation: none; }
+}

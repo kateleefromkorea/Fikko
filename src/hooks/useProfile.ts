@@ -41,6 +41,14 @@ export interface ProfileRow {
   goal_focus: string[];
   /** Added by migration 021: every goal picked. primary_goal keeps the one that sets the calories. Read through goalsOf(). */
   goals: string[];
+
+  // ── Added by migration 025 (My Fikko) ──
+  /** The seed the member is growing (SEEDS in lib/fikko). Null until one is picked. */
+  fikko_seed: string | null;
+  /** YYYY-MM-DD the current plant was planted; growth counts from here. */
+  fikko_planted_on: string | null;
+  fikko_pot: string;
+  fikko_companion: string;
 }
 
 const EMPTY_PROFILE: ProfileRow = {
@@ -70,6 +78,10 @@ const EMPTY_PROFILE: ProfileRow = {
   bmr: null,
   tdee: null,
   deletion_scheduled_for: null,
+  fikko_seed: null,
+  fikko_planted_on: null,
+  fikko_pot: "clay",
+  fikko_companion: "none",
 };
 
 /**
@@ -115,11 +127,15 @@ export function useProfile(userId: string | null) {
   async function updateProfile(patch: Partial<ProfileRow>) {
     setProfileState((p) => ({ ...p, ...patch }));
     if (!userId) return;
-    // goals (migration 021) is saved on its own, so a database without that column
-    // yet still saves everything else.
-    const { goals, ...rest } = patch;
+    // goals (migration 021) and the My Fikko columns (migration 025) are saved on
+    // their own, so a database without those columns yet still saves everything else.
+    const { goals, fikko_seed, fikko_planted_on, fikko_pot, fikko_companion, ...rest } = patch;
+    const fikko = Object.fromEntries(
+      Object.entries({ fikko_seed, fikko_planted_on, fikko_pot, fikko_companion }).filter(([, v]) => v !== undefined),
+    );
     if (Object.keys(rest).length) await supabase.from("profiles").update(rest).eq("user_id", userId);
     if (goals !== undefined) await supabase.from("profiles").update({ goals }).eq("user_id", userId);
+    if (Object.keys(fikko).length) await supabase.from("profiles").update(fikko).eq("user_id", userId);
   }
 
   return { profile, updateProfile, loading };

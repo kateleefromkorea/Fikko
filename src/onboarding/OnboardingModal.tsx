@@ -11,6 +11,8 @@ import StepGoals from "./steps/StepGoals";
 import StepDiet from "./steps/StepDiet";
 import StepLifestyle from "./steps/StepLifestyle";
 import StepTargets from "./steps/StepTargets";
+import StepSeed from "./steps/StepSeed";
+import { todayKey } from "../lib/dates";
 import { inferredTrackingStyle } from "../lib/preferences";
 import { focusWithin } from "../lib/goals";
 import StepResult from "./steps/StepResult";
@@ -21,11 +23,11 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 
-/** The six questionnaire steps; step 7 is the result, which is not counted. */
-const TOTAL_STEPS = 6;
-const RESULT_STEP = 7;
+/** The seven questionnaire steps; step 8 is the result, which is not counted. */
+const TOTAL_STEPS = 7;
+const RESULT_STEP = 8;
 /** Final, informational step after the plan; finishing happens here. */
-const PRIVACY_STEP = 8;
+const PRIVACY_STEP = 9;
 
 /** Steps the user may move past without answering anything. */
 const SKIPPABLE = new Set([4]);
@@ -126,6 +128,8 @@ export default function OnboardingModal({ profile, userId, deviceOutcome, onAddM
           bmr: baseline.bmr,
           tdee: baseline.tdee,
           calorie_goal: baseline.calorieTarget,
+          fikko_seed: s.seed,
+          fikko_planted_on: todayKey(),
           onboarding_completed_at: new Date().toISOString(),
         },
         baseline,
@@ -189,6 +193,7 @@ export default function OnboardingModal({ profile, userId, deviceOutcome, onAddM
               <StepLifestyle api={api} showError={showError} userId={userId} outcome={draft ? deviceOutcome : null} />
             )}
             {step === 6 && <StepTargets api={api} showError={showError} />}
+            {step === 7 && <StepSeed api={api} showError={showError} />}
             {step === PRIVACY_STEP && baseline && (
               <StepPrivacy onDone={finish} onBack={() => setStep(RESULT_STEP)} saving={saving} />
             )}

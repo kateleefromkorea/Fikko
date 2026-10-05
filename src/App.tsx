@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { useAiCredits } from "./hooks/useAiCredits";
-import { ChartNoAxesColumn, Loader2, ChefHat, ListChecks, LogOut, Sparkles, UserRound, Users, type LucideIcon } from "lucide-react";
+import { ChartNoAxesColumn, Loader2, ChefHat, ListChecks, LogOut, Sparkles, Sprout, UserRound, Users, type LucideIcon } from "lucide-react";
 import { completion } from "./lib/completion";
 import HabitsView from "./components/HabitsView";
 import ScrollToTop from "./components/ScrollToTop";
@@ -35,6 +35,7 @@ import { todayKey } from "./lib/dates";
 import { dietsOf, tracksMacros } from "./lib/preferences";
 import { hasDraft } from "./onboarding/draft";
 import { trackView } from "./lib/track";
+import { CURRENT_PLAN } from "./lib/fikko";
 
 // Loaded on demand. The Dashboard carries the charting library (most of the
 // app's JavaScript) and onboarding only runs once per user, so neither should
@@ -43,6 +44,7 @@ const Dashboard = lazy(() => import("./components/Dashboard"));
 const OnboardingModal = lazy(() => import("./onboarding/OnboardingModal"));
 const ConsentPrompt = lazy(() => import("./components/ConsentPrompt"));
 const CommunityView = lazy(() => import("./components/CommunityView"));
+const MyFikkoView = lazy(() => import("./components/MyFikkoView"));
 const RecipesView = lazy(() => import("./components/RecipesView"));
 const ProfileView = lazy(() => import("./components/ProfileView"));
 const AdminView = lazy(() => import("./admin/AdminView"));
@@ -50,16 +52,18 @@ const AdminView = lazy(() => import("./admin/AdminView"));
 // The admin site lives at /admin, outside the member app.
 const isAdminPage = window.location.pathname.replace(/\/+$/, "") === "/admin";
 
-type Tab = "habits" | "dashboard" | "recipes" | "community" | "coaches" | "profile";
+type Tab = "habits" | "dashboard" | "fikko" | "recipes" | "community" | "coaches" | "profile";
 
+// Community isn't a tab: it opens from the Habits page's preview card and the
+// account menu.
 // Shown as tabs in the header on tablet and desktop, and as a bottom tab bar
 // on phones, where the labels don't fit across the top.
 // `ai` marks a tab powered by AI: it shows a sparkle in front of its label.
 const NAV: { id: Tab; label: string; icon: LucideIcon; soon?: boolean; ai?: boolean }[] = [
   { id: "habits", label: "Habits", icon: ListChecks },
   { id: "dashboard", label: "Dashboard", icon: ChartNoAxesColumn },
+  { id: "fikko", label: "My Fikko", icon: Sprout },
   { id: "recipes", label: "Recipes", icon: ChefHat },
-  { id: "community", label: "Community", icon: Users },
   { id: "coaches", label: "AI Coach", icon: Sparkles, ai: true },
 ];
 
@@ -251,6 +255,10 @@ export default function App() {
                     <UserRound />
                     Profile
                   </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setTab("community")}>
+                    <Users />
+                    Community
+                  </DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => signOut()}>
                     <LogOut />
                     Sign out
@@ -269,13 +277,13 @@ export default function App() {
             <Button variant="outline" size="sm" onClick={retrySave} className="h-8">Try again now</Button>
           </div>
         )}
-        {(tab === "habits" || tab === "dashboard") && habitsLoadError && (
+        {(tab === "habits" || tab === "dashboard" || tab === "fikko") && habitsLoadError && (
           <div role="alert" className="mx-auto flex max-w-md flex-col items-center gap-3 py-16 text-center">
             <p className="text-sm text-muted-foreground">{habitsLoadError}</p>
             <Button onClick={() => reloadHabits()}>Try again</Button>
           </div>
         )}
-        {(tab === "habits" || tab === "dashboard") && habitsLoading && !habitsLoadError && (
+        {(tab === "habits" || tab === "dashboard" || tab === "fikko") && habitsLoading && !habitsLoadError && (
           <div className="flex items-center justify-center gap-2 py-24 text-sm text-muted-foreground" role="status">
             <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Loading your habits…
           </div>
@@ -296,6 +304,17 @@ export default function App() {
         {tab === "dashboard" && !habitsLoading && !habitsLoadError && (
           <Suspense fallback={<p className="py-10 text-center text-sm text-muted-foreground">Loading dashboard…</p>}>
             <Dashboard data={data} biometrics={biometrics} profile={profile} />
+          </Suspense>
+        )}
+        {tab === "fikko" && !habitsLoading && !habitsLoadError && (
+          <Suspense fallback={<p className="py-10 text-center text-sm text-muted-foreground">Loading My Fikko…</p>}>
+            <MyFikkoView
+              data={data}
+              profile={profile}
+              onUpdateProfile={updateProfile}
+              plan={CURRENT_PLAN}
+              onOpenHabits={() => setTab("habits")}
+            />
           </Suspense>
         )}
         {tab === "recipes" && (

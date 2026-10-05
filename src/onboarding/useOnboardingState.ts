@@ -47,6 +47,8 @@ export interface OnboardingState {
   sleepGoal: string;
   /** Medications and supplements to add to the Medications card. */
   medications: string[];
+  /** The My Fikko seed (step 7). */
+  seed: string | null;
 }
 
 function initialState(profile: ProfileRow): OnboardingState {
@@ -78,6 +80,7 @@ function initialState(profile: ProfileRow): OnboardingState {
     waterGoal: "",
     sleepGoal: "",
     medications: [],
+    seed: profile.fikko_seed ?? null,
   };
 }
 
@@ -191,6 +194,7 @@ function stepErrors(s: OnboardingState, d: OnboardingDerived): Record<number, st
     3: goals,
     5: s.activityLevel ? null : "Pick the activity level closest to your week.",
     6: targets,
+    7: s.seed ? null : "Pick a seed to grow.",
   };
 }
 

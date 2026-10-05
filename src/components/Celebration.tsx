@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 import { PartyPopper } from "lucide-react";
 
-// The Fikko green scale.
-const COLORS = ["#042509", "#094217", "#165F39", "#518F5C", "#BCD5AC", "#EEF4E8"];
+// Studio Soléa: sage, evergreen, ink and marine.
+const COLORS = ["#719A73", "#003A35", "#001F27", "#1F73C2", "#A9CBEB", "#E6EEE6"];
 const DURATION = 3000;
 const PIECES = 160;
 
@@ -93,7 +93,7 @@ export default function Celebration({ onDone }: { onDone: () => void }) {
       <canvas ref={canvasRef} className="absolute inset-0 size-full" aria-hidden="true" />
       <div className="absolute inset-x-0 top-24 flex justify-center px-4">
         <div role="status" className="celebrate-pop flex items-center gap-3 rounded-2xl bg-white px-6 py-4 shadow-xl ring-1 ring-primary/15">
-          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary/10 text-primary" aria-hidden="true">
+          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary/10 text-primary-ink" aria-hidden="true">
             <PartyPopper className="size-5" />
           </span>
           <div>

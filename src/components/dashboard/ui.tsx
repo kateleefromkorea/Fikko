@@ -12,14 +12,14 @@ import type { Point } from "../../lib/dashboardStats";
 // habit "-strong" hues and neutrals in index.css (readable as lines on white)
 // rather than reading the variables.
 export const C = {
-  primary: "#165F39",
-  teal: "#BCD5AC",
-  water: "#165F39",
-  meds: "#094217",
-  food: "#6A9A5A",
-  exercise: "#518F5C",
-  sleep: "#042509",
-  mood: "#3E7A49",
+  primary: "#719A73",
+  teal: "#1F73C2",
+  water: "#1F73C2",
+  meds: "#003A35",
+  food: "#476F4A",
+  exercise: "#4A8BD0",
+  sleep: "#001F27",
+  mood: "#2E5D57",
   grid: "#EBEBEB",
   tick: "#737373",
 };
@@ -92,7 +92,7 @@ export function Delta({ value, suffix, goodWhen = "up", tolerance = 0.5, classNa
   const Arrow = flat ? ArrowRight : value > 0 ? ArrowUpRight : ArrowDownRight;
   const good = !flat && (value > 0) === (goodWhen === "up");
   return (
-    <span className={cn("inline-flex items-center gap-1 text-xs", flat ? "text-muted-foreground" : good ? "text-primary" : "text-destructive", className)}>
+    <span className={cn("inline-flex items-center gap-1 text-xs", flat ? "text-muted-foreground" : good ? "text-primary-ink" : "text-destructive", className)}>
       <Arrow className="size-3.5" aria-hidden="true" />
       {flat ? (tolerance > 0.5 ? "On track" : "No change") : `${value > 0 ? "+" : "−"}${Math.abs(Math.round(value)).toLocaleString()}`}{flat ? "" : suffix}
     </span>
@@ -117,7 +117,7 @@ export function VitalCard({
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           {trend && (
             <Arrow
-              className={cn("size-3.5", trend !== "stable" && (isPositive ? "text-primary" : "text-destructive"))}
+              className={cn("size-3.5", trend !== "stable" && (isPositive ? "text-primary-ink" : "text-destructive"))}
               aria-hidden="true"
             />
           )}
@@ -229,7 +229,7 @@ export function ScoreLine({ data, color, name, domain, ticks, format, height = 2
 export function InsightRow({ text, icon: Icon }: { text: ReactNode; icon: LucideIcon }) {
   return (
     <li className="flex items-start gap-3 rounded-lg border px-4 py-3">
-      <Icon className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+      <Icon className="mt-0.5 size-4 shrink-0 text-primary-ink" aria-hidden="true" />
       <p className="text-sm">{text}</p>
     </li>
   );

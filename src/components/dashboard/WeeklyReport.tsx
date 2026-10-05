@@ -27,7 +27,7 @@ export default function WeeklyReportCard({ data, biometrics, profile }: Props) {
   if (history === 0) {
     return (
       <div className="flex items-start gap-3 rounded-xl bg-white/70 p-4 ring-1 ring-foreground/5">
-        <FileText className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
+        <FileText className="mt-0.5 size-5 shrink-0 text-primary-ink" aria-hidden="true" />
         <div className="min-w-0">
           <p className="text-sm font-semibold">Your first weekly report arrives on {longDate(nextReportDate())}</p>
           <p className="mt-0.5 text-sm text-muted-foreground">
@@ -40,7 +40,7 @@ export default function WeeklyReportCard({ data, biometrics, profile }: Props) {
 
   return (
     <div className="flex flex-col gap-4 rounded-xl bg-white/70 p-4 ring-1 ring-foreground/5 md:flex-row md:items-center">
-      <FileText className="hidden size-5 shrink-0 text-primary md:block" aria-hidden="true" />
+      <FileText className="hidden size-5 shrink-0 text-primary-ink md:block" aria-hidden="true" />
       <div className="min-w-0 flex-1">
         <p className="flex flex-wrap items-baseline gap-x-2 text-sm">
           <span className="font-semibold">Weekly report · {report.label}</span>
@@ -55,7 +55,7 @@ export default function WeeklyReportCard({ data, biometrics, profile }: Props) {
         </p>
         {report.focus && report.logged > 0 ? (
           <p className="mt-1 flex items-start gap-2 text-sm text-foreground/80">
-            <Target className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+            <Target className="mt-0.5 size-4 shrink-0 text-primary-ink" aria-hidden="true" />
             <span><span className="font-medium">Next week:</span> {report.focus.text}</span>
           </p>
         ) : report.logged === 0 && (
@@ -165,7 +165,7 @@ function ReportBody({ report: r }: { report: WeeklyReport }) {
 
       {r.focus && (
         <div className="flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-4">
-          <Target className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
+          <Target className="mt-0.5 size-5 shrink-0 text-primary-ink" aria-hidden="true" />
           <div>
             <p className="text-sm font-semibold">Focus for next week: {r.focus.label}</p>
             <p className="mt-0.5 text-sm text-foreground/80">{r.focus.text}</p>

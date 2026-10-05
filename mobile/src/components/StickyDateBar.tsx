@@ -103,7 +103,7 @@ export default function StickyDateBar({ activeDate, onChange, progress }: {
           {!isToday && (
             <button
               onClick={() => onChange(today)}
-              className="mr-1 h-8 rounded-full bg-primary/10 px-3 text-sm font-medium text-primary active:bg-primary/20"
+              className="mr-1 h-8 rounded-full bg-primary/10 px-3 text-sm font-medium text-primary-ink active:bg-primary/20"
             >
               Today
             </button>
@@ -141,13 +141,13 @@ export default function StickyDateBar({ activeDate, onChange, progress }: {
                 aria-label={`${label}${future ? "" : `, ${Math.round(value * 100)}% done`}`}
                 className="flex flex-col items-center gap-1 rounded-xl px-1 pb-1 disabled:opacity-35"
               >
-                <span className={cn("text-[11px] font-medium", date === today ? "text-primary" : "text-muted-foreground")}>
+                <span className={cn("text-[11px] font-medium", date === today ? "text-primary-ink" : "text-muted-foreground")}>
                   {WEEKDAYS[i]}
                 </span>
                 <span
                   className={cn(
                     "relative grid size-10 place-items-center rounded-full text-sm font-semibold tabular-nums transition-colors",
-                    selected ? "bg-primary text-primary-foreground shadow-sm" : date === today ? "text-primary" : "text-foreground",
+                    selected ? "bg-primary text-primary-foreground shadow-sm" : date === today ? "text-primary-ink" : "text-foreground",
                   )}
                 >
                   {!future && <DayRing value={value} selected={selected} />}

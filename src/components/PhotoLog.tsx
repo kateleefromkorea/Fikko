@@ -100,7 +100,7 @@ export default function PhotoLog({ meal, onAddMany }: Props) {
             Log from a photo
           </Button>
           {added
-            ? <p role="status" className="flex items-center gap-1.5 text-sm text-primary"><Check className="size-4" aria-hidden="true" /> Added to your meal.</p>
+            ? <p role="status" className="flex items-center gap-1.5 text-sm text-primary-ink"><Check className="size-4" aria-hidden="true" /> Added to your meal.</p>
             : <p className="text-xs text-muted-foreground">Snap your plate and Fikko estimates what&apos;s on it.</p>}
         </div>
       )}
@@ -111,7 +111,7 @@ export default function PhotoLog({ meal, onAddMany }: Props) {
         <div className="flex items-center gap-3">
           {preview && <img src={preview} alt="Your meal" className="size-14 rounded-lg object-cover" />}
           <p className="flex items-center gap-2 text-sm font-medium">
-            <Loader2 className="size-4 animate-spin text-primary" /> Looking at your meal…
+            <Loader2 className="size-4 animate-spin text-primary-ink" /> Looking at your meal…
           </p>
         </div>
       )}

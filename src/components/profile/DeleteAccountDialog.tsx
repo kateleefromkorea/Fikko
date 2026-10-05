@@ -83,7 +83,7 @@ export default function DeleteAccountDialog({ profile, onUpdateProfile, onExport
                   onClick={() => { setReason(reason === key ? null : key); setOfferTaken(null); }}
                   className={cn(
                     "rounded-lg border px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted",
-                    reason === key && "border-primary bg-primary/5 font-medium text-primary hover:bg-primary/10",
+                    reason === key && "border-primary bg-primary/5 font-medium text-primary-ink hover:bg-primary/10",
                   )}
                 >
                   {label}

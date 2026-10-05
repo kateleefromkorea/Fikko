@@ -164,7 +164,7 @@ function AddRecipeForm({ onOpenChange, sharingAs, onCreate, busyRef }: Props & {
                   onClick={() => setTags((prev) => (on ? prev.filter((k) => k !== t.key) : [...prev, t.key]))}
                   className={cn(
                     "h-8 rounded-full border px-3 text-sm transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-                    on ? "border-primary bg-primary/8 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    on ? "border-primary bg-primary/8 text-primary-ink" : "text-muted-foreground hover:bg-muted hover:text-foreground",
                   )}
                 >
                   {t.label}
@@ -196,7 +196,7 @@ function AddRecipeForm({ onOpenChange, sharingAs, onCreate, busyRef }: Props & {
                   }
                   className={cn(
                     "h-8 rounded-full border px-3 text-sm transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-                    on ? "border-primary bg-primary/8 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    on ? "border-primary bg-primary/8 text-primary-ink" : "text-muted-foreground hover:bg-muted hover:text-foreground",
                   )}
                 >
                   {a.label}

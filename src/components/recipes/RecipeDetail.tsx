@@ -71,7 +71,7 @@ export default function RecipeDetail({
                 {r.tags.length > 0 && (
                   <ul className="flex flex-wrap gap-1.5">
                     {r.tags.map((t) => (
-                      <li key={t} className="rounded-full border border-primary/20 bg-primary/5 px-2.5 py-0.5 text-xs text-primary">{tagLabel(t)}</li>
+                      <li key={t} className="rounded-full border border-primary/20 bg-primary/5 px-2.5 py-0.5 text-xs text-primary-ink">{tagLabel(t)}</li>
                     ))}
                   </ul>
                 )}
@@ -170,7 +170,7 @@ export default function RecipeDetail({
                 <ol className="space-y-4">
                   {r.steps.map((step, i) => (
                     <li key={i} className="flex gap-3 text-sm">
-                      <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-semibold text-primary">{i + 1}</span>
+                      <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-semibold text-primary-ink">{i + 1}</span>
                       <p className="pt-0.5 leading-relaxed">{step}</p>
                     </li>
                   ))}

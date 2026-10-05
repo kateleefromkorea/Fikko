@@ -20,7 +20,7 @@ export default function StepPrivacy({ onDone, onBack, saving }: Props) {
     <div>
       <div className="mb-8">
         <div className="mb-4 flex size-11 items-center justify-center rounded-full bg-primary/10">
-          <ShieldCheck className="size-6 text-primary" aria-hidden="true" />
+          <ShieldCheck className="size-6 text-primary-ink" aria-hidden="true" />
         </div>
         <h2 className="text-2xl font-semibold">Your data stays yours.</h2>
         <p className="mt-2 text-sm text-muted-foreground">
@@ -32,7 +32,7 @@ export default function StepPrivacy({ onDone, onBack, saving }: Props) {
         <ul className="divide-y divide-foreground/10">
           {PROMISES.map((p) => (
             <li key={p.title} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
-              <p.icon className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
+              <p.icon className="mt-0.5 size-5 shrink-0 text-primary-ink" aria-hidden="true" />
               <div className="min-w-0">
                 <p className="text-sm font-medium">{p.title}</p>
                 <p className="mt-0.5 text-sm text-muted-foreground">{p.body}</p>
@@ -43,7 +43,7 @@ export default function StepPrivacy({ onDone, onBack, saving }: Props) {
       </section>
 
       <p className="mt-4 flex gap-2 rounded-lg border border-primary/25 bg-primary/5 p-3 text-sm text-muted-foreground">
-        <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+        <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary-ink" aria-hidden="true" />
         <span>
           Any Google health data you connect is handled under Google's Limited Use requirements: it is used only to
           provide your fitness features, never for ads or sold.

@@ -54,7 +54,7 @@ function Pill({ selected, onClick, children }: { selected: boolean; onClick: () 
       aria-pressed={selected}
       className={cn(
         "inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-sm transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-        selected ? "border-primary bg-primary/8 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+        selected ? "border-primary bg-primary/8 text-primary-ink" : "text-muted-foreground hover:bg-muted hover:text-foreground",
       )}
     >
       {children}
@@ -260,7 +260,7 @@ function PostCard({
       <CardContent className="space-y-3">
         <div className="flex items-center gap-3">
           <Avatar>
-            <AvatarFallback className={cn("text-sm font-medium", mine ? "bg-primary/10 text-primary" : "bg-muted")}>
+            <AvatarFallback className={cn("text-sm font-medium", mine ? "bg-primary/10 text-primary-ink" : "bg-muted")}>
               {initialsOf(post.authorName)}
             </AvatarFallback>
           </Avatar>
@@ -301,7 +301,7 @@ function PostCard({
         <div className="flex items-center gap-1 -ml-2">
           <Button
             variant="ghost" size="sm" onClick={onCheer} aria-pressed={post.cheeredByMe}
-            className={cn("text-muted-foreground", post.cheeredByMe && "text-primary hover:text-primary")}
+            className={cn("text-muted-foreground", post.cheeredByMe && "text-primary-ink hover:text-primary-ink")}
           >
             <Heart className={cn(post.cheeredByMe && "fill-current")} />
             {post.cheers > 0 ? post.cheers : ""} Cheer{post.cheers === 1 || post.cheers === 0 ? "" : "s"}
@@ -402,7 +402,7 @@ export default function CommunityView({ userId, profileName }: Props) {
           </div>
 
           {notice && (
-            <p className="flex items-start gap-2 rounded-lg border border-primary/25 bg-primary/5 p-3 text-sm text-primary" role="status">
+            <p className="flex items-start gap-2 rounded-lg border border-primary/25 bg-primary/5 p-3 text-sm text-primary-ink" role="status">
               <ShieldCheck className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
               <span className="flex-1">{notice}</span>
               <button className="text-xs underline" onClick={() => setNotice(null)}>Dismiss</button>
@@ -451,7 +451,7 @@ export default function CommunityView({ userId, profileName }: Props) {
         <Card className="lg:sticky lg:top-24">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 font-semibold">
-              <ShieldCheck className="size-4 text-primary" aria-hidden="true" />
+              <ShieldCheck className="size-4 text-primary-ink" aria-hidden="true" />
               Community guidelines
             </CardTitle>
             <CardDescription>Keep Fikko a supportive place.</CardDescription>

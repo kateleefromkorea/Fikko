@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 const LONG_PRESS_MS = 500;
 
 const chipCls =
-  "inline-flex h-9 items-center gap-1.5 rounded-full border bg-card px-3.5 text-sm font-medium text-foreground/80 transition-colors select-none hover:border-foreground/20 hover:bg-muted/60 aria-pressed:border-primary aria-pressed:bg-primary/8 aria-pressed:text-primary outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
+  "inline-flex h-9 items-center gap-1.5 rounded-full border bg-card px-3.5 text-sm font-medium text-foreground/80 transition-colors select-none hover:border-foreground/20 hover:bg-muted/60 aria-pressed:border-primary aria-pressed:bg-primary/8 aria-pressed:text-primary-ink outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
 
 /**
  * Activities to log, the member's most logged first. Tap opens the details;

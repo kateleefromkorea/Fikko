@@ -77,7 +77,7 @@ export default function StepGoals({ api, showError }: { api: Api; showError: boo
 
           {derived.recomposition ? (
             <p className="flex gap-2 rounded-lg border bg-muted/50 p-3 text-sm">
-              <Info className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+              <Info className="mt-0.5 size-4 shrink-0 text-primary-ink" aria-hidden="true" />
               <span>
                 That&apos;s body recomposition: building muscle while losing fat. We&apos;ll keep your calories at
                 maintenance, so strength training and plenty of protein do the work. No pace to pick.
@@ -109,8 +109,8 @@ export default function StepGoals({ api, showError }: { api: Api; showError: boo
           )}
 
           {direction === "loss" && s.weeklyRate != null && s.weeklyRate >= 0.75 && (
-            <p className="flex gap-2 rounded-lg pair-d border border-lime p-3 text-sm">
-              <TriangleAlert className="mt-0.5 size-4 shrink-0 text-pine" aria-hidden="true" />
+            <p className="flex gap-2 rounded-lg pair-d p-3 pl-4 text-sm">
+              <TriangleAlert className="mt-0.5 size-4 shrink-0 text-marine" aria-hidden="true" />
               That is a fast pace. It is safe for many people short-term, but it is harder to
               sustain — you can ease off any time from your profile.
             </p>

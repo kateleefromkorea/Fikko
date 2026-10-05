@@ -60,7 +60,7 @@ export default function AdminMfa({ onVerified }: { onVerified: () => void }) {
     <Card className="mx-auto max-w-md">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <ShieldCheck className="size-5 text-primary" aria-hidden="true" />
+          <ShieldCheck className="size-5 text-primary-ink" aria-hidden="true" />
           {setup ? "Set up two-step sign-in" : "Enter your code"}
         </CardTitle>
         <CardDescription>

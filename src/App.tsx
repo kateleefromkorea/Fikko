@@ -185,7 +185,7 @@ export default function App() {
                     active && "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 hover:text-primary-foreground",
                   )}
                 >
-                  {ai && <Sparkles className={cn("size-4", !active && "text-primary")} aria-hidden="true" />}
+                  {ai && <Sparkles className={cn("size-4", !active && "text-primary-ink")} aria-hidden="true" />}
                   {label}
                   {ai && credits.left != null && (
                     <span
@@ -195,14 +195,14 @@ export default function App() {
                         "ml-0.5 rounded-full px-1.5 text-[11px] leading-5 font-semibold tabular-nums",
                         credits.left === 0
                           ? "bg-destructive/15 text-destructive"
-                          : active ? "bg-white/25 text-white" : "bg-primary/10 text-primary",
+                          : active ? "bg-white/25 text-white" : "bg-primary/10 text-primary-ink",
                       )}
                     >
                       {credits.left}
                     </span>
                   )}
                   {soon && (
-                    <Badge variant="outline" className="border-teal/40 bg-teal/5 text-primary">
+                    <Badge variant="outline" className="border-teal/40 bg-teal/5 text-primary-ink">
                       Soon
                     </Badge>
                   )}
@@ -386,7 +386,7 @@ export default function App() {
                   aria-label={soon ? `${label} (coming soon)` : label}
                   className={cn(
                     "flex h-full w-full flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors outline-none focus-visible:bg-muted",
-                    active ? "text-primary" : "text-muted-foreground",
+                    active ? "text-primary-ink" : "text-muted-foreground",
                   )}
                 >
                   <span

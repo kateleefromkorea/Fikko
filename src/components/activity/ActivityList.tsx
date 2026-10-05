@@ -21,7 +21,7 @@ export default function ActivityList({ groups, device, weightKg, removed, onEdit
       <ul className="space-y-1.5" aria-label="Activities on this day">
         {(device.minutes > 0 || device.kcal > 0) && (
           <li className="flex items-center gap-3 rounded-xl bg-muted py-2 pr-3 pl-2.5">
-            <span className="grid size-9 shrink-0 place-items-center rounded-full pair-d ring-1 ring-ink/10" aria-hidden="true">
+            <span className="grid size-9 shrink-0 place-items-center rounded-full pair-d-solid" aria-hidden="true">
               <Watch className="size-[18px]" />
             </span>
             <span className="min-w-0 flex-1">

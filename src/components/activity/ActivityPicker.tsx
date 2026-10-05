@@ -59,7 +59,7 @@ export default function ActivityPicker({ onPick, onClose }: { onPick: (choice: A
                 onClick={() => onPick({ type: "other", name: query.trim() })}
                 className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-sm hover:bg-muted"
               >
-                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary/10 text-primary" aria-hidden="true">
+                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary/10 text-primary-ink" aria-hidden="true">
                   <Plus className="size-4" />
                 </span>
                 <span>Add “<span className="font-medium">{query.trim()}</span>” as your own activity</span>

@@ -90,7 +90,7 @@ function SectionHeader({ icon: Icon, id, title, hint, aside, inverse }: {
 }) {
   return (
     <div className="flex items-start gap-3">
-      <span className={cn("grid size-8 shrink-0 place-items-center rounded-lg", inverse ? "bg-white/15 text-white" : "bg-primary/10 text-primary")}>
+      <span className={cn("grid size-8 shrink-0 place-items-center rounded-lg", inverse ? "bg-white/15 text-white" : "bg-primary/10 text-primary-ink")}>
         <Icon className="size-4" aria-hidden="true" />
       </span>
       <div className="min-w-0 flex-1">
@@ -501,7 +501,7 @@ export default function FoodLogModal({
                   Save these foods as a meal
                 </Button>
               )}
-              {mealSaved && <p role="status" className="text-xs text-primary">Saved “{mealSaved}”. Find it here next time to log it in one tap.</p>}
+              {mealSaved && <p role="status" className="text-xs text-primary-ink">Saved “{mealSaved}”. Find it here next time to log it in one tap.</p>}
             </div>
           )}
         </section>
@@ -586,7 +586,7 @@ export default function FoodLogModal({
                             </p>
                           </div>
                           {food.saved && <Badge variant="secondary">Saved</Badge>}
-                          <Plus className={cn("size-4 shrink-0 text-muted-foreground", i === active && "text-primary")} aria-hidden="true" />
+                          <Plus className={cn("size-4 shrink-0 text-muted-foreground", i === active && "text-primary-ink")} aria-hidden="true" />
                         </div>
                       );
                     })}
@@ -606,7 +606,7 @@ export default function FoodLogModal({
                     onClick={() => { setManual({ ...EMPTY_MANUAL, name: q }); setManualMode(true); setListOpen(false); }}
                     className="w-full rounded-lg px-3 py-2.5 text-left text-sm hover:bg-muted"
                   >
-                    No matches for “{q}”. <span className="font-medium text-primary">Add it as your own food</span>
+                    No matches for “{q}”. <span className="font-medium text-primary-ink">Add it as your own food</span>
                   </button>
                 )}
               </div>
@@ -642,7 +642,7 @@ export default function FoodLogModal({
             <div className="space-y-5 border-t pt-4">
               {yesterday.length > 0 && items.length === 0 && (
                 <Button variant="outline" onClick={() => onAddMany(yesterday.map(asNewFood))} className="h-auto w-full justify-start gap-3 bg-card px-4 py-3 text-left">
-                  <Repeat className="text-primary" />
+                  <Repeat className="text-primary-ink" />
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-medium">Same as yesterday</span>
                     <span className="block truncate text-xs font-normal text-muted-foreground">
@@ -693,7 +693,7 @@ export default function FoodLogModal({
                       size="sm"
                       onClick={() => setShowAllRecent((s) => !s)}
                       aria-expanded={showAllRecent}
-                      className="h-8 w-full text-primary hover:text-primary"
+                      className="h-8 w-full text-primary-ink hover:text-primary-ink"
                     >
                       {showAllRecent ? "Show less" : `Show ${recentHidden} more`}
                       <ChevronDown className={cn("transition-transform", showAllRecent && "rotate-180")} />

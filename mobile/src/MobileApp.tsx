@@ -238,7 +238,7 @@ export default function MobileApp() {
                   aria-current={active ? "page" : undefined}
                   className={cn(
                     "flex h-full w-full flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors outline-none",
-                    active ? "text-primary" : "text-muted-foreground",
+                    active ? "text-primary-ink" : "text-muted-foreground",
                   )}
                 >
                   <span className={cn("grid h-7 w-12 place-items-center rounded-full transition-colors", active && "bg-primary/10")} aria-hidden="true">

@@ -150,7 +150,7 @@ export function ScorecardSection({ ctx }: { ctx: DashCtx }) {
                     {s.done} of {dates.length} days
                     {s.streak > 0 && (
                       <span className="mt-0.5 flex items-center gap-1 text-foreground">
-                        <Flame className="size-3.5 text-primary" aria-hidden="true" />
+                        <Flame className="size-3.5 text-primary-ink" aria-hidden="true" />
                         {s.streak}-day streak
                       </span>
                     )}

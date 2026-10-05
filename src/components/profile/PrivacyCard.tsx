@@ -59,7 +59,7 @@ export default function PrivacyCard({ userId }: { userId: string }) {
             {new Date(agreed.created_at).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })}.
             Health data, storage and your account details are needed to run Fikko, so to withdraw those, delete your
             account below.{" "}
-            <a href="/privacy.html" target="_blank" rel="noreferrer" className="text-primary underline">Privacy Policy</a>
+            <a href="/privacy.html" target="_blank" rel="noreferrer" className="text-primary-ink underline">Privacy Policy</a>
           </p>
         )}
       </CardContent>

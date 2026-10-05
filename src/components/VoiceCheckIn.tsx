@@ -157,7 +157,7 @@ export default function VoiceCheckIn({ data, date, isToday, medications, onSave,
           Tell Fikko about {isToday ? "your day" : "this day"}
         </Button>
         {stage === "saved" ? (
-          <p role="status" className="flex items-center gap-1.5 text-sm text-primary">
+          <p role="status" className="flex items-center gap-1.5 text-sm text-primary-ink">
             <Check className="size-4" aria-hidden="true" /> Saved. Your habits are updated.
           </p>
         ) : (
@@ -197,7 +197,7 @@ export default function VoiceCheckIn({ data, date, isToday, medications, onSave,
       {stage === "typing" && (
         <form onSubmit={(e) => { e.preventDefault(); void send(transcript); }} className="space-y-3">
           <p className="flex items-center gap-2 text-sm font-medium">
-            <Keyboard className="size-4 text-primary" aria-hidden="true" />
+            <Keyboard className="size-4 text-primary-ink" aria-hidden="true" />
             {canListen ? "Check what we heard, or type it" : "Type what you ate, drank and did"}
           </p>
           <Textarea
@@ -227,7 +227,7 @@ export default function VoiceCheckIn({ data, date, isToday, medications, onSave,
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground">“{transcript}”</p>
           <p className="flex items-center gap-2 text-sm font-medium">
-            <Loader2 className="size-4 animate-spin text-primary" /> Working out what to log…
+            <Loader2 className="size-4 animate-spin text-primary-ink" /> Working out what to log…
           </p>
         </div>
       )}
@@ -316,7 +316,7 @@ export default function VoiceCheckIn({ data, date, isToday, medications, onSave,
 function Line({ icon: Icon, onRemove, children }: { icon: LucideIcon; onRemove: () => void; children: ReactNode }) {
   return (
     <li className="flex items-center gap-3 px-4 py-2.5 text-sm">
-      <Icon className="size-4 shrink-0 text-primary" aria-hidden="true" />
+      <Icon className="size-4 shrink-0 text-primary-ink" aria-hidden="true" />
       <span className={cn("min-w-0 flex-1")}>{children}</span>
       <Button variant="ghost" size="icon-sm" onClick={onRemove} aria-label="Don't log this" className="text-muted-foreground">
         <X />

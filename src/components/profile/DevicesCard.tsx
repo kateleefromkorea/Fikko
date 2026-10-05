@@ -100,7 +100,7 @@ export default function DevicesCard({ outcome, onSynced }: { outcome: DeviceOutc
                 <p className="flex items-center gap-2 text-sm font-medium">
                   {info.name}
                   {c && (
-                    <Badge variant="outline" className={c.status === "active" ? "border-primary/30 bg-primary/5 text-primary" : "border-destructive/30 text-destructive"}>
+                    <Badge variant="outline" className={c.status === "active" ? "border-primary/30 bg-primary/5 text-primary-ink" : "border-destructive/30 text-destructive"}>
                       {c.status === "active" ? "Connected" : "Needs attention"}
                     </Badge>
                   )}
@@ -158,7 +158,7 @@ export default function DevicesCard({ outcome, onSynced }: { outcome: DeviceOutc
                 <p className="truncate text-sm text-muted-foreground">{c.description}</p>
               </div>
               {c.next ? (
-                <Badge variant="outline" className="shrink-0 border-primary/30 bg-primary/5 text-primary">Up next</Badge>
+                <Badge variant="outline" className="shrink-0 border-primary/30 bg-primary/5 text-primary-ink">Up next</Badge>
               ) : (
                 <Badge variant="secondary" className="shrink-0">Soon</Badge>
               )}

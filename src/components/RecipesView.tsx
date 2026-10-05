@@ -42,7 +42,7 @@ function EarlyUsersNote() {
   return (
     <aside className="fresh-panel relative flex flex-col gap-4 rounded-2xl border border-teal/20 p-5 pr-12 sm:flex-row sm:items-center sm:p-6 sm:pr-14">
       <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white/80" aria-hidden="true">
-        <Sparkles className="size-5 text-primary" />
+        <Sparkles className="size-5 text-primary-ink" />
       </span>
       <div className="min-w-0 flex-1">
         <p className="font-semibold">Hi early users!</p>
@@ -224,7 +224,7 @@ export default function RecipesView({ userId, profileName, diets, allergies }: {
               <>
                 {" · "}
                 {showAll ? "showing everything" : `${hiddenCount} hidden for your diet and allergies`}{" "}
-                <button type="button" onClick={() => setShowAll((v) => !v)} className="font-medium text-primary underline-offset-2 hover:underline">
+                <button type="button" onClick={() => setShowAll((v) => !v)} className="font-medium text-primary-ink underline-offset-2 hover:underline">
                   {showAll ? "Hide them again" : "Show all"}
                 </button>
               </>

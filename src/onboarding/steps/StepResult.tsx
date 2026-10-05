@@ -25,8 +25,8 @@ export default function StepResult({ baseline, goalKey, name, onDone }: Props) {
 
       {/* The headline number */}
       <div className="mt-8 rounded-lg border border-primary/25 bg-primary/5 p-6 text-center">
-        <p className="text-sm font-medium text-primary">Your daily target</p>
-        <p className="mt-1 text-5xl font-semibold text-primary tabular-nums">{calorieTarget.toLocaleString()}</p>
+        <p className="text-sm font-medium text-primary-ink">Your daily target</p>
+        <p className="mt-1 text-5xl font-semibold text-primary-ink tabular-nums">{calorieTarget.toLocaleString()}</p>
         <p className="mt-1 text-sm text-muted-foreground">kcal per day</p>
         {adjustment !== 0 && (
           <p className="mt-3 text-sm text-muted-foreground">
@@ -52,8 +52,8 @@ export default function StepResult({ baseline, goalKey, name, onDone }: Props) {
       </div>
 
       {clampedToFloor && (
-        <p className="mt-3 flex gap-2 rounded-lg pair-d border border-lime p-3 text-sm">
-          <TriangleAlert className="mt-0.5 size-4 shrink-0 text-pine" aria-hidden="true" />
+        <p className="mt-3 flex gap-2 rounded-lg pair-d p-3 pl-4 text-sm">
+          <TriangleAlert className="mt-0.5 size-4 shrink-0 text-marine" aria-hidden="true" />
           <span>
             Your chosen pace worked out below a safe daily minimum, so we raised your target to{" "}
             {calorieTarget.toLocaleString()} kcal. Pick a gentler rate in your profile if you would like the maths to

@@ -6,15 +6,15 @@ import { cn } from "@/lib/utils";
 import type { RecipeArtKey } from "../../lib/recipes";
 
 // Recipes without a photo get a soft illustrated tile: a tint and an icon for
-// the main ingredient. The tints are steps of the Fikko green scale in
+// the main ingredient. The tints are soft Studio Soléa sage and marine from
 // index.css, each icon dark enough to read on its tint.
 const TONES = {
-  honey: { bg: "#EEF4E8", fg: "#3E7A49" },
-  coral: { bg: "#E2EDDA", fg: "#165F39" },
-  sky:   { bg: "#DCE9D3", fg: "#094217" },
-  mint:  { bg: "#E6F0E3", fg: "#165F39" },
-  lilac: { bg: "#E9EFE6", fg: "#042509" },
-  lemon: { bg: "#F1F6EA", fg: "#3E7A49" },
+  honey: { bg: "#E6EEE6", fg: "#476F4A" },
+  coral: { bg: "#DCEAF7", fg: "#1F73C2" },
+  sky:   { bg: "#E3EFF9", fg: "#185C9B" },
+  mint:  { bg: "#E1ECE4", fg: "#003A35" },
+  lilac: { bg: "#E5ECEE", fg: "#001F27" },
+  lemon: { bg: "#EEF3EC", fg: "#2E5D57" },
 } as const;
 
 const ART: Record<RecipeArtKey, { icon: LucideIcon; tone: keyof typeof TONES }> = {

@@ -113,9 +113,9 @@ export default function ExportDialog({ userId, onClose }: Props) {
                   format === key && "border-primary bg-primary/5 hover:bg-primary/10",
                 )}
               >
-                <Icon className={cn("mt-0.5 size-4 shrink-0 text-muted-foreground", format === key && "text-primary")} />
+                <Icon className={cn("mt-0.5 size-4 shrink-0 text-muted-foreground", format === key && "text-primary-ink")} />
                 <span>
-                  <span className={cn("block text-sm font-medium", format === key && "text-primary")}>{label}</span>
+                  <span className={cn("block text-sm font-medium", format === key && "text-primary-ink")}>{label}</span>
                   <span className="block text-xs text-muted-foreground">{description}</span>
                 </span>
               </button>

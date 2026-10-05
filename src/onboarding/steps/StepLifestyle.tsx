@@ -88,7 +88,7 @@ export default function StepLifestyle({ api, showError, userId, outcome }: {
         >
           {s.wearable === FITBIT ? (
             <div className="flex items-center gap-4 rounded-lg border border-primary bg-primary/5 p-4">
-              <span className="grid size-10 place-items-center rounded-lg bg-primary/10 text-primary" aria-hidden="true">
+              <span className="grid size-10 place-items-center rounded-lg bg-primary/10 text-primary-ink" aria-hidden="true">
                 <Check className="size-5" />
               </span>
               <div className="min-w-0 flex-1">

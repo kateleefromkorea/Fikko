@@ -186,7 +186,7 @@ function setDateValue(entries: HabitEntry[], date: string, value: number, note?:
 
 /** Shared look for a selectable option: neutral at rest, Fikko green when chosen. */
 const optionCls =
-  "rounded-lg border border-transparent bg-foreground/[0.04] text-left transition-colors hover:bg-foreground/[0.07] aria-pressed:border-primary aria-pressed:bg-primary/8 aria-pressed:text-primary";
+  "rounded-lg border border-transparent bg-foreground/[0.04] text-left transition-colors hover:bg-foreground/[0.07] aria-pressed:border-primary aria-pressed:bg-primary/8 aria-pressed:text-primary-ink";
 
 function Stat({ value, label }: { value: string | number; label: string }) {
   return (
@@ -221,7 +221,7 @@ function HabitChip({ icon: Icon, label, done, onClick }: { icon: LucideIcon; lab
       className={cn(
         "inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-sm transition-colors",
         done
-          ? "border-primary/25 bg-white font-medium text-primary shadow-sm"
+          ? "border-primary/25 bg-white font-medium text-primary-ink shadow-sm"
           : "border-white/80 bg-white/50 text-muted-foreground hover:bg-white/80",
       )}
     >
@@ -248,7 +248,7 @@ function TodaySummary({ data, activeDate, onDateChange, profileName, waterGoal, 
   return (
     <section ref={sectionRef} className="daily-overview overflow-hidden rounded-2xl border border-teal/20 p-6 shadow-sm sm:p-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <p className="text-xs font-semibold tracking-wider text-primary uppercase">
+        <p className="text-xs font-semibold tracking-wider text-primary-ink uppercase">
           {isToday ? `Today · ${dateLabel}` : dateLabel}
         </p>
         <DateNavigator activeDate={activeDate} onChange={onDateChange} />
@@ -356,7 +356,7 @@ function StickyDayBar({ show, data, activeDate, onDateChange, waterGoal, onSpeak
           </Button>
           <button
             onClick={onDateClick}
-            className="min-w-0 rounded-md px-1 text-sm font-semibold whitespace-nowrap text-lime hover:underline"
+            className="min-w-0 rounded-md px-1 text-sm font-semibold whitespace-nowrap text-marine-soft hover:underline"
             aria-label={`${isToday ? "Today" : dateLabel}. Back to the summary`}
           >
             {isToday ? <>Today<span className="hidden font-normal text-white/60 sm:inline"> · {dateLabel}</span></> : dateLabel}
@@ -399,7 +399,7 @@ function StickyDayBar({ show, data, activeDate, onDateChange, waterGoal, onSpeak
         </div>
 
         {onSpeak && (
-          <Button onClick={onSpeak} size="sm" className="h-8 shrink-0 gap-1.5 rounded-full pair-b px-4 font-semibold shadow-sm hover:bg-mist">
+          <Button onClick={onSpeak} size="sm" className="h-8 shrink-0 gap-1.5 rounded-full pair-b px-4 font-semibold shadow-sm hover:bg-sage-tint">
             <Mic />
             Speak
           </Button>
@@ -414,10 +414,10 @@ interface MealCalories { breakfast: number; lunch: number; dinner: number; snack
 
 // Amber shades, deepest first, so the ring reads breakfast → snacks.
 export const MEALS: { key: MealKey; label: string; icon: LucideIcon; color: string }[] = [
-  { key: "breakfast", label: "Breakfast", icon: Sunrise, color: "#BCD5AC" },
-  { key: "lunch",     label: "Lunch",     icon: Sun,     color: "#518F5C" },
-  { key: "dinner",    label: "Dinner",    icon: Sunset,  color: "#165F39" },
-  { key: "snacks",    label: "Snacks",    icon: Apple,   color: "#094217" },
+  { key: "breakfast", label: "Breakfast", icon: Sunrise, color: "#719A73" },
+  { key: "lunch",     label: "Lunch",     icon: Sun,     color: "#1F73C2" },
+  { key: "dinner",    label: "Dinner",    icon: Sunset,  color: "#003A35" },
+  { key: "snacks",    label: "Snacks",    icon: Apple,   color: "#A9CBEB" },
 ];
 
 function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog, biometrics }: Props & { foodLog: FoodLog }) {
@@ -487,7 +487,7 @@ function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog, biome
           )}
           {/* The plain answer to "how much more can I eat?", after workouts. */}
           {eaten > 0 && !overTarget && (
-            <p className="max-w-56 text-center text-sm font-medium text-primary tabular-nums">
+            <p className="max-w-56 text-center text-sm font-medium text-primary-ink tabular-nums">
               {Math.round(target - total) === 0
                 ? "You've reached your target"
                 : activeDate === todayKey()
@@ -849,7 +849,7 @@ function MedicationCard({ data, onChange, activeDate, medications }: Props) {
                     Check interactions
                   </Button>
                   <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
-                    <Sparkles className="mt-0.5 size-3 shrink-0 text-primary" aria-hidden="true" />
+                    <Sparkles className="mt-0.5 size-3 shrink-0 text-primary-ink" aria-hidden="true" />
                     <span>
                       Uses 1 AI credit if anything isn&apos;t on Fikko&apos;s built-in list, so our AI can review it.
                       Common medications are checked free.
@@ -987,7 +987,7 @@ function SleepCard({ data, onChange, activeDate, biometrics, goals }: Props) {
                 aria-pressed={restScore === r.value}
                 className={cn(optionCls, "group flex items-center gap-3 px-4 py-2.5")}
               >
-                <span className="w-4 text-center text-sm text-muted-foreground tabular-nums group-aria-pressed:text-primary">
+                <span className="w-4 text-center text-sm text-muted-foreground tabular-nums group-aria-pressed:text-primary-ink">
                   {r.value}
                 </span>
                 <span>
@@ -1096,7 +1096,7 @@ function MoodWeek({ data, endDate: centerDate }: { data: HabitData; endDate: str
               <span
                 className={cn(
                   "grid size-8 place-items-center rounded-full",
-                  option ? "pair-d ring-1 ring-ink/10" : "border border-dashed text-muted-foreground/40",
+                  option ? "pair-b-soft ring-1 ring-ink/10" : "border border-dashed text-muted-foreground/40",
                   future && "border-muted-foreground/15 bg-muted/40",
                   isCenter && "ring-2 ring-primary ring-offset-2",
                 )}
@@ -1298,7 +1298,7 @@ function CustomHabitsSection({ data, onChange, activeDate }: Props) {
           ))}
           <button
             onClick={() => openWith()}
-            className="flex min-h-48 flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:bg-white/60 hover:text-primary"
+            className="flex min-h-48 flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:bg-white/60 hover:text-primary-ink"
           >
             <Plus className="size-5" aria-hidden="true" />
             New habit
@@ -1390,7 +1390,7 @@ function DateNavigator({ activeDate, onChange }: { activeDate: string; onChange:
   return (
     <div className="flex items-center gap-2">
       {!isToday && (
-        <Button variant="ghost" onClick={() => onChange(todayKey())} className="h-9 px-3 text-primary hover:bg-white/60 hover:text-primary">
+        <Button variant="ghost" onClick={() => onChange(todayKey())} className="h-9 px-3 text-primary-ink hover:bg-white/60 hover:text-primary-ink">
           Back to today
         </Button>
       )}

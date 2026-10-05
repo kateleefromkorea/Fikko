@@ -118,7 +118,7 @@ export default function DashboardSummary({ ctx, report, toggle, note }: {
   return (
     <section aria-labelledby="summary-title" className="fresh-panel overflow-hidden rounded-2xl border border-teal/20 p-6 shadow-sm sm:p-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <p className="text-xs font-semibold tracking-wider text-primary uppercase">
+        <p className="text-xs font-semibold tracking-wider text-primary-ink uppercase">
           {dashboardEyebrow(period)}
           {dates.length > 0 && ` · ${weekLabel({ from: dates[0], to: dates[dates.length - 1] })}`}
         </p>
@@ -154,7 +154,7 @@ export default function DashboardSummary({ ctx, report, toggle, note }: {
       <dl className="mt-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {tiles.map(({ icon: Icon, label, value }) => (
           <div key={label} className="flex items-center gap-3 rounded-xl bg-white/70 px-4 py-3 ring-1 ring-foreground/5">
-            <Icon className="size-5 shrink-0 text-primary" aria-hidden="true" />
+            <Icon className="size-5 shrink-0 text-primary-ink" aria-hidden="true" />
             <div className="min-w-0">
               <dt className="text-xs text-muted-foreground">{label}</dt>
               <dd className="text-lg font-semibold tabular-nums">{value}</dd>

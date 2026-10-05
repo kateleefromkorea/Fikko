@@ -153,7 +153,7 @@ function BaselinePlan({ profile }: { profile: ProfileRow }) {
         </CardDescription>
         {goal && (
           <CardAction>
-            <Badge variant="outline" className="h-6 border-teal/40 bg-teal/5 px-2.5 text-primary">{goal.label}</Badge>
+            <Badge variant="outline" className="h-6 border-teal/40 bg-teal/5 px-2.5 text-primary-ink">{goal.label}</Badge>
           </CardAction>
         )}
       </CardHeader>
@@ -167,8 +167,8 @@ function BaselinePlan({ profile }: { profile: ProfileRow }) {
                 t.accent && "border-primary/25 bg-primary/5",
               )}
             >
-              <p className={cn("text-sm text-muted-foreground", t.accent && "text-primary")}>{t.label}</p>
-              <p className={cn("mt-1 text-3xl font-semibold tabular-nums", t.accent && "text-primary")}>
+              <p className={cn("text-sm text-muted-foreground", t.accent && "text-primary-ink")}>{t.label}</p>
+              <p className={cn("mt-1 text-3xl font-semibold tabular-nums", t.accent && "text-primary-ink")}>
                 {t.value}
                 <span className="ml-1 text-sm font-normal text-muted-foreground">kcal</span>
               </p>

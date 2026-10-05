@@ -65,7 +65,7 @@ export default function ConsentForm({ initialRegion, initialAi = false, title, s
     <div>
       <div className="mb-6">
         <div className="mb-4 flex size-11 items-center justify-center rounded-full bg-primary/10">
-          <ShieldCheck className="size-6 text-primary" aria-hidden="true" />
+          <ShieldCheck className="size-6 text-primary-ink" aria-hidden="true" />
         </div>
         <h2 className="text-2xl font-semibold">{title}</h2>
         <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p>
@@ -102,7 +102,7 @@ export default function ConsentForm({ initialRegion, initialAi = false, title, s
               />
               <div className="min-w-0 flex-1">
                 <label htmlFor={`consent-${c.key}`} className="cursor-pointer text-sm">
-                  <span className={cn("mr-1.5 text-xs font-semibold", c.required ? "text-primary" : "text-muted-foreground")}>
+                  <span className={cn("mr-1.5 text-xs font-semibold", c.required ? "text-primary-ink" : "text-muted-foreground")}>
                     {c.required ? "Required" : "Optional"}
                   </span>
                   {c.title}
@@ -110,9 +110,9 @@ export default function ConsentForm({ initialRegion, initialAi = false, title, s
                 {korean && <p className="mt-0.5 text-xs text-muted-foreground">{c.ko}</p>}
                 {c.key === "terms" && (
                   <p className="mt-1 text-xs">
-                    <a href="/terms.html" target="_blank" rel="noreferrer" className="text-primary underline">Terms of Use</a>
+                    <a href="/terms.html" target="_blank" rel="noreferrer" className="text-primary-ink underline">Terms of Use</a>
                     {" · "}
-                    <a href="/privacy.html" target="_blank" rel="noreferrer" className="text-primary underline">Privacy Policy</a>
+                    <a href="/privacy.html" target="_blank" rel="noreferrer" className="text-primary-ink underline">Privacy Policy</a>
                   </p>
                 )}
                 {c.details.length > 0 && (
@@ -121,7 +121,7 @@ export default function ConsentForm({ initialRegion, initialAi = false, title, s
                       type="button"
                       onClick={() => setOpen((o) => (o === c.key ? null : c.key))}
                       aria-expanded={open === c.key}
-                      className="mt-1 flex items-center gap-1 text-xs text-primary"
+                      className="mt-1 flex items-center gap-1 text-xs text-primary-ink"
                     >
                       {open === c.key ? "Hide details" : "See details"}
                       <ChevronDown className={cn("size-3.5 transition-transform", open === c.key && "rotate-180")} aria-hidden="true" />

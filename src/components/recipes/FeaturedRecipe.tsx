@@ -22,7 +22,7 @@ export default function FeaturedRecipe({ recipe, saves, onOpen, className }: {
         <RecipeArt art={recipe.art} className="h-48 w-full sm:h-full" />
       )}
       <div className="flex flex-col justify-center gap-3 p-5 sm:p-6">
-        <p className="flex items-center gap-1.5 text-xs font-semibold tracking-wider text-primary uppercase">
+        <p className="flex items-center gap-1.5 text-xs font-semibold tracking-wider text-primary-ink uppercase">
           <Crown className="size-3.5" aria-hidden="true" />
           Featured this week
         </p>

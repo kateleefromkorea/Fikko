@@ -46,7 +46,7 @@ export function DoneBadge({ className }: { className?: string }) {
   return (
     <span
       className={cn(
-        "tick-pop inline-flex h-5 items-center gap-1 rounded-full bg-primary/10 px-2 text-xs font-medium text-primary",
+        "tick-pop inline-flex h-5 items-center gap-1 rounded-full bg-primary/10 px-2 text-xs font-medium text-primary-ink",
         className,
       )}
     >
@@ -115,7 +115,7 @@ export function HabitCard({
 export function CommentBubble({ text }: { text: string }) {
   return (
     <p aria-live="polite" className="mb-5 flex items-start gap-2 rounded-xl bg-foreground/[0.04] px-3.5 py-2.5 text-sm text-foreground/80">
-      <Sparkles className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+      <Sparkles className="mt-0.5 size-4 shrink-0 text-primary-ink" aria-hidden="true" />
       <span>{text}</span>
     </p>
   );

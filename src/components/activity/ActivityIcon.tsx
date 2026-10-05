@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 export default function ActivityIcon({ type, className }: { type: string; className?: string }) {
   const Icon = activityOf(type).icon;
   return (
-    <span className={cn("grid size-9 shrink-0 place-items-center rounded-full bg-exercise/12 text-exercise-strong", className)} aria-hidden="true">
+    <span className={cn("grid size-9 shrink-0 place-items-center rounded-full bg-exercise text-exercise-fg", className)} aria-hidden="true">
       <Icon className="size-[18px]" />
     </span>
   );

@@ -16,12 +16,15 @@
   /* The Fikko palette (see :root). Brand greens, the four accent colours,
      and one hue per habit built from them. */
   --color-primary-deep: var(--primary-deep);
+  --color-primary-ink: var(--primary-ink);
   --color-ink: var(--ink);
   --color-cream: var(--cream);
-  --color-pine: var(--pine);
-  --color-middle: var(--middle);
-  --color-lime: var(--lime);
-  --color-mist: var(--mist);
+  --color-evergreen: var(--evergreen);
+  --color-sage: var(--sage);
+  --color-sage-tint: var(--sage-tint);
+  --color-marine: var(--marine);
+  --color-marine-tint: var(--marine-tint);
+  --color-marine-soft: var(--marine-soft);
   --color-teal: var(--teal);
   --color-sky: var(--sky);
 
@@ -76,32 +79,39 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* shadcn's neutral base with Fikko green as the primary. The page sits on a
+/* shadcn's neutral base with the Studio Soléa palette. The page sits on a
    faint grey so white cards lift off it.
 
-   The Fikko palette: one green scale, darkest to lightest. Contrast ratios
-   are WCAG, for the pair's text on its background (4.5:1 needed for small text).
-     Zia olive    #042509  ink: the "dark green font", deep bars and headers
-     Pine green   #094217  buttons and calls to action (white text 11.7:1)
-     Fun green    #165F39  Fikko green, the primary: selected and done states, links
-     Middle green #518F5C  pair A, ink text 4.3:1 (icons and large text only);
-                  small text sits on #5F9A69 instead (5.0:1), see pair-a
-     Jaded lime   #BCD5AC  pair B, ink text 10.4:1
-     Pine green   #094217  pair C, cream text 10.5:1
-     Mist         #EEF4E8  pair D, a soft tint of the scale, ink text 14.7:1
-   The pairs are ready-made as the pair-a … pair-d utilities below.
+   Studio Soléa: rich greens and a striking marine blue. Contrast ratios are
+   WCAG, for text on its background (4.5:1 needed for small text, 3:1 for
+   icons, large text and chart lines).
+     Sage green    #719A73  the primary: fills, selected states, rings, bars.
+                   As text it's only 3.2:1 on white, so text in the primary
+                   colour uses primary-ink #476F4A (5.8:1). Selected sage
+                   surfaces carry ink text (5.4:1), not white.
+     Evergreen     #003A35  buttons and calls to action (white 12.7:1)
+     Ink black     #001F27  body text, dark bars and elements (17.1:1 on white)
+     Bright marine #1F73C2  pop: focus rings, highlights, callouts (white 4.9:1)
+   Pairs, as the pair-* utilities below:
+     A  Evergreen on sage: 4.0:1, icons and large text only; small text uses a
+        lighter sage, #7EA680 (4.6:1)
+     B  Ink on sage: 5.4:1. pair-b-soft is ink on the sage tint (14.5:1)
+     C  Cream on evergreen: 11.2:1
+     D  Ink on a marine tint with a marine accent edge (14.0:1). Ink on solid
+        marine is 3.5:1, so a solid marine block uses white text (4.9:1),
+        see pair-d-solid.
 
    The Habits page's daily overview keeps its original colours on purpose:
    see .daily-overview further down, which is locked. */
 :root {
   --background: oklch(0.985 0 0);
-  --foreground: oklch(0.145 0 0);
+  --foreground: #001F27;
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: #165F39;
-  --primary-foreground: #FFFFFF;
+  --primary: #719A73;
+  --primary-foreground: #001F27;
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
@@ -111,34 +121,40 @@
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: #165F39;
+  --ring: #1F73C2;
   --radius: 0.625rem;
 
-  --primary-deep: #094217;
-  --ink: #042509;
-  --cream: #F4F7EF;
-  --pine: #094217;
-  --middle: #518F5C;
-  --lime: #BCD5AC;
-  --mist: #EEF4E8;
-  /* The old fresh accents, now from the green scale: soft washes and borders. */
-  --teal: #518F5C;
-  --sky: #BCD5AC;
+  --primary-deep: #003A35;
+  --primary-ink: #476F4A;
+  --ink: #001F27;
+  --cream: #F3F1E7;
+  --evergreen: #003A35;
+  --sage: #719A73;
+  --sage-tint: #E6EEE6;
+  --marine: #1F73C2;
+  --marine-tint: #DCEAF7;
+  /* Marine light enough to read on ink (10.1:1). */
+  --marine-soft: #A9CBEB;
+  /* The old fresh accents, now sage and marine: soft washes and borders. */
+  --teal: #719A73;
+  --sky: #1F73C2;
 
-  --water: #165F39;    --water-fg: #FFFFFF;    --water-strong: #165F39;
-  --meds: #094217;     --meds-fg: #F4F7EF;     --meds-strong: #094217;
-  --food: #BCD5AC;     --food-fg: #042509;     --food-strong: #6A9A5A;
-  --exercise: #518F5C; --exercise-fg: #042509; --exercise-strong: #518F5C;
-  --sleep: #042509;    --sleep-fg: #F4F7EF;    --sleep-strong: #042509;
-  --mood: #EEF4E8;     --mood-fg: #042509;     --mood-strong: #3E7A49;
-  --custom: #3E7A49;   --custom-fg: #FFFFFF;   --custom-strong: #3E7A49;
+  --water: #1F73C2;    --water-fg: #FFFFFF;    --water-strong: #1F73C2;
+  --meds: #003A35;     --meds-fg: #F3F1E7;     --meds-strong: #003A35;
+  --food: #719A73;     --food-fg: #001F27;     --food-strong: #476F4A;
+  --exercise: #DCEAF7; --exercise-fg: #1F73C2; --exercise-strong: #4A8BD0;
+  --sleep: #001F27;    --sleep-fg: #F3F1E7;    --sleep-strong: #001F27;
+  --mood: #E6EEE6;     --mood-fg: #003A35;     --mood-strong: #2E5D57;
+  --custom: #2E5D57;   --custom-fg: #FFFFFF;   --custom-strong: #2E5D57;
 }
 
-/* The four accent pairs, as text-on-background utilities. */
-@utility pair-a { background-color: #5F9A69; color: var(--ink); }
-@utility pair-b { background-color: var(--lime); color: var(--ink); }
-@utility pair-c { background-color: var(--pine); color: var(--cream); }
-@utility pair-d { background-color: var(--mist); color: var(--ink); }
+/* The accent pairs, as text-on-background utilities. */
+@utility pair-a { background-color: #7EA680; color: var(--evergreen); }
+@utility pair-b { background-color: var(--sage); color: var(--ink); }
+@utility pair-b-soft { background-color: var(--sage-tint); color: var(--ink); }
+@utility pair-c { background-color: var(--evergreen); color: var(--cream); }
+@utility pair-d { background-color: var(--marine-tint); color: var(--ink); box-shadow: inset 3px 0 0 var(--marine); }
+@utility pair-d-solid { background-color: var(--marine); color: #FFFFFF; }
 
 @layer base {
   * {
@@ -186,6 +202,11 @@
    inside the section (the border, the progress ring's gradient, focus rings
    and buttons) reads these locally restored variables. */
 .daily-overview {
+  /* Values the newer palettes changed app-wide, put back for this section. */
+  --foreground: oklch(0.145 0 0);
+  --primary-foreground: #FFFFFF;
+  --primary-ink: #157954;
+  color: var(--foreground);
   --teal: #2DC4B2;
   --sky: #5BA9F0;
   --ring: #2DC4B2;

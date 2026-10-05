@@ -35,7 +35,7 @@ export default function StepWelcome({ name }: { name: string }) {
         <ul className="mt-4 divide-y divide-foreground/10">
           {VALUE_PROPS.map((v) => (
             <li key={v.title} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
-              <v.icon className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
+              <v.icon className="mt-0.5 size-5 shrink-0 text-primary-ink" aria-hidden="true" />
               <div className="min-w-0">
                 <p className="text-sm font-medium">{v.title}</p>
                 <p className="mt-0.5 text-sm text-muted-foreground">{v.body}</p>

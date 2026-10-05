@@ -27,7 +27,7 @@ export default function MacroBars({ eaten, target, className }: { eaten: Macros;
             <div className="flex items-baseline justify-between gap-2 text-sm">
               <span className="flex items-center gap-1.5 font-medium">
                 {label}
-                {state === "reached" && <Check className="tick-pop size-3.5 text-primary" strokeWidth={3} aria-label="target reached" />}
+                {state === "reached" && <Check className="tick-pop size-3.5 text-primary-ink" strokeWidth={3} aria-label="target reached" />}
               </span>
               <span className="text-muted-foreground tabular-nums">
                 <span className={cn("font-semibold text-foreground", state === "over" && "text-ink")}>{got}</span> / {goal} g
@@ -46,7 +46,7 @@ export default function MacroBars({ eaten, target, className }: { eaten: Macros;
               <div
                 className={cn(
                   "h-full rounded-full transition-[width] duration-500 motion-reduce:transition-none",
-                  state === "under" ? "bg-middle" : state === "reached" ? "bg-primary" : "bg-ink",
+                  state === "under" ? "bg-marine" : state === "reached" ? "bg-primary" : "bg-ink",
                 )}
                 style={{ width: `${Math.min(share, 1) * 100}%` }}
               />

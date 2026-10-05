@@ -110,7 +110,7 @@ export default function SignInScreen() {
         <Card className="w-full max-w-sm gap-6 shadow-xl shadow-teal/10 [--card-spacing:--spacing(8)]">
           {checkEmail ? (
             <CardContent className="flex flex-col items-center text-center">
-              <span className="grid size-12 place-items-center rounded-full bg-primary/10 text-primary" aria-hidden="true">
+              <span className="grid size-12 place-items-center rounded-full bg-primary/10 text-primary-ink" aria-hidden="true">
                 <MailCheck className="size-6" />
               </span>
               <p className="mt-4 font-semibold">Check your inbox</p>
@@ -141,7 +141,7 @@ export default function SignInScreen() {
                   {wait > 0 ? `Send the link again in ${wait}s` : "Send the link again"}
                 </Button>
                 {resent === "sent" && (
-                  <p role="status" className="text-sm text-primary">A new link is on its way. Use the newest email.</p>
+                  <p role="status" className="text-sm text-primary-ink">A new link is on its way. Use the newest email.</p>
                 )}
                 {resent && resent !== "sent" && <p role="alert" className="text-sm text-destructive">{resent}</p>}
               </div>

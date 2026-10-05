@@ -21,8 +21,8 @@ export default function ActivityProgress({ logged, device, goal }: { logged: num
         aria-valuenow={total}
         className="flex h-2 overflow-hidden rounded-full bg-foreground/[0.06]"
       >
-        <div className="h-full transition-[width] duration-700 ease-out motion-reduce:transition-none" style={{ width: `${loggedPct}%`, background: done ? "var(--primary)" : "var(--exercise)" }} />
-        <div className="h-full opacity-45 transition-[width] duration-700 ease-out motion-reduce:transition-none" style={{ width: `${devicePct}%`, background: done ? "var(--primary)" : "var(--exercise)" }} />
+        <div className="h-full transition-[width] duration-700 ease-out motion-reduce:transition-none" style={{ width: `${loggedPct}%`, background: done ? "var(--primary)" : "var(--exercise-strong)" }} />
+        <div className="h-full opacity-45 transition-[width] duration-700 ease-out motion-reduce:transition-none" style={{ width: `${devicePct}%`, background: done ? "var(--primary)" : "var(--exercise-strong)" }} />
       </div>
       {device > 0 && (
         <p className="flex justify-between text-xs text-muted-foreground tabular-nums">

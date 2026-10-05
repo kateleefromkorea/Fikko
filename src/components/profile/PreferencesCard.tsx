@@ -100,7 +100,7 @@ export default function PreferencesCard({ profile, onUpdateProfile, className }:
 
   const chipCls = (on: boolean) => cn(
     "h-8 rounded-full border px-3 text-sm transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-40",
-    on ? "border-primary bg-primary/8 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+    on ? "border-primary bg-primary/8 text-primary-ink" : "text-muted-foreground hover:bg-muted hover:text-foreground",
   );
 
   function save() {

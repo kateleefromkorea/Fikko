@@ -22,7 +22,7 @@ export default function RewardsCard({ rewards, recipes, className }: { rewards: 
           <p className="mt-1 text-3xl font-semibold tracking-tight tabular-nums">{rewards.points.toLocaleString()}</p>
         </div>
         <span className="grid size-10 place-items-center rounded-xl bg-primary/8" aria-hidden="true">
-          <Trophy className="size-5 text-primary" />
+          <Trophy className="size-5 text-primary-ink" />
         </span>
       </div>
 
@@ -37,7 +37,7 @@ export default function RewardsCard({ rewards, recipes, className }: { rewards: 
                 title={on ? b.label : `${b.label}: ${b.how}`}
                 className={cn(
                   "grid size-10 place-items-center rounded-full border",
-                  on ? "border-primary/30 bg-primary/10 text-primary" : "border-dashed text-muted-foreground/50",
+                  on ? "border-primary/30 bg-primary/10 text-primary-ink" : "border-dashed text-muted-foreground/50",
                 )}
               >
                 <b.icon className="size-4.5" aria-hidden="true" />
@@ -64,7 +64,7 @@ export default function RewardsCard({ rewards, recipes, className }: { rewards: 
             <ul className="space-y-2">
               {POINT_RULES.map((r) => (
                 <li key={r.text} className="flex items-start gap-3 text-sm">
-                  <span className="w-10 shrink-0 rounded-full bg-primary/10 py-0.5 text-center text-xs font-semibold text-primary tabular-nums">+{r.points}</span>
+                  <span className="w-10 shrink-0 rounded-full bg-primary/10 py-0.5 text-center text-xs font-semibold text-primary-ink tabular-nums">+{r.points}</span>
                   <span>{r.text}</span>
                 </li>
               ))}
@@ -83,7 +83,7 @@ export default function RewardsCard({ rewards, recipes, className }: { rewards: 
                     <span
                       className={cn(
                         "grid size-9 shrink-0 place-items-center rounded-full border",
-                        on ? "border-primary/30 bg-primary/10 text-primary" : "border-dashed text-muted-foreground/60",
+                        on ? "border-primary/30 bg-primary/10 text-primary-ink" : "border-dashed text-muted-foreground/60",
                       )}
                       aria-hidden="true"
                     >
@@ -114,7 +114,7 @@ export default function RewardsCard({ rewards, recipes, className }: { rewards: 
                       {titleOf(e.recipeId) && <span className="block truncate text-xs text-muted-foreground">{titleOf(e.recipeId)}</span>}
                     </span>
                     <span className="text-xs text-muted-foreground">{timeAgo(e.createdAt)}</span>
-                    <span className="w-10 text-right font-semibold text-primary tabular-nums">+{e.points}</span>
+                    <span className="w-10 text-right font-semibold text-primary-ink tabular-nums">+{e.points}</span>
                   </li>
                 ))}
               </ul>

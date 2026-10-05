@@ -8,9 +8,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 
 const SEVERITY: Record<Severity, { label: string; icon: typeof AlertTriangle; cls: string }> = {
   avoid: { label: "Avoid together", icon: ShieldAlert, cls: "bg-red-50 text-red-700 ring-red-200" },
-  caution: { label: "Check with a pharmacist", icon: AlertTriangle, cls: "pair-b ring-pine/20" },
-  timing: { label: "Space them out", icon: Clock, cls: "pair-d ring-ink/15" },
-  overlap: { label: "Doubling up", icon: Copy, cls: "pair-c ring-pine" },
+  caution: { label: "Check with a pharmacist", icon: AlertTriangle, cls: "pair-d" },
+  timing: { label: "Space them out", icon: Clock, cls: "pair-b-soft ring-sage/40" },
+  overlap: { label: "Doubling up", icon: Copy, cls: "pair-c ring-evergreen" },
 };
 
 /**
@@ -51,7 +51,7 @@ export default function InteractionCheck({ names, onClose }: { names: string[]; 
           <div className="space-y-4">
             {result.findings.length === 0 ? (
               <div className="flex items-start gap-3 rounded-xl bg-primary/5 p-4">
-                <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
+                <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-primary-ink" aria-hidden="true" />
                 <p className="text-sm">
                   We didn't find any known interactions between these. That doesn't rule everything out, so mention
                   your full list to your pharmacist or doctor.

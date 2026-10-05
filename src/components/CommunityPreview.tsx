@@ -35,7 +35,7 @@ export default function CommunityPreview({ userId, onOpen }: { userId: string; o
           ) : posts.length === 0 ? (
             <div className="flex flex-wrap items-center gap-4">
               <span className="grid size-10 place-items-center rounded-lg bg-primary/8" aria-hidden="true">
-                <Users className="size-5 text-primary" />
+                <Users className="size-5 text-primary-ink" />
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium">The community is just getting started</p>

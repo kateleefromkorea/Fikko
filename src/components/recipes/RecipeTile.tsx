@@ -62,7 +62,7 @@ export default function RecipeTile({
         aria-label={saved ? `Remove ${recipe.title} from saved` : `Save ${recipe.title}`}
         className="absolute top-2.5 right-2.5 grid size-9 place-items-center rounded-full bg-white/90 shadow-sm backdrop-blur transition-colors outline-none hover:bg-white focus-visible:ring-3 focus-visible:ring-ring/50"
       >
-        <Heart className={cn("size-4", saved ? "fill-primary text-primary" : "text-foreground/70")} aria-hidden="true" />
+        <Heart className={cn("size-4", saved ? "fill-primary text-primary-ink" : "text-foreground/70")} aria-hidden="true" />
       </button>
     </article>
   );

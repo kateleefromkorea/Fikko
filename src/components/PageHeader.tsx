@@ -14,7 +14,7 @@ export default function PageHeader({ eyebrow, title, subtitle, badge, action }: 
   return (
     <div className="flex flex-wrap items-end justify-between gap-6">
       <div className="min-w-0">
-        {eyebrow && <p className="mb-3 text-xs font-semibold tracking-wider text-primary uppercase">{eyebrow}</p>}
+        {eyebrow && <p className="mb-3 text-xs font-semibold tracking-wider text-primary-ink uppercase">{eyebrow}</p>}
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">{title}</h1>
           {badge}

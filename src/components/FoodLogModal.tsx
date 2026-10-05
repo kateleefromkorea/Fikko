@@ -1,5 +1,5 @@
 import { Suspense, lazy, useCallback, useEffect, useState, type KeyboardEvent } from "react";
-import { BookmarkPlus, History, ListChecks, Loader2, PencilLine, Plus, Repeat, ScanBarcode, Search, X, type LucideIcon } from "lucide-react";
+import { BookmarkPlus, ChevronDown, History, ListChecks, Loader2, PencilLine, Plus, Repeat, ScanBarcode, Search, X, type LucideIcon } from "lucide-react";
 import { cachedSearch, lookupBarcode, searchFoods, type FoodResult } from "../lib/usdaFoodSearch";
 import { mealItemsOn, recentFoods } from "../lib/foodHistory";
 import { shiftDateKey } from "../lib/dates";
@@ -64,6 +64,8 @@ const MIN_SEARCH = 2;
 /** Pause after the last keystroke before asking the databases, so each word costs one lookup. */
 const SEARCH_DELAY_MS = 300;
 const LOCAL_OPTIONS = 4;
+/** Recent foods shown before "Show more". */
+const RECENT_SHOWN = 3;
 
 /** How well a name matches what's typed: whole-name start, then a word start, then anywhere. 0 is no match. */
 function matchRank(name: string, query: string) {
@@ -146,6 +148,7 @@ export default function FoodLogModal({
   const [notFound, setNotFound] = useState(false);
   // Repeats.
   const [recent, setRecent] = useState<FoodLogItem[]>([]);
+  const [showAllRecent, setShowAllRecent] = useState(false);
   const [yesterday, setYesterday] = useState<FoodLogItem[]>([]);
   const [namingMeal, setNamingMeal] = useState(false);
   const [mealName, setMealName] = useState("");
@@ -168,7 +171,10 @@ export default function FoodLogModal({
 
   const q = query.trim();
   const loggedNames = new Set(items.map((i) => i.name.toLowerCase()));
-  const recentToShow = recent.filter((r) => !loggedNames.has(r.name.toLowerCase())).slice(0, 6);
+  const recentNotLogged = recent.filter((r) => !loggedNames.has(r.name.toLowerCase()));
+  // The three most recent, and the rest behind "Show more", so the window stays short.
+  const recentToShow = showAllRecent ? recentNotLogged : recentNotLogged.slice(0, RECENT_SHOWN);
+  const recentHidden = recentNotLogged.length - recentToShow.length;
   const yesterdayKcal = yesterday.reduce((s, i) => s + i.calories, 0);
   const browsing = !q && !scanning && !scanned && !picked && !manualMode;
 
@@ -681,6 +687,18 @@ export default function FoodLogModal({
                       resultRow({ id: `recent-${r.id}`, name: r.name, caloriesPer100g: r.caloriesPer100g, proteinPer100g: r.proteinPer100g, carbsPer100g: r.carbsPer100g, fatPer100g: r.fatPer100g, servingGrams: r.grams }, "last time")
                     ))}
                   </ul>
+                  {(recentHidden > 0 || (showAllRecent && recentNotLogged.length > RECENT_SHOWN)) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowAllRecent((s) => !s)}
+                      aria-expanded={showAllRecent}
+                      className="h-8 w-full text-primary hover:text-primary"
+                    >
+                      {showAllRecent ? "Show less" : `Show ${recentHidden} more`}
+                      <ChevronDown className={cn("transition-transform", showAllRecent && "rotate-180")} />
+                    </Button>
+                  )}
                 </div>
               )}
             </div>

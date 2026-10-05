@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { DB_LIMITS, clamp } from "../lib/limits";
 import { activityMinutes, completion, EXERCISE_TARGET_MIN, type CoreHabit } from "../lib/completion";
-import { MAX_WORKOUTS, WORKOUT_NAME_MAX, newWorkout, workoutsEntry, workoutsOf, type Workout } from "../lib/workouts";
+import { workoutsOf } from "../lib/workouts";
 import type { HabitData, BiometricData, HabitEntry, CustomHabit, MealKey, TimeOfDay } from "../types";
 import type { useMedications } from "../hooks/useMedications";
 import { mealTotals, useFoodLog } from "../hooks/useFoodLog";
@@ -36,11 +36,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { shiftDateKey, todayKey } from "../lib/dates";
-import { activityComment, foodComment, macroComment, medsComment, momentFor, moodComment, sleepComment, waterComment } from "./habitComments";
+import { foodComment, macroComment, medsComment, momentFor, moodComment, sleepComment, waterComment } from "./habitComments";
 import { dayRange, sleepHours } from "../lib/dashboardStats";
 import { macroTargets, sumMacros } from "../lib/macros";
 import MacroBars from "./MacroBars";
-import { activityCalories } from "../lib/activityCalories";
+import { dayBurn } from "../lib/activities";
+import ActivityCard from "./activity/ActivityCard";
 
 function timeGreeting() {
   const h = new Date().getHours();
@@ -419,7 +420,7 @@ export const MEALS: { key: MealKey; label: string; icon: LucideIcon; color: stri
   { key: "snacks",    label: "Snacks",    icon: Apple,   color: "#FBD89C" },
 ];
 
-function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog }: Props & { foodLog: FoodLog }) {
+function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog, biometrics }: Props & { foodLog: FoodLog }) {
   const entry = getEntry(data.food, activeDate);
   const saved: MealCalories = parseNote<MealCalories>(entry?.note) ?? { breakfast: 0, lunch: 0, dinner: 0, snacks: 0 };
   // The foods logged are the record. The saved per-meal totals only stand in while
@@ -433,8 +434,12 @@ function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog }: Pro
   const target = Math.round(goals.calories);
   const eaten = meals.breakfast + meals.lunch + meals.dinner + meals.snacks;
   // Net calories: what was eaten, less the estimated burn of the workouts logged on the Activity card.
-  const burned = workoutsOf(getEntry(data.exercise, activeDate))
-    .reduce((sum, w) => sum + activityCalories(w.name, w.minutes, goals.weightKg), 0);
+  // The same burn the Activity card shows: logged workouts plus a wearable's active calories.
+  const burned = dayBurn(
+    workoutsOf(getEntry(data.exercise, activeDate)),
+    goals.weightKg,
+    biometrics?.activeCalories?.find((e) => e.date === activeDate)?.value ?? null,
+  ).total;
   const total = Math.max(0, eaten - burned);
   const overTarget = total > target;
   // The ring shows what was eaten, one slice per meal, against the target (scaled to
@@ -576,188 +581,7 @@ function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog }: Pro
 }
 
 /* ─── Exercise ─── */
-const QUICK_MINUTES = [10, 20, 30];
-const WORKOUT_SUGGESTIONS = ["Walk", "Run", "Gym", "Yoga", "Cycling", "Swim"];
-
-/** Workouts of the same type share a key: "Walk", "walk " and "WALK" are one. */
-const workoutKey = (w: Workout) => w.name.trim().toLowerCase();
-
-/** One row per type of workout, with minutes added up, in the order first logged. */
-function groupWorkouts(workouts: Workout[]) {
-  const groups = new Map<string, { key: string; name: string; minutes: number; count: number }>();
-  for (const w of workouts) {
-    const key = workoutKey(w);
-    const g = groups.get(key) ?? { key, name: w.name.trim(), minutes: 0, count: 0 };
-    g.minutes += w.minutes;
-    g.count += 1;
-    groups.set(key, g);
-  }
-  return [...groups.values()];
-}
-
-function ExerciseCard({ data, onChange, activeDate, biometrics, goals }: Props) {
-  const { device, total } = activityMinutes(data, activeDate);
-  const workouts = workoutsOf(getEntry(data.exercise, activeDate));
-  const steps      = biometrics?.steps?.find((e) => e.date === activeDate)?.value ?? null;
-  const activeCal  = biometrics?.activeCalories?.find((e) => e.date === activeDate)?.value ?? null;
-  const standHours = biometrics?.standHours?.find((e) => e.date === activeDate)?.value ?? null;
-  const vo2        = biometrics?.vo2max?.find((e) => e.date === activeDate)?.value ?? null;
-  // A wearable that reports activity, so logging here is for what it missed.
-  const hasDevice = (biometrics?.activeMinutes?.length ?? 0) > 0;
-
-  const [name, setName] = useState("");
-  const [customMinutes, setCustomMinutes] = useState("");
-  const save = (next: Workout[]) => {
-    const entry = workoutsEntry(activeDate, next);
-    onChange({ ...data, exercise: setDateValue(data.exercise, activeDate, entry.value, entry.note) });
-  };
-  const add = (minutes: number) => {
-    const w = newWorkout(name, minutes);
-    if (!w || workouts.length >= MAX_WORKOUTS) return;
-    save([...workouts, w]);
-    setName("");
-    setCustomMinutes("");
-  };
-
-  const done = total >= EXERCISE_TARGET_MIN;
-  // The day's total, shown above and also taken off the Calories card's net.
-  const burned = workouts.reduce((sum, w) => sum + activityCalories(w.name, w.minutes, goals.weightKg), 0);
-  const isToday = (d: string) => d === todayKey();
-
-  return (
-    <HabitCard
-      id="habit-exercise"
-      icon={Activity}
-      hue="exercise"
-      title="Activity"
-      description={`Goal ${EXERCISE_TARGET_MIN} active minutes`}
-      action={<Figure value={total} unit="min" />}
-      done={done}
-      comment={activityComment({ minutes: total, target: EXERCISE_TARGET_MIN, steps }, momentFor(activeDate, todayKey()))}
-    >
-      <div className="space-y-2">
-        <HabitBar value={total} max={EXERCISE_TARGET_MIN} hue="exercise" />
-      </div>
-
-      {workouts.length > 0 && (
-        <p className="mt-4 flex items-baseline justify-between gap-3 rounded-lg bg-exercise/10 px-3 py-2.5 text-sm" aria-live="polite">
-          <span className="font-medium">Calories burned {isToday(activeDate) ? "today" : "this day"}</span>
-          <span className="tabular-nums" title="Estimated from each activity, its length and your weight">
-            <span className="text-lg font-semibold">≈ {burned.toLocaleString()}</span> kcal
-          </span>
-        </p>
-      )}
-
-      {(device > 0 || workouts.length > 0) && (
-        <ul className="mt-4 space-y-1.5" aria-label="Today's activity">
-          {device > 0 && (
-            <li className="flex items-center gap-2.5 rounded-lg bg-foreground/[0.04] px-3 py-2 text-sm">
-              <Watch className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-              <span className="min-w-0 flex-1 truncate">Your wearable</span>
-              <span className="tabular-nums text-muted-foreground">{device} min</span>
-              {/* Lines up with the calorie estimates and remove buttons below. */}
-              <span className="w-20" aria-hidden="true" />
-              <span className="w-7" aria-hidden="true" />
-            </li>
-          )}
-          {groupWorkouts(workouts).map((w) => (
-            <li key={w.key} className="flex items-center gap-2.5 rounded-lg bg-foreground/[0.04] py-1 pr-1 pl-3 text-sm">
-              <Dumbbell className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-              <span className="min-w-0 flex-1 truncate">
-                {w.name || "Workout"}
-                {w.count > 1 && <span className="ml-1.5 text-xs text-muted-foreground">×{w.count}</span>}
-              </span>
-              <span className="tabular-nums text-muted-foreground">{w.minutes} min</span>
-              <span
-                className="w-20 text-right tabular-nums text-muted-foreground"
-                title="Estimated from the activity, its length and your weight"
-              >
-                ≈ {activityCalories(w.name, w.minutes, goals.weightKg)} kcal
-              </span>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={() => save(workouts.filter((x) => workoutKey(x) !== w.key))}
-                aria-label={`Remove ${w.name || "workout"}, ${w.minutes} minutes${w.count > 1 ? ` (all ${w.count})` : ""}`}
-                className="text-muted-foreground"
-              >
-                <X />
-              </Button>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <div className="mt-6 space-y-3">
-        <GroupLabel>{hasDevice ? "Add a workout your device missed" : "Log a workout"}</GroupLabel>
-        <div className="space-y-2">
-          <Input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            maxLength={WORKOUT_NAME_MAX}
-            placeholder="What did you do? (optional)"
-            aria-label="Workout name"
-            className="h-9"
-          />
-          <div className="flex flex-wrap gap-1.5">
-            {WORKOUT_SUGGESTIONS.map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setName(name === s ? "" : s)}
-                aria-pressed={name === s}
-                className={cn(optionCls, "px-2.5 py-1 text-xs")}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          {QUICK_MINUTES.map((m) => (
-            <Button key={m} variant="outline" onClick={() => add(m)} className="h-9">
-              +{m} min
-            </Button>
-          ))}
-        </div>
-        <form
-          className="flex gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            add(Number(customMinutes));
-          }}
-        >
-          <Input
-            type="number"
-            inputMode="numeric"
-            min={1}
-            max={600}
-            value={customMinutes}
-            onChange={(e) => setCustomMinutes(e.target.value)}
-            placeholder="Other amount (min)"
-            aria-label="Minutes to add"
-            className="h-9 flex-1"
-          />
-          <Button type="submit" variant="outline" className="h-9" disabled={!(Number(customMinutes) > 0)}>Add</Button>
-        </form>
-      </div>
-
-      {steps !== null ? (
-        <div className="mt-auto grid grid-cols-3 gap-2 pt-6">
-          <Stat value={steps.toLocaleString()} label="Steps" />
-          {activeCal !== null && <Stat value={activeCal} label="Active kcal" />}
-          {standHours !== null && <Stat value={`${standHours}h`} label="Stand hrs" />}
-          {vo2 !== null && <Stat value={vo2} label="VO₂ max" />}
-        </div>
-      ) : (
-        <p className="mt-auto flex items-center gap-2 pt-6 text-xs text-muted-foreground">
-          <Watch className="size-3.5 shrink-0" aria-hidden="true" />
-          Connect a wearable in Profile to see your active minutes and steps here.
-        </p>
-      )}
-    </HabitCard>
-  );
-}
+// The Activity card lives in ./activity/ActivityCard.
 
 /* ─── Water ─── */
 function WaterCard({ data, onChange, activeDate, biometrics, goals }: Props) {
@@ -1662,7 +1486,7 @@ export default function HabitsView({ data, onChange: saveData, biometrics, medic
         <SectionLabel>Nutrition & movement</SectionLabel>
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2"><FoodCard {...cardProps} foodLog={foodLog} /></div>
-          <ExerciseCard {...cardProps} />
+          <ActivityCard {...cardProps} />
         </div>
       </section>
 
@@ -1723,7 +1547,7 @@ function useDayCompleteCelebration(
 // Building blocks for the mobile app's own Habits page (mobile/src/screens/HabitsScreen.tsx),
 // which arranges the same cards under a sticky date bar. The web page above doesn't use these exports.
 export {
-  CORE_META, CustomHabitsSection, ExerciseCard, FoodCard, HabitChip, MedicationCard, MoodCard, SleepCard, WaterCard,
+  CORE_META, CustomHabitsSection, ActivityCard as ExerciseCard, FoodCard, HabitChip, MedicationCard, MoodCard, SleepCard, WaterCard,
   greeting, progressSubtitle, scrollToCard, useDayCompleteCelebration,
 };
 export type { Props as HabitCardProps };

@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 import { PartyPopper } from "lucide-react";
 
-// Studio Soléa: sage, evergreen, ink and marine.
-const COLORS = ["#719A73", "#003A35", "#001F27", "#1F73C2", "#A9CBEB", "#E6EEE6"];
+// Fikko green, evergreen, ink and marine.
+const COLORS = ["#157954", "#003A35", "#001F27", "#1F73C2", "#A9CBEB", "#E4F2EB"];
 const DURATION = 3000;
 const PIECES = 160;
 

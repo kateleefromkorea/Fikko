@@ -21,7 +21,7 @@
   --color-cream: var(--cream);
   --color-evergreen: var(--evergreen);
   --color-sage: var(--sage);
-  --color-sage-tint: var(--sage-tint);
+  --color-fikko-tint: var(--fikko-tint);
   --color-marine: var(--marine);
   --color-marine-tint: var(--marine-tint);
   --color-marine-soft: var(--marine-soft);
@@ -79,27 +79,25 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* shadcn's neutral base with the Studio Soléa palette. The page sits on a
-   faint grey so white cards lift off it.
+/* shadcn's neutral base with the Fikko palette. The page sits on a faint grey
+   so white cards lift off it.
 
-   Studio Soléa: rich greens and a striking marine blue. Contrast ratios are
-   WCAG, for text on its background (4.5:1 needed for small text, 3:1 for
-   icons, large text and chart lines).
-     Sage green    #719A73  the primary: fills, selected states, rings, bars.
-                   As text it's only 3.2:1 on white, so text in the primary
-                   colour uses primary-ink #476F4A (5.8:1). Selected sage
-                   surfaces carry ink text (5.4:1), not white.
+   Contrast ratios are WCAG, for text on its background (4.5:1 needed for
+   small text, 3:1 for icons, large text and chart lines).
+     Fikko green   #157954  the primary: selected and done states, links, rings,
+                   bars. White on it 5.4:1; as text on white 5.4:1
      Evergreen     #003A35  buttons and calls to action (white 12.7:1)
      Ink black     #001F27  body text, dark bars and elements (17.1:1 on white)
      Bright marine #1F73C2  pop: focus rings, highlights, callouts (white 4.9:1)
+     Sage          #719A73  only as pair C's text on ink. Nowhere else.
    Pairs, as the pair-* utilities below:
-     A  Evergreen on sage: 4.0:1, icons and large text only; small text uses a
-        lighter sage, #7EA680 (4.6:1)
-     B  Ink on sage: 5.4:1. pair-b-soft is ink on the sage tint (14.5:1)
-     C  Cream on evergreen: 11.2:1
-     D  Ink on a marine tint with a marine accent edge (14.0:1). Ink on solid
-        marine is 3.5:1, so a solid marine block uses white text (4.9:1),
+     A  White on Fikko green: 5.4:1
+     B  Cream on evergreen: 11.2:1
+     C  Sage on ink black: 5.4:1
+     D  Ink on a marine tint with a marine accent edge: 14.0:1. Ink on solid
+        marine is only 3.5:1, so a solid marine block uses white text (4.9:1),
         see pair-d-solid.
+   pair-soft is ink on a pale Fikko green tint (14.9:1) for quiet highlights.
 
    The Habits page's daily overview keeps its original colours on purpose:
    see .daily-overview further down, which is locked. */
@@ -110,8 +108,8 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: #719A73;
-  --primary-foreground: #001F27;
+  --primary: #157954;
+  --primary-foreground: #FFFFFF;
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
@@ -125,36 +123,38 @@
   --radius: 0.625rem;
 
   --primary-deep: #003A35;
-  --primary-ink: #476F4A;
+  /* Text in the primary colour. Fikko green reads at 5.4:1 on white. */
+  --primary-ink: #157954;
   --ink: #001F27;
   --cream: #F3F1E7;
   --evergreen: #003A35;
+  /* Sage appears only in pair C (sage text on ink). */
   --sage: #719A73;
-  --sage-tint: #E6EEE6;
+  --fikko-tint: #E4F2EB;
   --marine: #1F73C2;
   --marine-tint: #DCEAF7;
   /* Marine light enough to read on ink (10.1:1). */
   --marine-soft: #A9CBEB;
-  /* The old fresh accents, now sage and marine: soft washes and borders. */
-  --teal: #719A73;
+  /* The old fresh accents: Fikko green and marine, for soft washes and borders. */
+  --teal: #157954;
   --sky: #1F73C2;
 
   --water: #1F73C2;    --water-fg: #FFFFFF;    --water-strong: #1F73C2;
   --meds: #003A35;     --meds-fg: #F3F1E7;     --meds-strong: #003A35;
-  --food: #719A73;     --food-fg: #001F27;     --food-strong: #476F4A;
+  --food: #157954;     --food-fg: #FFFFFF;     --food-strong: #157954;
   --exercise: #DCEAF7; --exercise-fg: #1F73C2; --exercise-strong: #4A8BD0;
   --sleep: #001F27;    --sleep-fg: #F3F1E7;    --sleep-strong: #001F27;
-  --mood: #E6EEE6;     --mood-fg: #003A35;     --mood-strong: #2E5D57;
+  --mood: #E4F2EB;     --mood-fg: #003A35;     --mood-strong: #2E5D57;
   --custom: #2E5D57;   --custom-fg: #FFFFFF;   --custom-strong: #2E5D57;
 }
 
 /* The accent pairs, as text-on-background utilities. */
-@utility pair-a { background-color: #7EA680; color: var(--evergreen); }
-@utility pair-b { background-color: var(--sage); color: var(--ink); }
-@utility pair-b-soft { background-color: var(--sage-tint); color: var(--ink); }
-@utility pair-c { background-color: var(--evergreen); color: var(--cream); }
+@utility pair-a { background-color: var(--primary); color: #FFFFFF; }
+@utility pair-b { background-color: var(--evergreen); color: var(--cream); }
+@utility pair-c { background-color: var(--ink); color: var(--sage); }
 @utility pair-d { background-color: var(--marine-tint); color: var(--ink); box-shadow: inset 3px 0 0 var(--marine); }
 @utility pair-d-solid { background-color: var(--marine); color: #FFFFFF; }
+@utility pair-soft { background-color: var(--fikko-tint); color: var(--ink); }
 
 @layer base {
   * {

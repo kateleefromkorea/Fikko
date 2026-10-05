@@ -9,8 +9,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 const SEVERITY: Record<Severity, { label: string; icon: typeof AlertTriangle; cls: string }> = {
   avoid: { label: "Avoid together", icon: ShieldAlert, cls: "bg-red-50 text-red-700 ring-red-200" },
   caution: { label: "Check with a pharmacist", icon: AlertTriangle, cls: "pair-d" },
-  timing: { label: "Space them out", icon: Clock, cls: "pair-b-soft ring-sage/40" },
-  overlap: { label: "Doubling up", icon: Copy, cls: "pair-c ring-evergreen" },
+  timing: { label: "Space them out", icon: Clock, cls: "pair-soft ring-primary/25" },
+  overlap: { label: "Doubling up", icon: Copy, cls: "pair-b ring-evergreen" },
 };
 
 /**

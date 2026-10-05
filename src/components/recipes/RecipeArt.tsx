@@ -6,10 +6,10 @@ import { cn } from "@/lib/utils";
 import type { RecipeArtKey } from "../../lib/recipes";
 
 // Recipes without a photo get a soft illustrated tile: a tint and an icon for
-// the main ingredient. The tints are soft Studio Soléa sage and marine from
-// index.css, each icon dark enough to read on its tint.
+// the main ingredient. The tints are soft Fikko green, evergreen and marine
+// from index.css, each icon dark enough to read on its tint.
 const TONES = {
-  honey: { bg: "#E6EEE6", fg: "#476F4A" },
+  honey: { bg: "#E4F2EB", fg: "#157954" },
   coral: { bg: "#DCEAF7", fg: "#1F73C2" },
   sky:   { bg: "#E3EFF9", fg: "#185C9B" },
   mint:  { bg: "#E1ECE4", fg: "#003A35" },

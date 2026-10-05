@@ -62,7 +62,7 @@ export function buildPdf(tables: Record<string, Row[]>, exportedAt: Date, range:
   // Landscape gives wide tables like the food log room to breathe.
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
   const margin = 40;
-  // Evergreen (#003A35): Studio Soléa's deep green, readable as text on white.
+  // Evergreen (#003A35): the deep green, readable as text on white.
   const accent: [number, number, number] = [0, 58, 53];
   let y = margin;
 

@@ -335,9 +335,9 @@ function useScrolledPast(ref: RefObject<HTMLElement | null>) {
 }
 
 /**
- * A slim bar under the app header once the Today summary scrolls away: AI
- * credits left, the day being viewed, how many habits are done, and a Speak
- * button for the voice check-in.
+ * A slim frosted bar under the app header once the Today summary scrolls away:
+ * the day being viewed, how many habits are done (also drawn as a line along
+ * its bottom edge), and a Speak button for the voice check-in.
  */
 function StickyDayBar({ show, data, activeDate, onDateChange, waterGoal, onSpeak, onDateClick }: {
   show: boolean; data: HabitData; activeDate: string; onDateChange: (d: string) => void; waterGoal: number;
@@ -346,77 +346,65 @@ function StickyDayBar({ show, data, activeDate, onDateChange, waterGoal, onSpeak
   /** Takes the member back to the full summary, with its date picker. */
   onDateClick: () => void;
 }) {
-  const { core, custom, done, total } = completion(data, activeDate, waterGoal);
+  const { done, total } = completion(data, activeDate, waterGoal);
   const isToday = activeDate === todayKey();
   const dateLabel = new Date(activeDate + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
   const shift = (days: number) => {
     const next = shiftDateKey(activeDate, days);
     if (next <= todayKey()) onDateChange(next);
   };
+  const share = total ? done / total : 0;
   return (
     <div
       aria-hidden={!show}
       inert={!show}
       className={cn(
-        "fixed inset-x-0 top-16 z-30 bg-primary text-white shadow-md transition-[translate,opacity] duration-200 motion-reduce:transition-none",
+        "fixed inset-x-0 top-16 z-30 border-b bg-white/90 text-foreground shadow-sm backdrop-blur-md transition-[translate,opacity] duration-200 motion-reduce:transition-none",
         show ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-full opacity-0",
       )}
     >
       <div className="mx-auto flex h-12 max-w-screen-2xl items-center gap-3 px-4 sm:gap-5 sm:px-6">
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon-sm" className="text-white hover:bg-white/10 hover:text-white" onClick={() => shift(-1)} aria-label="Previous day">
+          <Button variant="ghost" size="icon-sm" className="text-muted-foreground" onClick={() => shift(-1)} aria-label="Previous day">
             <ChevronLeft />
           </Button>
           <button
             onClick={onDateClick}
-            className="min-w-0 rounded-md px-1 text-sm font-semibold whitespace-nowrap text-white hover:underline"
+            className="min-w-0 rounded-md px-1 text-sm font-semibold whitespace-nowrap hover:underline"
             aria-label={`${isToday ? "Today" : dateLabel}. Back to the summary`}
           >
-            {isToday ? <>Today<span className="hidden font-normal text-white/60 sm:inline"> · {dateLabel}</span></> : dateLabel}
+            {isToday ? <>Today<span className="hidden font-normal text-muted-foreground sm:inline"> · {dateLabel}</span></> : dateLabel}
           </button>
-          <Button variant="ghost" size="icon-sm" className="text-white hover:bg-white/10 hover:text-white disabled:text-white/30" onClick={() => shift(1)} disabled={isToday} aria-label="Next day">
+          <Button variant="ghost" size="icon-sm" className="text-muted-foreground" onClick={() => shift(1)} disabled={isToday} aria-label="Next day">
             <ChevronRight />
           </Button>
         </div>
 
-        <div className="flex min-w-0 flex-1 items-center gap-3" aria-label={`${done} of ${total} habits done`}>
-          <span className="text-sm font-semibold whitespace-nowrap tabular-nums">
-            {done}<span className="text-white/60">/{total}</span>
-            <span className="ml-1 hidden font-normal text-white/60 sm:inline">done</span>
-          </span>
-          <ul className="hidden min-w-0 items-center gap-1 overflow-hidden md:flex">
-            {core.map(({ key, done }) => {
-              const Icon = CORE_META[key].icon;
-              return (
-                <li key={key}>
-                  <button
-                    onClick={() => scrollToCard(`habit-${key}`)}
-                    title={`${CORE_META[key].label}${done ? ", done" : ""}`}
-                    aria-label={`${CORE_META[key].label}, ${done ? "done" : "not done yet"}`}
-                    className={cn(
-                      "grid size-7 place-items-center rounded-full transition-colors",
-                      done ? "bg-[#E2EFFC] text-[#1F6AB0]" : "bg-black/10 text-white hover:bg-black/20",
-                    )}
-                  >
-                    {done ? <Check className="size-3.5" strokeWidth={3} /> : <Icon className="size-3.5" />}
-                  </button>
-                </li>
-              );
-            })}
-            {custom.length > 0 && (
-              <li className="pl-1 text-xs whitespace-nowrap text-white/60">
-                +{custom.filter((c) => c.done).length}/{custom.length} custom
-              </li>
-            )}
-          </ul>
-        </div>
+        <p className="text-sm whitespace-nowrap text-muted-foreground tabular-nums">
+          <span className="font-semibold text-(--button)">{done}</span> of {total} done
+        </p>
 
         {onSpeak && (
-          <Button onClick={onSpeak} size="sm" className="h-8 shrink-0 gap-1.5 rounded-full bg-white px-4 font-semibold text-[#0E3B2B] shadow-sm hover:bg-emerald-100">
+          <Button onClick={onSpeak} size="sm" className="ml-auto h-8 shrink-0 gap-1.5 rounded-full px-4 font-semibold">
             <Mic />
             Speak
           </Button>
         )}
+      </div>
+
+      {/* The day's progress as a thin line along the bottom, in the daily overview's teal to sky. */}
+      <div
+        role="progressbar"
+        aria-label="Habits done today"
+        aria-valuemin={0}
+        aria-valuemax={total}
+        aria-valuenow={done}
+        className="absolute inset-x-0 -bottom-px h-[3px]"
+      >
+        <div
+          className="h-full rounded-r-full transition-[width] duration-500 motion-reduce:transition-none"
+          style={{ width: `${share * 100}%`, background: "linear-gradient(90deg, #2DC4B2, #5BA9F0)" }}
+        />
       </div>
     </div>
   );

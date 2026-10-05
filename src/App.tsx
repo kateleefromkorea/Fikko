@@ -3,6 +3,7 @@ import { useAiCredits } from "./hooks/useAiCredits";
 import { ChartNoAxesColumn, Loader2, ChefHat, ListChecks, LogOut, Sparkles, UserRound, Users, type LucideIcon } from "lucide-react";
 import { completion } from "./lib/completion";
 import HabitsView from "./components/HabitsView";
+import ScrollToTop from "./components/ScrollToTop";
 import type { DeviceOutcome } from "./components/profile/DevicesCard";
 import CoachView from "./components/CoachView";
 import { useAuth } from "./auth/AuthProvider";
@@ -362,6 +363,8 @@ export default function App() {
           </nav>
         </div>
       </footer>
+
+      <ScrollToTop />
 
       {/* Phone navigation. Sits above the home indicator on notched iPhones. */}
       <nav

@@ -81,17 +81,34 @@ function Highlight({ text, query }: { text: string; query: string }) {
 }
 
 /** Title row shared by the three sections of a meal, so each reads as its own block. */
-function SectionHeader({ icon: Icon, id, title, hint, aside }: { icon: LucideIcon; id: string; title: string; hint?: string; aside?: string }) {
+function SectionHeader({ icon: Icon, id, title, hint, aside, inverse }: {
+  icon: LucideIcon; id: string; title: string; hint?: string; aside?: string;
+  /** White on a green band. */
+  inverse?: boolean;
+}) {
   return (
     <div className="flex items-start gap-3">
-      <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+      <span className={cn("grid size-8 shrink-0 place-items-center rounded-lg", inverse ? "bg-white/15 text-white" : "bg-primary/10 text-primary")}>
         <Icon className="size-4" aria-hidden="true" />
       </span>
       <div className="min-w-0 flex-1">
         <h3 id={id} className="text-base leading-8 font-semibold">{title}</h3>
-        {hint && <p className="-mt-1 text-sm text-muted-foreground">{hint}</p>}
+        {hint && <p className={cn("-mt-1 text-sm", inverse ? "text-white/80" : "text-muted-foreground")}>{hint}</p>}
       </div>
-      {aside && <span className="pt-1 text-sm text-muted-foreground tabular-nums">{aside}</span>}
+      {aside && <span className={cn("pt-1.5 text-sm tabular-nums", inverse ? "text-white/85" : "text-muted-foreground")}>{aside}</span>}
+    </div>
+  );
+}
+
+/** One figure in the meal's summary: a big number over a small label. */
+function Stat({ value, unit, label, big }: { value: string; unit: string; label: string; big?: boolean }) {
+  return (
+    <div className="min-w-0">
+      <p className={cn("leading-none font-semibold text-foreground tabular-nums", big ? "text-3xl" : "text-xl")}>
+        {value}
+        {unit && <span className={cn("ml-1 font-normal text-muted-foreground", big ? "text-base" : "text-sm")}>{unit}</span>}
+      </p>
+      <p className="mt-1.5 text-xs text-muted-foreground">{label}</p>
     </div>
   );
 }
@@ -147,6 +164,7 @@ export default function FoodLogModal({
 
   const total = items.reduce((sum, i) => sum + i.calories, 0);
   const mealMacros = sumMacros(items);
+  const macrosKnown = items.length === 0 || mealMacros.missing < items.length;
 
   const q = query.trim();
   const loggedNames = new Set(items.map((i) => i.name.toLowerCase()));
@@ -370,12 +388,34 @@ export default function FoodLogModal({
         // Escape closes the options list first, and the window only once it's gone.
         onEscapeKeyDown={(e) => { if (showList) { e.preventDefault(); setListOpen(false); } }}
       >
-        <DialogHeader>
+        <DialogHeader className="gap-4">
           <DialogTitle className="text-2xl font-semibold">{mealLabel}</DialogTitle>
-          <DialogDescription className="text-base tabular-nums">
+          <DialogDescription className="sr-only">
             {Math.round(total)} kcal logged
             {showMacros && items.length > 0 && ` · ${formatMacros(mealMacros.total)}`}
           </DialogDescription>
+          {/* The meal at a glance: calories big, then protein, carbs and fat. */}
+          <div aria-hidden="true" className="flex flex-wrap items-end gap-x-6 gap-y-3">
+            <Stat big value={Math.round(total).toLocaleString()} unit="kcal" label="Logged so far" />
+            {showMacros && (
+              <div className="flex items-end gap-5 sm:border-l sm:pl-6">
+                {([["protein", "Protein"], ["carbs", "Carbs"], ["fat", "Fat"]] as const).map(([k, label]) => (
+                  <Stat
+                    key={k}
+                    // A dash, not 0 g, when none of the foods came with macros.
+                    value={macrosKnown ? String(Math.round(mealMacros.total[k])) : "–"}
+                    unit={macrosKnown ? "g" : ""}
+                    label={label}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+          {showMacros && mealMacros.missing > 0 && macrosKnown && (
+            <p className="text-xs text-muted-foreground">
+              Protein, carbs and fat leave out {mealMacros.missing} {mealMacros.missing === 1 ? "food" : "foods"} without that information.
+            </p>
+          )}
         </DialogHeader>
 
         {saveError && (
@@ -384,8 +424,9 @@ export default function FoodLogModal({
 
         {/* 1 · What's already in this meal. */}
         <section aria-labelledby="sec-logged" className="overflow-hidden rounded-2xl border bg-card shadow-xs">
-          <div className="border-b bg-primary/[0.06] px-4 py-3.5">
+          <div className="bg-primary px-4 py-3.5 text-primary-foreground">
             <SectionHeader
+              inverse
               icon={ListChecks}
               id="sec-logged"
               title="Logged"
@@ -399,26 +440,35 @@ export default function FoodLogModal({
           ) : (
             <ul className="divide-y">
               {items.map((item) => (
-                <li key={item.id} className="flex items-center gap-3 px-4 py-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[15px] font-medium">{item.name}</p>
-                    <p className="text-xs text-muted-foreground tabular-nums">
-                      {Math.round(item.calories)} kcal
-                      {showMacros && (() => { const m = macrosFor(item); return m ? ` · ${formatMacros(m)}` : " · macros unknown"; })()}
-                    </p>
+                // On a phone the amount and calories wrap under a long name instead of squeezing it.
+                <li key={item.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3.5">
+                  <div className="min-w-0 flex-1 basis-44">
+                    <p className="truncate text-base font-medium">{item.name}</p>
+                    {showMacros && (
+                      <p className="truncate text-xs text-muted-foreground tabular-nums">
+                        {(() => { const m = macrosFor(item); return m ? formatMacros(m) : "Macros unknown"; })()}
+                      </p>
+                    )}
                   </div>
-                  <Input
-                    type="number"
-                    min="0"
-                    value={item.grams}
-                    onChange={(e) => onUpdateGrams(item.id, clamp(parseFloat(e.target.value) || 0, DB_LIMITS.foodGrams))}
-                    aria-label={`Grams of ${item.name}`}
-                    className="h-8 w-20"
-                  />
-                  <span className="text-xs text-muted-foreground">g</span>
-                  <Button variant="ghost" size="icon-sm" onClick={() => onDelete(item.id)} aria-label={`Remove ${item.name}`} className="text-muted-foreground">
-                    <X />
-                  </Button>
+                  <div className="ml-auto flex shrink-0 items-center gap-1.5">
+                    <Input
+                      type="number"
+                      min="0"
+                      value={item.grams}
+                      onChange={(e) => onUpdateGrams(item.id, clamp(parseFloat(e.target.value) || 0, DB_LIMITS.foodGrams))}
+                      aria-label={`Grams of ${item.name}`}
+                      className="h-9 w-20 text-right"
+                    />
+                    <span className="text-sm text-muted-foreground">g</span>
+                    {/* Calories on the right, where the eye looks for the number. */}
+                    <p className="ml-2 w-20 text-right text-base font-semibold tabular-nums">
+                      {Math.round(item.calories).toLocaleString()}
+                      <span className="ml-1 text-xs font-normal text-muted-foreground">kcal</span>
+                    </p>
+                    <Button variant="ghost" size="icon-sm" onClick={() => onDelete(item.id)} aria-label={`Remove ${item.name}`} className="text-muted-foreground">
+                      <X />
+                    </Button>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -451,7 +501,7 @@ export default function FoodLogModal({
         </section>
 
         {/* 2 · Finding a food: search, scan, photo, and one-tap repeats. */}
-        <section aria-labelledby="sec-search" className="space-y-4 rounded-2xl border bg-muted/40 p-4 sm:p-5">
+        <section aria-labelledby="sec-search" className="space-y-4 rounded-2xl border bg-card p-4 shadow-xs sm:p-5">
           <SectionHeader icon={Search} id="sec-search" title="Find a food" hint="Search by name or brand, scan a barcode, or snap a photo." />
 
           <div className="space-y-3">

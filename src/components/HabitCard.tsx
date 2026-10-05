@@ -46,7 +46,7 @@ export function DoneBadge({ className }: { className?: string }) {
   return (
     <span
       className={cn(
-        "tick-pop inline-flex h-5 items-center gap-1 rounded-full bg-primary/10 px-2 text-xs font-medium text-primary-ink",
+        "tick-pop inline-flex h-5 items-center gap-1 rounded-full bg-[#DDF5F1] px-2 text-xs font-medium text-[#0A6E63]",
         className,
       )}
     >

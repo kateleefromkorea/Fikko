@@ -134,7 +134,7 @@ async function memberContext(db: SupabaseClient, userId: string, tzOffset: numbe
     ].filter(Boolean);
     lines.push("", "Profile:", ...facts.map((f) => `- ${f}`));
   }
-  lines.push("", "Habit targets in Fikko: activity counts as done at 30+ minutes; sleep at a rest score of 3/5 or better; medications when everything scheduled is ticked.");
+  lines.push("", "Habit targets in Fikko: activity counts as done at 30+ minutes; sleep as soon as they log how rested they felt, whatever the score (a poor night still counts as logged); medications when everything scheduled is ticked.");
   lines.push("Activity minutes here are only workouts the member logged themselves. Fikko also counts active minutes from a connected Fitbit or Pixel Watch, but those aren't shared with you, so low or missing activity doesn't necessarily mean they were inactive. Don't claim they missed their activity goal; ask if it matters.");
 
   const loggedRecently = (habitsRes.data?.length ?? 0) > 0 || (customEntriesRes.data ?? []).some((e) => Number(e.value) > 0);

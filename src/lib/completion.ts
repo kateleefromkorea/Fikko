@@ -42,8 +42,8 @@ export function coreDone(data: HabitData, key: CoreHabit, date: string, waterTar
     case "medication": return valueOn(data.medication, date) === 1;
     case "food": return valueOn(data.food, date) > 0;
     case "exercise": return activityMinutes(data, date).total >= EXERCISE_TARGET_MIN;
-    // Rest score of "Okay" or better.
-    case "sleep": return valueOn(data.sleep, date) >= 3;
+    // Any rest score counts, even "Exhausted": logging how the night went is the habit.
+    case "sleep": return valueOn(data.sleep, date) > 0;
     case "mood": return valueOn(data.mood, date) > 0;
   }
 }

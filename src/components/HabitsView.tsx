@@ -1061,9 +1061,9 @@ function SleepCard({ data, onChange, activeDate, biometrics, goals }: Props) {
       icon={Moon}
       hue="sleep"
       title="Sleep"
-      description={`Goal ${formatHours(goals.sleepHours)} a night · done when you wake up rested`}
+      description={`Goal ${formatHours(goals.sleepHours)} a night · done once you log how rested you feel`}
       action={totalH !== null ? <Figure value={totalH} unit="h" /> : undefined}
-      done={restScore >= 3}
+      done={restScore > 0}
       comment={comment}
     >
       <div className="grid gap-8 lg:grid-cols-3">

@@ -44,7 +44,7 @@ export function DoneBadge({ className }: { className?: string }) {
   return (
     <span
       className={cn(
-        "tick-pop inline-flex h-5 items-center gap-1 rounded-full bg-primary px-2 text-xs font-medium text-primary-foreground",
+        "tick-pop inline-flex h-5 items-center gap-1 rounded-full bg-primary/10 px-2 text-xs font-medium text-primary",
         className,
       )}
     >
@@ -60,12 +60,11 @@ export function DoneBadge({ className }: { className?: string }) {
  */
 export const softCardCls = "ring-0 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-8px_rgba(16,24,40,0.10)]";
 
-/** Shared habit card surface: soft card that lifts on hover, green outline when done. */
+/** Shared habit card surface: soft card that lifts on hover. Done is shown by the badge, not an outline. */
 export function habitCardCls(done?: boolean) {
   return cn(
     "relative h-full transition-[translate,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[0_2px_4px_rgba(16,24,40,0.04),0_16px_32px_-8px_rgba(16,24,40,0.14)] motion-reduce:transition-none motion-reduce:hover:translate-y-0",
     softCardCls,
-    done && "ring-2 ring-primary/40",
   );
 }
 

@@ -13,10 +13,17 @@ const n = (v: number) => Math.round(v).toLocaleString();
 const plural = (v: number, one: string, many = `${one}s`) => `${n(v)} ${v === 1 ? one : many}`;
 
 export function foodComment(
-  { total, target, meals }: { total: number; target: number; meals: Record<"breakfast" | "lunch" | "dinner" | "snacks", number> },
+  { total, target, meals, eaten = total }: {
+    /** Net calories: eaten less the workouts logged. */
+    total: number;
+    target: number;
+    meals: Record<"breakfast" | "lunch" | "dinner" | "snacks", number>;
+    /** Calories eaten, before workouts. A net of 0 can still mean a full day of meals. */
+    eaten?: number;
+  },
   { isToday, hour }: Moment,
 ): string {
-  if (total === 0) {
+  if (eaten === 0) {
     if (!isToday) return "No meals were logged this day. You can still add them.";
     if (hour < 11) return "Morning! Log breakfast once you've eaten and watch the ring fill up.";
     if (hour < 15) return "Nothing logged yet today. Start with lunch, it only takes a moment.";
@@ -33,7 +40,7 @@ export function foodComment(
   if (!isToday) return `Finished ${n(left)} kcal under target that day.`;
   if (!meals.dinner && hour >= 15) return `${n(left)} kcal left, plenty of room for a good dinner.`;
   if (!meals.lunch && hour >= 11 && hour < 15) return `${n(left)} kcal left. Lunch is up next.`;
-  if (total < target * 0.5 && hour >= 19) return `Only ${n(total)} kcal so far. Make sure you're eating enough today.`;
+  if (eaten < target * 0.5 && hour >= 19) return `Only ${n(eaten)} kcal eaten so far. Make sure you're eating enough today.`;
   return `${n(left)} kcal left in today's target.`;
 }
 

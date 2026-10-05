@@ -434,12 +434,12 @@ function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog }: Pro
     .reduce((sum, w) => sum + activityCalories(w.name, w.minutes, goals.weightKg), 0);
   const total = Math.max(0, eaten - burned);
   const overTarget = total > target;
-  // Past the target the ring is scaled to the net, so it stays full; each meal's share
-  // is drawn in proportion to the net, so the ring shrinks as workouts are logged.
-  const scale = Math.max(total, target);
-  const shareOfNet = eaten > 0 ? total / eaten : 0;
+  // The ring shows what was eaten, one slice per meal, against the target (scaled to
+  // the day's total once past it). The middle shows the net after workouts. Drawing the
+  // slices at their net size used to empty the ring whenever workouts burned more than was eaten.
+  const scale = Math.max(eaten, target);
 
-  const comment = foodComment({ total, target, meals }, momentFor(activeDate, todayKey()));
+  const comment = foodComment({ total, target, meals, eaten }, momentFor(activeDate, todayKey()));
 
   return (
     <HabitCard
@@ -456,7 +456,7 @@ function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog }: Pro
           <ProgressRing
             size={168}
             stroke={14}
-            segments={MEALS.map((m) => ({ value: ((meals[m.key] ?? 0) * shareOfNet) / scale, color: m.color }))}
+            segments={MEALS.map((m) => ({ value: (meals[m.key] ?? 0) / scale, color: m.color }))}
             label={`${Math.round(total)} net of ${target} kcal`}
           >
             <div>

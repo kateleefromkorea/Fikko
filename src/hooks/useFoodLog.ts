@@ -77,7 +77,7 @@ export function useFoodLog(
           setLoading(false);
           return;
         }
-        setItems((rows ?? []).map((r) => ({
+        const loaded: FoodLogItem[] = (rows ?? []).map((r) => ({
           id: r.id,
           meal: r.meal as MealKey,
           name: r.name,
@@ -87,9 +87,14 @@ export function useFoodLog(
           proteinPer100g: r.protein_per_100g == null ? null : Number(r.protein_per_100g),
           carbsPer100g: r.carbs_per_100g == null ? null : Number(r.carbs_per_100g),
           fatPer100g: r.fat_per_100g == null ? null : Number(r.fat_per_100g),
-        })));
+        }));
+        setItems(loaded);
         readyRef.current = true;
         setLoading(false);
+        // Repair a day whose saved totals drifted from its foods (a save that failed
+        // before failures were caught). Days with no foods keep their totals: they may
+        // be from before each food was logged separately.
+        if (loaded.length) syncAggregate(loaded, date, undefined, true);
       });
     return () => { live = false; };
   }, [userId, date, reloadKey]);
@@ -98,13 +103,14 @@ export function useFoodLog(
    * Rebuilds this day's totals from the foods, on the latest habit data. `base`
    * is for a voice check-in that changes other habits in the same save.
    */
-  const syncAggregate = useCallback((nextItems: FoodLogItem[], forDate: string, base?: HabitData) => {
+  const syncAggregate = useCallback((nextItems: FoodLogItem[], forDate: string, base?: HabitData, onlyIfDifferent = false) => {
     const totals = mealTotals(nextItems);
     const dayTotal = round(MEAL_KEYS.reduce((sum, k) => sum + totals[k], 0));
     const note = JSON.stringify(totals);
     onChange((prev) => {
       const from = base ?? prev;
       const existing = from.food.find((e) => e.date === forDate);
+      if (onlyIfDifferent && existing && existing.value === dayTotal && existing.note === note) return prev;
       const food = existing
         ? from.food.map((e) => (e.date === forDate ? { ...e, value: dayTotal, note } : e))
         : [...from.food, { date: forDate, value: dayTotal, note }];

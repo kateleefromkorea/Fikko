@@ -432,11 +432,16 @@ function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog }: Pro
   const [openMeal, setOpenMeal] = useState<MealKey | null>(null);
 
   const target = Math.round(goals.calories);
-  const total = meals.breakfast + meals.lunch + meals.dinner + meals.snacks;
+  const eaten = meals.breakfast + meals.lunch + meals.dinner + meals.snacks;
+  // Net calories: what was eaten, less the estimated burn of the workouts logged on the Activity card.
+  const burned = workoutsOf(getEntry(data.exercise, activeDate))
+    .reduce((sum, w) => sum + activityCalories(w.name, w.minutes, goals.weightKg), 0);
+  const total = Math.max(0, eaten - burned);
   const overTarget = total > target;
-  // Past the target the ring is scaled to the total, so it stays full and
-  // still shows each meal's share.
+  // Past the target the ring is scaled to the net, so it stays full; each meal's share
+  // is drawn in proportion to the net, so the ring shrinks as workouts are logged.
   const scale = Math.max(total, target);
+  const shareOfNet = eaten > 0 ? total / eaten : 0;
 
   const comment = foodComment({ total, target, meals }, momentFor(activeDate, todayKey()));
 
@@ -447,22 +452,27 @@ function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog }: Pro
       hue="food"
       title="Calories"
       description={`Done once you log a meal · target ${target.toLocaleString()} kcal`}
-      done={total > 0}
+      done={eaten > 0}
       comment={comment}
     >
-      <div className="grid items-center gap-8 sm:grid-cols-[auto_1fr]">
-        <div className="flex flex-col items-center gap-3">
+      <div className="grid flex-1 items-stretch gap-8 sm:grid-cols-[auto_1fr]">
+        <div className="flex flex-col items-center justify-center gap-3">
           <ProgressRing
             size={168}
             stroke={14}
-            segments={MEALS.map((m) => ({ value: (meals[m.key] ?? 0) / scale, color: m.color }))}
-            label={`${Math.round(total)} of ${target} kcal`}
+            segments={MEALS.map((m) => ({ value: ((meals[m.key] ?? 0) * shareOfNet) / scale, color: m.color }))}
+            label={`${Math.round(total)} net of ${target} kcal`}
           >
             <div>
               <p className="text-3xl font-semibold tracking-tight tabular-nums">{Math.round(total).toLocaleString()}</p>
-              <p className="text-xs text-muted-foreground">of {target.toLocaleString()} kcal</p>
+              <p className="text-xs text-muted-foreground">{burned > 0 ? "net" : "of"} {burned > 0 ? `of ${target.toLocaleString()}` : target.toLocaleString()} kcal</p>
             </div>
           </ProgressRing>
+          {burned > 0 && (
+            <p className="text-center text-xs text-muted-foreground tabular-nums">
+              {Math.round(eaten).toLocaleString()} eaten − <span className="text-exercise">{burned.toLocaleString()} burned</span>
+            </p>
+          )}
           {overTarget && <p className="max-w-48 text-center text-sm text-amber-700">{Math.round(total - target).toLocaleString()} kcal over</p>}
           {(() => {
             // Shown for every member, whatever their goal or tracking style; 0 g until something's logged.
@@ -486,12 +496,13 @@ function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog }: Pro
           })()}
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid auto-rows-fr grid-cols-2 gap-3">
           {MEALS.map(({ key, label, icon: Icon, color }) => {
             const val = meals[key] ?? 0;
-            const itemCount = foodLog.items.filter((i) => i.meal === key).length;
+            const mealItems = foodLog.items.filter((i) => i.meal === key);
+            const itemCount = mealItems.length;
             return (
-              <div key={key} className={cn(panelCls, "flex flex-col gap-3 p-4")}>
+              <div key={key} className={cn(panelCls, "flex h-full min-h-0 flex-col gap-2.5 p-4")}>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <span className="size-2 rounded-full" style={{ background: color }} aria-hidden="true" />
                   <Icon className="size-4" aria-hidden="true" />
@@ -501,6 +512,17 @@ function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog }: Pro
                   {Math.round(val)}
                   <span className="ml-1 text-xs font-normal text-muted-foreground">kcal</span>
                 </p>
+                {itemCount > 0 && (
+                  <ul className="-mt-1 space-y-0.5 text-xs text-muted-foreground" aria-label={`${label} items`}>
+                    {mealItems.slice(0, 4).map((item) => (
+                      <li key={item.id} className="flex gap-2">
+                        <span className="min-w-0 flex-1 truncate">{item.name}</span>
+                        <span className="shrink-0 tabular-nums">{Math.round(item.calories)}</span>
+                      </li>
+                    ))}
+                    {itemCount > 4 && <li>+{itemCount - 4} more</li>}
+                  </ul>
+                )}
                 <Button variant="outline" className="mt-auto h-9" onClick={() => setOpenMeal(key)}>
                   <Plus />
                   {itemCount > 0 ? `${itemCount} item${itemCount === 1 ? "" : "s"}` : "Log food"}
@@ -538,6 +560,22 @@ function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog }: Pro
 /* ─── Exercise ─── */
 const QUICK_MINUTES = [10, 20, 30];
 const WORKOUT_SUGGESTIONS = ["Walk", "Run", "Gym", "Yoga", "Cycling", "Swim"];
+
+/** Workouts of the same type share a key: "Walk", "walk " and "WALK" are one. */
+const workoutKey = (w: Workout) => w.name.trim().toLowerCase();
+
+/** One row per type of workout, with minutes added up, in the order first logged. */
+function groupWorkouts(workouts: Workout[]) {
+  const groups = new Map<string, { key: string; name: string; minutes: number; count: number }>();
+  for (const w of workouts) {
+    const key = workoutKey(w);
+    const g = groups.get(key) ?? { key, name: w.name.trim(), minutes: 0, count: 0 };
+    g.minutes += w.minutes;
+    g.count += 1;
+    groups.set(key, g);
+  }
+  return [...groups.values()];
+}
 
 function ExerciseCard({ data, onChange, activeDate, biometrics, goals }: Props) {
   const { device, total } = activityMinutes(data, activeDate);
@@ -592,10 +630,13 @@ function ExerciseCard({ data, onChange, activeDate, biometrics, goals }: Props) 
               <span className="w-7" aria-hidden="true" />
             </li>
           )}
-          {workouts.map((w, i) => (
-            <li key={i} className="flex items-center gap-2.5 rounded-lg bg-foreground/[0.04] py-1 pr-1 pl-3 text-sm">
+          {groupWorkouts(workouts).map((w) => (
+            <li key={w.key} className="flex items-center gap-2.5 rounded-lg bg-foreground/[0.04] py-1 pr-1 pl-3 text-sm">
               <Dumbbell className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-              <span className="min-w-0 flex-1 truncate">{w.name || "Workout"}</span>
+              <span className="min-w-0 flex-1 truncate">
+                {w.name || "Workout"}
+                {w.count > 1 && <span className="ml-1.5 text-xs text-muted-foreground">×{w.count}</span>}
+              </span>
               <span className="tabular-nums text-muted-foreground">{w.minutes} min</span>
               <span
                 className="w-20 text-right tabular-nums text-muted-foreground"
@@ -606,8 +647,8 @@ function ExerciseCard({ data, onChange, activeDate, biometrics, goals }: Props) 
               <Button
                 variant="ghost"
                 size="icon-sm"
-                onClick={() => save(workouts.filter((_, j) => j !== i))}
-                aria-label={`Remove ${w.name || "workout"}, ${w.minutes} minutes`}
+                onClick={() => save(workouts.filter((x) => workoutKey(x) !== w.key))}
+                aria-label={`Remove ${w.name || "workout"}, ${w.minutes} minutes${w.count > 1 ? ` (all ${w.count})` : ""}`}
                 className="text-muted-foreground"
               >
                 <X />

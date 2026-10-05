@@ -10,7 +10,6 @@ import { MAX_WORKOUTS, WORKOUT_NAME_MAX, newWorkout, workoutsEntry, workoutsOf, 
 import type { HabitData, BiometricData, HabitEntry, CustomHabit, MealKey, TimeOfDay } from "../types";
 import type { useMedications } from "../hooks/useMedications";
 import { useFoodLog } from "../hooks/useFoodLog";
-import { useAiCredits } from "../hooks/useAiCredits";
 import { useCustomFoods } from "../hooks/useCustomFoods";
 import FoodLogModal from "./FoodLogModal";
 import VoiceCheckIn from "./VoiceCheckIn";
@@ -307,72 +306,42 @@ function StickyDayBar({ show, data, activeDate, onDateChange, waterGoal, onSpeak
   onDateClick: () => void;
 }) {
   const { core, custom, done, total } = completion(data, activeDate, waterGoal);
-  const credits = useAiCredits();
   const isToday = activeDate === TODAY;
   const dateLabel = new Date(activeDate + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
   const shift = (days: number) => {
     const next = shiftDateKey(activeDate, days);
     if (next <= TODAY) onDateChange(next);
   };
-  const out = credits.left === 0;
-
   return (
     <div
       aria-hidden={!show}
       inert={!show}
       className={cn(
-        "fixed inset-x-0 top-16 z-30 border-b bg-white/95 shadow-sm backdrop-blur transition-[translate,opacity] duration-200 motion-reduce:transition-none",
+        "fixed inset-x-0 top-16 z-30 bg-[#0E3B2B] text-white shadow-md transition-[translate,opacity] duration-200 motion-reduce:transition-none",
         show ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-full opacity-0",
       )}
     >
-      <div className={cn("border-b", out ? "border-destructive/15 bg-destructive/5" : "border-primary/10 bg-primary/5")}>
-        <div className="mx-auto flex h-7 max-w-screen-2xl items-center gap-2 px-4 text-xs sm:px-6">
-          <Sparkles className={cn("size-3.5", out ? "text-destructive" : "text-primary")} aria-hidden="true" />
-          <span className="font-medium">AI credits</span>
-          {credits.left != null && (
-            <>
-              <span
-                className="h-1.5 w-16 overflow-hidden rounded-full bg-foreground/10 sm:w-24"
-                role="meter"
-                aria-label="AI credits left today"
-                aria-valuemin={0}
-                aria-valuemax={credits.limit}
-                aria-valuenow={credits.left}
-              >
-                <span
-                  className={cn("block h-full rounded-full", out ? "bg-destructive" : "bg-primary")}
-                  style={{ width: `${(credits.left / credits.limit) * 100}%` }}
-                />
-              </span>
-              <span className={cn("tabular-nums", out ? "text-destructive" : "text-muted-foreground")}>
-                {out ? "None left today · resets at midnight" : `${credits.left} of ${credits.limit} left today`}
-              </span>
-            </>
-          )}
-        </div>
-      </div>
-
       <div className="mx-auto flex h-12 max-w-screen-2xl items-center gap-3 px-4 sm:gap-5 sm:px-6">
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon-sm" onClick={() => shift(-1)} aria-label="Previous day">
+          <Button variant="ghost" size="icon-sm" className="text-white hover:bg-white/10 hover:text-white" onClick={() => shift(-1)} aria-label="Previous day">
             <ChevronLeft />
           </Button>
           <button
             onClick={onDateClick}
-            className="min-w-0 rounded-md px-1 text-sm font-semibold whitespace-nowrap text-primary hover:underline"
+            className="min-w-0 rounded-md px-1 text-sm font-semibold whitespace-nowrap text-emerald-300 hover:underline"
             aria-label={`${isToday ? "Today" : dateLabel}. Back to the summary`}
           >
-            {isToday ? <>Today<span className="hidden font-normal text-muted-foreground sm:inline"> · {dateLabel}</span></> : dateLabel}
+            {isToday ? <>Today<span className="hidden font-normal text-white/60 sm:inline"> · {dateLabel}</span></> : dateLabel}
           </button>
-          <Button variant="ghost" size="icon-sm" onClick={() => shift(1)} disabled={isToday} aria-label="Next day">
+          <Button variant="ghost" size="icon-sm" className="text-white hover:bg-white/10 hover:text-white disabled:text-white/30" onClick={() => shift(1)} disabled={isToday} aria-label="Next day">
             <ChevronRight />
           </Button>
         </div>
 
         <div className="flex min-w-0 flex-1 items-center gap-3" aria-label={`${done} of ${total} habits done`}>
           <span className="text-sm font-semibold whitespace-nowrap tabular-nums">
-            {done}<span className="text-muted-foreground">/{total}</span>
-            <span className="ml-1 hidden font-normal text-muted-foreground sm:inline">done</span>
+            {done}<span className="text-white/60">/{total}</span>
+            <span className="ml-1 hidden font-normal text-white/60 sm:inline">done</span>
           </span>
           <ul className="hidden min-w-0 items-center gap-1 overflow-hidden md:flex">
             {core.map(({ key, done }) => {
@@ -385,7 +354,7 @@ function StickyDayBar({ show, data, activeDate, onDateChange, waterGoal, onSpeak
                     aria-label={`${CORE_META[key].label}, ${done ? "done" : "not done yet"}`}
                     className={cn(
                       "grid size-7 place-items-center rounded-full transition-colors",
-                      done ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-foreground/5",
+                      done ? "bg-emerald-400 text-[#0E3B2B]" : "bg-white/10 text-white/80 hover:bg-white/20",
                     )}
                   >
                     {done ? <Check className="size-3.5" strokeWidth={3} /> : <Icon className="size-3.5" />}
@@ -394,7 +363,7 @@ function StickyDayBar({ show, data, activeDate, onDateChange, waterGoal, onSpeak
               );
             })}
             {custom.length > 0 && (
-              <li className="pl-1 text-xs whitespace-nowrap text-muted-foreground">
+              <li className="pl-1 text-xs whitespace-nowrap text-white/60">
                 +{custom.filter((c) => c.done).length}/{custom.length} custom
               </li>
             )}
@@ -402,7 +371,7 @@ function StickyDayBar({ show, data, activeDate, onDateChange, waterGoal, onSpeak
         </div>
 
         {onSpeak && (
-          <Button onClick={onSpeak} size="sm" className="h-8 shrink-0 gap-1.5 rounded-full px-3.5">
+          <Button onClick={onSpeak} size="sm" className="h-8 shrink-0 gap-1.5 rounded-full bg-white px-4 font-semibold text-[#0E3B2B] shadow-sm hover:bg-emerald-100">
             <Mic />
             Speak
           </Button>
@@ -1226,33 +1195,40 @@ export function moodOption(value: number, note?: string) {
 }
 
 /** The seven days ending on the viewed day, each with the mood logged that day. */
-function MoodWeek({ data, endDate }: { data: HabitData; endDate: string }) {
-  const days = Array.from({ length: 7 }, (_, i) => shiftDateKey(endDate, i - 6));
+/** The day being viewed in the middle, three days either side: what was logged before, and the days still to come. */
+function MoodWeek({ data, endDate: centerDate }: { data: HabitData; endDate: string }) {
+  const days = Array.from({ length: 7 }, (_, i) => shiftDateKey(centerDate, i - 3));
   return (
     <div className="space-y-2">
-      <GroupLabel>This week</GroupLabel>
+      <GroupLabel>Your week</GroupLabel>
       <ol className="grid grid-cols-7 gap-1.5">
         {days.map((date) => {
-          const entry = getEntry(data.mood, date);
+          const future = date > TODAY;
+          const entry = future ? undefined : getEntry(data.mood, date);
           const option = entry ? moodOption(entry.value, entry.note) : undefined;
-          const day = new Date(date + "T12:00:00").toLocaleDateString("en-US", { weekday: "narrow" });
-          const isEnd = date === endDate;
+          const day = new Date(date + "T12:00:00").toLocaleDateString("en-US", { weekday: "short" });
+          const isCenter = date === centerDate;
           return (
             <li
               key={date}
               className="flex flex-col items-center gap-1"
-              aria-label={`${new Date(date + "T12:00:00").toLocaleDateString("en-US", { weekday: "long" })}: ${option?.label ?? "no mood logged"}`}
+              aria-current={isCenter ? "date" : undefined}
+              aria-label={`${new Date(date + "T12:00:00").toLocaleDateString("en-US", { weekday: "long" })}: ${future ? "still to come" : option?.label ?? "no mood logged"}`}
             >
               <span
                 className={cn(
                   "grid size-8 place-items-center rounded-full",
                   option ? "bg-mood/15 text-amber-700" : "border border-dashed text-muted-foreground/40",
+                  future && "border-muted-foreground/15 bg-muted/40",
+                  isCenter && "ring-2 ring-primary ring-offset-2",
                 )}
                 aria-hidden="true"
               >
                 {option ? <option.icon className="size-4" /> : null}
               </span>
-              <span className={cn("text-[11px] text-muted-foreground", isEnd && "font-semibold text-foreground")} aria-hidden="true">{day}</span>
+              <span className={cn("text-[11px] text-muted-foreground", future && "text-muted-foreground/50", isCenter && "font-semibold text-foreground")} aria-hidden="true">
+                {isCenter && date === TODAY ? "Today" : day}
+              </span>
             </li>
           );
         })}

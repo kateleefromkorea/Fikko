@@ -1,4 +1,5 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
+import { useAiCredits } from "./hooks/useAiCredits";
 import { ChartNoAxesColumn, ChefHat, ListChecks, LogOut, Sparkles, UserRound, Users, type LucideIcon } from "lucide-react";
 import { completion } from "./lib/completion";
 import HabitsView from "./components/HabitsView";
@@ -20,7 +21,6 @@ import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -65,6 +65,7 @@ const NAV: { id: Tab; label: string; icon: LucideIcon; soon?: boolean; ai?: bool
 
 export default function App() {
   const { session, loading, signOut, recovering } = useAuth();
+  const credits = useAiCredits();
   const userId = session?.user.id ?? null;
   // Returning from a device's sign-in lands on /?device=<provider>&result=<outcome>:
   // open Profile to show how it went.
@@ -170,42 +171,63 @@ export default function App() {
           </button>
 
           <nav aria-label="Main" className="hidden min-w-0 items-center gap-1 md:flex">
-            {NAV.map(({ id, label, soon, ai }) => (
-              <Button
-                key={id}
-                variant="ghost"
-                onClick={() => setTab(id)}
-                aria-current={tab === id ? "page" : undefined}
-                className={cn(
-                  "h-9 px-3 font-medium text-foreground/80 hover:bg-foreground/[0.06] hover:text-foreground",
-                  tab === id && "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 hover:text-primary-foreground",
-                )}
-              >
-                {ai && <Sparkles className={cn("size-4", tab !== id && "text-primary")} aria-hidden="true" />}
-                {label}
-                {soon && (
-                  <Badge variant="outline" className="border-teal/40 bg-teal/5 text-primary">
-                    Soon
-                  </Badge>
-                )}
-              </Button>
-            ))}
+            {NAV.map(({ id, label, icon: Icon, soon, ai }) => {
+              const active = tab === id;
+              return (
+                <Button
+                  key={id}
+                  variant="ghost"
+                  onClick={() => setTab(id)}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "h-9 gap-1.5 px-3 font-semibold text-foreground hover:bg-primary/10 hover:text-primary",
+                    ai && !active && "ml-1 bg-primary/10 text-primary ring-1 ring-primary/25 hover:bg-primary/15",
+                    active && "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 hover:text-primary-foreground",
+                  )}
+                >
+                  <Icon className={cn("size-4", !active && "text-primary")} aria-hidden="true" />
+                  {label}
+                  {ai && credits.left != null && (
+                    <span
+                      title={`${credits.left} of ${credits.limit} AI credits left today`}
+                      aria-label={`${credits.left} AI credits left today`}
+                      className={cn(
+                        "ml-0.5 rounded-full px-1.5 text-[11px] leading-5 font-semibold tabular-nums",
+                        credits.left === 0
+                          ? "bg-destructive/15 text-destructive"
+                          : active ? "bg-white/25 text-white" : "bg-primary text-primary-foreground",
+                      )}
+                    >
+                      {credits.left}
+                    </span>
+                  )}
+                  {soon && (
+                    <Badge variant="outline" className="border-teal/40 bg-teal/5 text-primary">
+                      Soon
+                    </Badge>
+                  )}
+                </Button>
+              );
+            })}
           </nav>
 
           <div className="ml-auto flex items-center gap-4">
-            <div className="hidden items-center gap-3 lg:flex" aria-label={`${done} of ${total} habits done today`}>
-              <Progress value={pct} className="h-1.5 w-24" />
-              <span className="whitespace-nowrap text-sm text-muted-foreground tabular-nums">
-                {done}/{total} today
-              </span>
-            </div>
-
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
-                  className="rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-                  aria-label="Account menu"
+                  className="relative grid place-items-center rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                  aria-label={`Account menu. ${done} of ${total} habits done today`}
+                  title={`${done}/${total} habits done today`}
                 >
+                  <svg className="pointer-events-none absolute -inset-1 size-[calc(100%+0.5rem)] -rotate-90" viewBox="0 0 36 36" aria-hidden="true">
+                    <circle cx="18" cy="18" r="16.5" fill="none" strokeWidth="2.5" className="stroke-foreground/10" />
+                    <circle
+                      cx="18" cy="18" r="16.5" fill="none" strokeWidth="2.5" strokeLinecap="round"
+                      className="stroke-primary transition-[stroke-dashoffset] duration-500"
+                      strokeDasharray={2 * Math.PI * 16.5}
+                      strokeDashoffset={2 * Math.PI * 16.5 * (1 - pct / 100)}
+                    />
+                  </svg>
                   <Avatar size="lg">
                     <AvatarFallback
                       className={cn(

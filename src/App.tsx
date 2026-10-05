@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { useAiCredits } from "./hooks/useAiCredits";
-import { ChartNoAxesColumn, ChefHat, ListChecks, LogOut, Sparkles, UserRound, Users, type LucideIcon } from "lucide-react";
+import { ChartNoAxesColumn, Loader2, ChefHat, ListChecks, LogOut, Sparkles, UserRound, Users, type LucideIcon } from "lucide-react";
 import { completion } from "./lib/completion";
 import HabitsView from "./components/HabitsView";
 import type { DeviceOutcome } from "./components/profile/DevicesCard";
@@ -81,7 +81,7 @@ export default function App() {
   useEffect(() => {
     if (deviceOutcome) window.history.replaceState(null, "", window.location.pathname);
   }, [deviceOutcome]);
-  const { data: loggedData, setData } = useHabitData(userId);
+  const { data: loggedData, setData, loading: habitsLoading, loadError: habitsLoadError, reload: reloadHabits, saveState, retrySave } = useHabitData(userId);
   const { profile, updateProfile, loading: profileLoading } = useProfile(userId);
   const consent = useConsents(userId);
   const medications = useMedications(userId);
@@ -91,10 +91,10 @@ export default function App() {
   const data = useMemo(
     () => ({
       ...loggedData,
-      tracksMedications: medications.loading ? undefined : medications.medications.length > 0,
+      tracksMedications: medications.loading || medications.loadError ? undefined : medications.medications.length > 0,
       deviceExercise: biometrics.activeMinutes,
     }),
-    [loggedData, medications.loading, medications.medications.length, biometrics.activeMinutes],
+    [loggedData, medications.loading, medications.loadError, medications.medications.length, biometrics.activeMinutes],
   );
 
   // Anonymous page-view stats. Sign-in and each tab count as a page.
@@ -171,7 +171,7 @@ export default function App() {
           </button>
 
           <nav aria-label="Main" className="hidden min-w-0 items-center gap-1 md:flex">
-            {NAV.map(({ id, label, icon: Icon, soon, ai }) => {
+            {NAV.map(({ id, label, soon, ai }) => {
               const active = tab === id;
               return (
                 <Button
@@ -180,12 +180,11 @@ export default function App() {
                   onClick={() => setTab(id)}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "h-9 gap-1.5 px-3 font-semibold text-foreground hover:bg-primary/10 hover:text-primary",
-                    ai && !active && "ml-1 bg-primary/10 text-primary ring-1 ring-primary/25 hover:bg-primary/15",
+                    "h-9 px-3 font-medium text-foreground/80 hover:bg-foreground/[0.06] hover:text-foreground",
                     active && "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 hover:text-primary-foreground",
                   )}
                 >
-                  <Icon className={cn("size-4", !active && "text-primary")} aria-hidden="true" />
+                  {ai && <Sparkles className={cn("size-4", !active && "text-primary")} aria-hidden="true" />}
                   {label}
                   {ai && credits.left != null && (
                     <span
@@ -195,7 +194,7 @@ export default function App() {
                         "ml-0.5 rounded-full px-1.5 text-[11px] leading-5 font-semibold tabular-nums",
                         credits.left === 0
                           ? "bg-destructive/15 text-destructive"
-                          : active ? "bg-white/25 text-white" : "bg-primary text-primary-foreground",
+                          : active ? "bg-white/25 text-white" : "bg-primary/10 text-primary",
                       )}
                     >
                       {credits.left}
@@ -263,7 +262,24 @@ export default function App() {
       </header>
 
       <main className="mx-auto w-full max-w-screen-2xl flex-1 px-4 py-10 sm:px-6 sm:py-12">
-        {tab === "habits" && (
+        {saveState === "error" && (
+          <div role="alert" className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            <span>Your latest changes haven&apos;t saved yet. Check your connection; we&apos;ll keep trying.</span>
+            <Button variant="outline" size="sm" onClick={retrySave} className="h-8">Try again now</Button>
+          </div>
+        )}
+        {(tab === "habits" || tab === "dashboard") && habitsLoadError && (
+          <div role="alert" className="mx-auto flex max-w-md flex-col items-center gap-3 py-16 text-center">
+            <p className="text-sm text-muted-foreground">{habitsLoadError}</p>
+            <Button onClick={() => reloadHabits()}>Try again</Button>
+          </div>
+        )}
+        {(tab === "habits" || tab === "dashboard") && habitsLoading && !habitsLoadError && (
+          <div className="flex items-center justify-center gap-2 py-24 text-sm text-muted-foreground" role="status">
+            <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Loading your habits…
+          </div>
+        )}
+        {tab === "habits" && !habitsLoading && !habitsLoadError && (
           <HabitsView
             data={data}
             onChange={setData}
@@ -276,7 +292,7 @@ export default function App() {
             onOpenCommunity={() => setTab("community")}
           />
         )}
-        {tab === "dashboard" && (
+        {tab === "dashboard" && !habitsLoading && !habitsLoadError && (
           <Suspense fallback={<p className="py-10 text-center text-sm text-muted-foreground">Loading dashboard…</p>}>
             <Dashboard data={data} biometrics={biometrics} profile={profile} />
           </Suspense>

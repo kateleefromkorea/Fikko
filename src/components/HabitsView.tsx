@@ -2,14 +2,15 @@ import { useEffect, useRef, useState, type ReactNode, type RefObject } from "rea
 import {
   Activity, Annoyed, Apple, BedDouble, Brain, CalendarDays, Check, ChevronLeft, ChevronRight, Coffee, Droplet, Dumbbell,
   BatteryLow, CloudRain, Frown, Laugh, Leaf, Meh, Moon, SunMedium, Zap, Pill, Plus, Smartphone, Smile, SmilePlus, Sparkles, Sun, Sunrise, Sunset, Thermometer,
-  Mic, ShieldCheck, Trash2, Utensils, Volume2, Watch, Wine, X, type LucideIcon,
+  Loader2, Mic, ShieldCheck, Trash2, Utensils, Volume2, Watch, Wine, X, type LucideIcon,
 } from "lucide-react";
 import { DB_LIMITS, clamp } from "../lib/limits";
 import { activityMinutes, completion, EXERCISE_TARGET_MIN, type CoreHabit } from "../lib/completion";
 import { MAX_WORKOUTS, WORKOUT_NAME_MAX, newWorkout, workoutsEntry, workoutsOf, type Workout } from "../lib/workouts";
 import type { HabitData, BiometricData, HabitEntry, CustomHabit, MealKey, TimeOfDay } from "../types";
 import type { useMedications } from "../hooks/useMedications";
-import { useFoodLog } from "../hooks/useFoodLog";
+import { mealTotals, useFoodLog } from "../hooks/useFoodLog";
+import type { HabitUpdate } from "../hooks/useHabitData";
 import { useCustomFoods } from "../hooks/useCustomFoods";
 import FoodLogModal from "./FoodLogModal";
 import VoiceCheckIn from "./VoiceCheckIn";
@@ -73,7 +74,7 @@ function joinNames(names: string[]) {
  */
 function progressSubtitle(data: HabitData, date: string, waterGoal: number) {
   const { core, custom, done, total } = completion(data, date, waterGoal);
-  const isToday = date === TODAY;
+  const isToday = date === todayKey();
 
   if (!isToday) {
     return done >= total && total > 0 ? "Everything done that day." : `${done} of ${total} done that day.`;
@@ -112,7 +113,8 @@ type FoodLog = ReturnType<typeof useFoodLog>;
 
 interface Props {
   data: HabitData;
-  onChange: (data: HabitData) => void;
+  /** A new state, or a function building one on the latest state (see useHabitData). */
+  onChange: (update: HabitUpdate) => void;
   activeDate: string;
   biometrics: BiometricData;
   medications: Medications;
@@ -132,7 +134,29 @@ export interface Goals {
   weightKg?: number | null;
 }
 
-const TODAY = todayKey();
+/**
+ * Today's day key, kept current: it moves on at midnight and when the member
+ * comes back to a tab left open overnight, so "today" never logs to yesterday.
+ */
+export function useToday() {
+  const [today, setToday] = useState(todayKey);
+  useEffect(() => {
+    const check = () => setToday(todayKey());
+    const msToMidnight = () => {
+      const n = new Date();
+      return new Date(n.getFullYear(), n.getMonth(), n.getDate() + 1).getTime() - n.getTime() + 1000;
+    };
+    let timer = window.setTimeout(function tick() { check(); timer = window.setTimeout(tick, msToMidnight()); }, msToMidnight());
+    document.addEventListener("visibilitychange", check);
+    window.addEventListener("focus", check);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", check);
+      window.removeEventListener("focus", check);
+    };
+  }, []);
+  return today;
+}
 
 /** 7.5 → "7h 30m". */
 function formatHours(h: number) {
@@ -214,7 +238,7 @@ function TodaySummary({ data, activeDate, onDateChange, profileName, waterGoal, 
   sectionRef?: RefObject<HTMLElement | null>;
 }) {
   const { core, custom, done, total } = completion(data, activeDate, waterGoal);
-  const isToday = activeDate === TODAY;
+  const isToday = activeDate === todayKey();
   const dateLabel = new Date(activeDate + "T00:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
   return (
@@ -306,11 +330,11 @@ function StickyDayBar({ show, data, activeDate, onDateChange, waterGoal, onSpeak
   onDateClick: () => void;
 }) {
   const { core, custom, done, total } = completion(data, activeDate, waterGoal);
-  const isToday = activeDate === TODAY;
+  const isToday = activeDate === todayKey();
   const dateLabel = new Date(activeDate + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
   const shift = (days: number) => {
     const next = shiftDateKey(activeDate, days);
-    if (next <= TODAY) onDateChange(next);
+    if (next <= todayKey()) onDateChange(next);
   };
   return (
     <div
@@ -394,7 +418,10 @@ export const MEALS: { key: MealKey; label: string; icon: LucideIcon; color: stri
 
 function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog }: Props & { foodLog: FoodLog }) {
   const entry = getEntry(data.food, activeDate);
-  const meals: MealCalories = parseNote<MealCalories>(entry?.note) ?? { breakfast: 0, lunch: 0, dinner: 0, snacks: 0 };
+  const saved: MealCalories = parseNote<MealCalories>(entry?.note) ?? { breakfast: 0, lunch: 0, dinner: 0, snacks: 0 };
+  // The foods logged are the record. The saved per-meal totals only stand in while
+  // they load, or for days from before each food was logged separately.
+  const meals: MealCalories = foodLog.ready && foodLog.items.length ? mealTotals(foodLog.items) : saved;
 
   const customFoods = useCustomFoods(userId);
   const savedMeals = useSavedMeals(userId);
@@ -492,15 +519,25 @@ function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog }: Pro
                     {itemCount > 4 && <li>+{itemCount - 4} more</li>}
                   </ul>
                 )}
-                <Button variant="outline" className="mt-auto h-9" onClick={() => setOpenMeal(key)}>
-                  <Plus />
-                  {itemCount > 0 ? `${itemCount} item${itemCount === 1 ? "" : "s"}` : "Log food"}
+                <Button variant="outline" className="mt-auto h-9" onClick={() => setOpenMeal(key)} disabled={!foodLog.ready}>
+                  {foodLog.loading ? <Loader2 className="animate-spin" /> : <Plus />}
+                  {foodLog.loading ? "Loading…" : itemCount > 0 ? `${itemCount} item${itemCount === 1 ? "" : "s"}` : "Log food"}
                 </Button>
               </div>
             );
           })}
         </div>
       </div>
+
+      {foodLog.loadError && (
+        <div role="alert" className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {foodLog.loadError}
+          <Button variant="outline" size="sm" onClick={foodLog.reload} className="h-8">Try again</Button>
+        </div>
+      )}
+      {foodLog.error && !openMeal && (
+        <p role="alert" className="mt-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{foodLog.error}</p>
+      )}
 
       {openMeal && (
         <FoodLogModal
@@ -518,8 +555,9 @@ function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog }: Pro
           onSaveFood={customFoods.saveFood}
           onSaveMeal={savedMeals.saveMeal}
           onDeleteMeal={savedMeals.deleteMeal}
-          onClose={() => setOpenMeal(null)}
+          onClose={() => { setOpenMeal(null); foodLog.clearError(); }}
           showMacros={trackMacros}
+          error={foodLog.error}
         />
       )}
     </HabitCard>
@@ -898,6 +936,11 @@ function MedicationCard({ data, onChange, activeDate, medications }: Props) {
         momentFor(activeDate, todayKey()),
       )}
     >
+      {(medications.loadError || medications.error) && (
+        <p role="alert" className="mb-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {medications.loadError ?? medications.error}
+        </p>
+      )}
       {medList.length === 0 && !adding ? (
         <EmptyState icon={Pill} title="Nothing scheduled yet" body="Add what you take and tick it off each day.">
           <Button variant="outline" onClick={() => setAdding(true)} className="h-9">
@@ -1203,7 +1246,7 @@ function MoodWeek({ data, endDate: centerDate }: { data: HabitData; endDate: str
       <GroupLabel>Your week</GroupLabel>
       <ol className="grid grid-cols-7 gap-1.5">
         {days.map((date) => {
-          const future = date > TODAY;
+          const future = date > todayKey();
           const entry = future ? undefined : getEntry(data.mood, date);
           const option = entry ? moodOption(entry.value, entry.note) : undefined;
           const day = new Date(date + "T12:00:00").toLocaleDateString("en-US", { weekday: "short" });
@@ -1227,7 +1270,7 @@ function MoodWeek({ data, endDate: centerDate }: { data: HabitData; endDate: str
                 {option ? <option.icon className="size-4" /> : null}
               </span>
               <span className={cn("text-[11px] text-muted-foreground", future && "text-muted-foreground/50", isCenter && "font-semibold text-foreground")} aria-hidden="true">
-                {isCenter && date === TODAY ? "Today" : day}
+                {isCenter && date === todayKey() ? "Today" : day}
               </span>
             </li>
           );
@@ -1495,24 +1538,24 @@ function CustomHabitsSection({ data, onChange, activeDate }: Props) {
 
 /* ─── Date Navigator ─── */
 function DateNavigator({ activeDate, onChange }: { activeDate: string; onChange: (d: string) => void }) {
-  const isToday = activeDate === TODAY;
+  const isToday = activeDate === todayKey();
   const pickerRef = useRef<HTMLInputElement>(null);
 
   const shift = (days: number) => {
     const next = shiftDateKey(activeDate, days);
-    if (next <= TODAY) onChange(next);
+    if (next <= todayKey()) onChange(next);
   };
 
   const label = (() => {
-    if (activeDate === TODAY) return "Today";
-    if (activeDate === shiftDateKey(TODAY, -1)) return "Yesterday";
+    if (activeDate === todayKey()) return "Today";
+    if (activeDate === shiftDateKey(todayKey(), -1)) return "Yesterday";
     return new Date(activeDate + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
   })();
 
   return (
     <div className="flex items-center gap-2">
       {!isToday && (
-        <Button variant="ghost" onClick={() => onChange(TODAY)} className="h-9 px-3 text-primary hover:bg-white/60 hover:text-primary">
+        <Button variant="ghost" onClick={() => onChange(todayKey())} className="h-9 px-3 text-primary hover:bg-white/60 hover:text-primary">
           Back to today
         </Button>
       )}
@@ -1532,9 +1575,9 @@ function DateNavigator({ activeDate, onChange }: { activeDate: string; onChange:
         <input
           ref={pickerRef}
           type="date"
-          max={TODAY}
+          max={todayKey()}
           value={activeDate}
-          onChange={(e) => { if (e.target.value && e.target.value <= TODAY) onChange(e.target.value); }}
+          onChange={(e) => { if (e.target.value && e.target.value <= todayKey()) onChange(e.target.value); }}
           tabIndex={-1}
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 opacity-0"
@@ -1549,11 +1592,19 @@ function DateNavigator({ activeDate, onChange }: { activeDate: string; onChange:
 
 /* ─── Layout ─── */
 export default function HabitsView({ data, onChange: saveData, biometrics, medications, userId, profileName, goals, trackMacros, onOpenCommunity }: Omit<Props, "activeDate"> & { onOpenCommunity?: () => void }) {
-  const [activeDate, setActiveDate] = useState(TODAY);
+  const today = useToday();
+  const [activeDate, setActiveDate] = useState(today);
+  // When the day rolls over, someone looking at "today" moves to the new today.
+  const shownToday = useRef(today);
+  useEffect(() => {
+    if (shownToday.current === today) return;
+    setActiveDate((d) => (d === shownToday.current ? today : d));
+    shownToday.current = today;
+  }, [today]);
   // Set once the member logs something, so data arriving from the server
   // (or a sync) never counts as them finishing the day.
   const memberActed = useRef(false);
-  const onChange = (next: HabitData) => { memberActed.current = true; saveData(next); };
+  const onChange = (next: HabitUpdate) => { memberActed.current = true; saveData(next); };
   const cardProps = { data, onChange, activeDate, biometrics, medications, userId, profileName, goals, trackMacros };
   // Shared by the Calories card and voice check-ins, so both see the same meals.
   const foodLog = useFoodLog(userId, activeDate, data, onChange);

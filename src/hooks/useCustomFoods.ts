@@ -42,14 +42,18 @@ export function useCustomFoods(userId: string | null) {
       // Already saved under this name; just remember the barcode if it's new.
       if (barcode && !existing.barcode) {
         setFoods((prev) => prev.map((f) => (f.id === existing.id ? { ...f, barcode } : f)));
-        await supabase.from("custom_foods").update({ barcode }).eq("id", existing.id);
+        const { error } = await supabase.from("custom_foods").update({ barcode }).eq("id", existing.id);
+        if (error) {
+          console.error("Couldn't save the barcode", error);
+          setFoods((prev) => prev.map((f) => (f.id === existing.id ? { ...f, barcode: undefined } : f)));
+        }
       }
       return;
     }
 
     const id = crypto.randomUUID();
     setFoods((prev) => [...prev, { id, name: trimmed, caloriesPer100g, ...macros, barcode, saved: true }]);
-    await supabase.from("custom_foods").insert({
+    const { error } = await supabase.from("custom_foods").insert({
       id,
       user_id: userId,
       name: trimmed,
@@ -59,6 +63,11 @@ export function useCustomFoods(userId: string | null) {
       fat_per_100g: macros.fatPer100g ?? null,
       ...(barcode ? { barcode } : {}),
     });
+    // The food was still logged; it just won't be offered in search next time.
+    if (error) {
+      console.error("Couldn't save the food to My foods", error);
+      setFoods((prev) => prev.filter((f) => f.id !== id));
+    }
   }
 
   return { foods, saveFood };

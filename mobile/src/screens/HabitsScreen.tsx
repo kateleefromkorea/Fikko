@@ -1,8 +1,8 @@
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Sparkles } from "lucide-react";
 import {
   CORE_META, CustomHabitsSection, ExerciseCard, FoodCard, HabitChip, MedicationCard, MoodCard, SleepCard, WaterCard,
-  greeting, progressSubtitle, scrollToCard, useDayCompleteCelebration, type HabitCardProps,
+  greeting, progressSubtitle, scrollToCard, useDayCompleteCelebration, useToday, type HabitCardProps,
 } from "@/components/HabitsView";
 import { CUSTOM_ICONS, SectionLabel } from "@/components/HabitCard";
 import Celebration from "@/components/Celebration";
@@ -10,6 +10,7 @@ import CommunityPreview from "@/components/CommunityPreview";
 import ProgressRing from "@/components/ProgressRing";
 import VoiceCheckIn from "@/components/VoiceCheckIn";
 import { useFoodLog } from "@/hooks/useFoodLog";
+import type { HabitUpdate } from "@/hooks/useHabitData";
 import { completion } from "@/lib/completion";
 import { todayKey } from "@/lib/dates";
 import type { HabitData } from "@/types";
@@ -62,9 +63,17 @@ function DaySummary({ data, activeDate, profileName, waterGoal, voice }: {
 export default function HabitsScreen({
   data, onChange: saveData, biometrics, medications, userId, profileName, goals, trackMacros, onOpenCommunity,
 }: Props) {
-  const [activeDate, setActiveDate] = useState(todayKey);
+  const today = useToday();
+  const [activeDate, setActiveDate] = useState(today);
+  // When the day rolls over, someone looking at "today" moves to the new today.
+  const shownToday = useRef(today);
+  useEffect(() => {
+    if (shownToday.current === today) return;
+    setActiveDate((d) => (d === shownToday.current ? today : d));
+    shownToday.current = today;
+  }, [today]);
   const memberActed = useRef(false);
-  const onChange = (next: HabitData) => { memberActed.current = true; saveData(next); };
+  const onChange = (next: HabitUpdate) => { memberActed.current = true; saveData(next); };
   const cardProps = { data, onChange, activeDate, biometrics, medications, userId, profileName, goals, trackMacros };
   const foodLog = useFoodLog(userId, activeDate, data, onChange);
   const celebrating = useDayCompleteCelebration(data, goals.water, userId, memberActed);

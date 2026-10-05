@@ -56,7 +56,7 @@ export default function MobileApp() {
   useAuthLinks();
   const userId = session?.user.id ?? null;
   const [tab, setTab] = useState<Tab>("habits");
-  const { data: loggedData, setData } = useHabitData(userId);
+  const { data: loggedData, setData, loading: habitsLoading, loadError: habitsLoadError, reload: reloadHabits, saveState, retrySave } = useHabitData(userId);
   const { profile, updateProfile, loading: profileLoading } = useProfile(userId);
   const consent = useConsents(userId);
   const medications = useMedications(userId);
@@ -66,10 +66,10 @@ export default function MobileApp() {
   const data = useMemo(
     () => ({
       ...loggedData,
-      tracksMedications: medications.loading ? undefined : medications.medications.length > 0,
+      tracksMedications: medications.loading || medications.loadError ? undefined : medications.medications.length > 0,
       deviceExercise: biometrics.activeMinutes,
     }),
-    [loggedData, medications.loading, medications.medications.length, biometrics.activeMinutes],
+    [loggedData, medications.loading, medications.loadError, medications.medications.length, biometrics.activeMinutes],
   );
 
   const signedIn = !!session;
@@ -146,7 +146,22 @@ export default function MobileApp() {
       </header>
 
       <main className={cn("w-full flex-1 px-4 pb-8", tab !== "habits" && "pt-6")}>
-        {tab === "habits" && (
+        {saveState === "error" && (
+          <div role="alert" className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            <span>Your latest changes haven&apos;t saved yet. We&apos;ll keep trying.</span>
+            <button onClick={retrySave} className="font-semibold underline underline-offset-2">Try again</button>
+          </div>
+        )}
+        {(tab === "habits" || tab === "dashboard") && habitsLoadError && (
+          <div role="alert" className="flex flex-col items-center gap-3 py-16 text-center">
+            <p className="text-sm text-muted-foreground">{habitsLoadError}</p>
+            <button onClick={() => reloadHabits()} className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground">Try again</button>
+          </div>
+        )}
+        {(tab === "habits" || tab === "dashboard") && habitsLoading && !habitsLoadError && (
+          <p role="status" className="py-24 text-center text-sm text-muted-foreground">Loading your habits…</p>
+        )}
+        {tab === "habits" && !habitsLoading && !habitsLoadError && (
           <HabitsScreen
             data={data}
             onChange={setData}
@@ -159,7 +174,7 @@ export default function MobileApp() {
             onOpenCommunity={() => open("community")}
           />
         )}
-        {tab === "dashboard" && (
+        {tab === "dashboard" && !habitsLoading && !habitsLoadError && (
           <Suspense fallback={loading("dashboard")}>
             <Dashboard data={data} biometrics={biometrics} profile={profile} />
           </Suspense>

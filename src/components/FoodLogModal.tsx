@@ -30,8 +30,9 @@ interface Props {
   items: FoodLogItem[];
   savedFoods: FoodResult[];
   savedMeals: SavedMeal[];
-  onAdd: (food: NewFood) => void;
-  onAddMany: (foods: NewFood[]) => void;
+  /** Resolves to false when the food didn't save (the log shows why). */
+  onAdd: (food: NewFood) => void | Promise<boolean>;
+  onAddMany: (foods: NewFood[]) => void | Promise<boolean>;
   onUpdateGrams: (itemId: string, grams: number) => void;
   onDelete: (itemId: string) => void;
   onSaveFood: (name: string, caloriesPer100g: number, macros?: MacrosPer100g, barcode?: string) => void;
@@ -40,6 +41,8 @@ interface Props {
   onClose: () => void;
   /** For members who track detailed macros: show protein, carbs and fat. */
   showMacros?: boolean;
+  /** Why the last change didn't save, shown at the top. */
+  error?: string | null;
 }
 
 // Everything is stored in grams internally; these let people enter an amount
@@ -104,7 +107,7 @@ const asNewFood = (f: FoodLogItem | SavedMealItem): NewFood => ({
 
 export default function FoodLogModal({
   meal, mealLabel, date, userId, items, savedFoods, savedMeals, onAdd, onAddMany, onUpdateGrams, onDelete,
-  onSaveFood, onSaveMeal, onDeleteMeal, onClose, showMacros,
+  onSaveFood, onSaveMeal, onDeleteMeal, onClose, showMacros, error: saveError,
 }: Props) {
   const [query, setQuery] = useState("");
   // Database options for the last search that came back, kept while the next one loads so the list doesn't blink.
@@ -283,12 +286,22 @@ export default function FoodLogModal({
     const macros: MacrosPer100g = showMacros
       ? { proteinPer100g: per100(manual.protein), carbsPer100g: per100(manual.carbs), fatPer100g: per100(manual.fat) }
       : {};
-    onAdd({ name, grams, caloriesPer100g, ...macros });
-    onSaveFood(name, caloriesPer100g, macros, pendingBarcode ?? undefined);
+    const typed = manual;
+    const barcode = pendingBarcode;
     setManual(EMPTY_MANUAL);
     setPendingBarcode(null);
     setNotFound(false);
     setManualMode(false);
+    void Promise.resolve(onAdd({ name, grams, caloriesPer100g, ...macros })).then((ok) => {
+      // Didn't save: put the entry back so it's one tap to try again.
+      if (ok === false) {
+        setManual(typed);
+        setPendingBarcode(barcode);
+        setManualMode(true);
+        return;
+      }
+      onSaveFood(name, caloriesPer100g, macros, barcode ?? undefined);
+    });
   }
 
   async function saveMeal() {
@@ -364,6 +377,10 @@ export default function FoodLogModal({
             {showMacros && items.length > 0 && ` · ${formatMacros(mealMacros.total)}`}
           </DialogDescription>
         </DialogHeader>
+
+        {saveError && (
+          <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{saveError}</p>
+        )}
 
         {/* 1 · What's already in this meal. */}
         <section aria-labelledby="sec-logged" className="overflow-hidden rounded-2xl border bg-card shadow-xs">

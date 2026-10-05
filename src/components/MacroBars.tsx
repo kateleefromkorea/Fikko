@@ -29,7 +29,7 @@ export default function MacroBars({ eaten, target, className }: { eaten: Macros;
               <span className="flex items-center gap-1.5 font-medium">
                 <span className="size-2.5 rounded-full" style={{ background: color }} aria-hidden="true" />
                 {label}
-                {state === "reached" && <Check className="tick-pop size-3.5 text-primary-ink" strokeWidth={3} aria-label="target reached" />}
+                {state === "reached" && <Check className="tick-pop size-3.5 text-[#0A6E63]" strokeWidth={3} aria-label="target reached" />}
               </span>
               <span className="text-muted-foreground tabular-nums">
                 <span className={cn("font-semibold text-foreground", state === "over" && "text-ink")}>{got}</span> / {goal} g

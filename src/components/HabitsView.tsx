@@ -240,7 +240,7 @@ function StreakChip({ data }: { data: HabitData }) {
   const streak = currentStreak((d) => loggedOn(data, d));
   if (streak < 1) return null;
   return (
-    <span className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full bg-[#E6F4EC] px-3 text-sm font-medium text-[#0F5C40]">
+    <span className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full bg-[#DDF5F1] px-3 text-sm font-medium text-[#0A6E63]">
       <Flame className="size-3.5" aria-hidden="true" />
       {streak}-day streak
     </span>
@@ -358,7 +358,7 @@ function StickyDayBar({ show, data, activeDate, onDateChange, waterGoal, onSpeak
       aria-hidden={!show}
       inert={!show}
       className={cn(
-        "fixed inset-x-0 top-16 z-30 bg-[#0E3B2B] text-white shadow-md transition-[translate,opacity] duration-200 motion-reduce:transition-none",
+        "fixed inset-x-0 top-16 z-30 bg-primary text-white shadow-md transition-[translate,opacity] duration-200 motion-reduce:transition-none",
         show ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-full opacity-0",
       )}
     >
@@ -369,7 +369,7 @@ function StickyDayBar({ show, data, activeDate, onDateChange, waterGoal, onSpeak
           </Button>
           <button
             onClick={onDateClick}
-            className="min-w-0 rounded-md px-1 text-sm font-semibold whitespace-nowrap text-emerald-300 hover:underline"
+            className="min-w-0 rounded-md px-1 text-sm font-semibold whitespace-nowrap text-white hover:underline"
             aria-label={`${isToday ? "Today" : dateLabel}. Back to the summary`}
           >
             {isToday ? <>Today<span className="hidden font-normal text-white/60 sm:inline"> · {dateLabel}</span></> : dateLabel}
@@ -395,7 +395,7 @@ function StickyDayBar({ show, data, activeDate, onDateChange, waterGoal, onSpeak
                     aria-label={`${CORE_META[key].label}, ${done ? "done" : "not done yet"}`}
                     className={cn(
                       "grid size-7 place-items-center rounded-full transition-colors",
-                      done ? "bg-emerald-400 text-[#0E3B2B]" : "bg-white/10 text-white/80 hover:bg-white/20",
+                      done ? "bg-[#E2EFFC] text-[#1F6AB0]" : "bg-black/10 text-white hover:bg-black/20",
                     )}
                   >
                     {done ? <Check className="size-3.5" strokeWidth={3} /> : <Icon className="size-3.5" />}

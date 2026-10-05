@@ -36,9 +36,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { shiftDateKey, todayKey } from "../lib/dates";
-import { activityComment, foodComment, medsComment, momentFor, moodComment, sleepComment, waterComment } from "./habitComments";
+import { activityComment, foodComment, macroComment, medsComment, momentFor, moodComment, sleepComment, waterComment } from "./habitComments";
 import { dayRange, sleepHours } from "../lib/dashboardStats";
-import { sumMacros } from "../lib/macros";
+import { macroTargets, sumMacros } from "../lib/macros";
+import MacroBars from "./MacroBars";
 import { activityCalories } from "../lib/activityCalories";
 
 function timeGreeting() {
@@ -130,8 +131,10 @@ export interface Goals {
   calories: number;
   water: number;
   sleepHours: number;
-  /** Body weight, for estimating the calories a workout burns. */
+  /** Body weight, for estimating the calories a workout burns and the protein target. */
   weightKg?: number | null;
+  /** The goal that sets the calories (profiles.primary_goal), for the macro targets. */
+  goalKey?: string | null;
 }
 
 /**
@@ -439,7 +442,15 @@ function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog }: Pro
   // slices at their net size used to empty the ring whenever workouts burned more than was eaten.
   const scale = Math.max(eaten, target);
 
-  const comment = foodComment({ total, target, meals, eaten }, momentFor(activeDate, todayKey()));
+  const { total: macrosEaten, missing } = sumMacros(foodLog.items);
+  const macroTarget = macroTargets({ calories: target, goalKey: goals.goalKey, weightKg: goals.weightKg });
+  const moment = momentFor(activeDate, todayKey());
+  const comment =
+    macroComment({
+      net: total, target, eaten, meals, macros: macrosEaten, macroTarget,
+      macrosKnown: foodLog.items.length > missing,
+    }, moment)
+    ?? foodComment({ total, target, meals, eaten }, moment);
 
   return (
     <HabitCard
@@ -480,26 +491,6 @@ function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog }: Pro
             </p>
           )}
           {overTarget && <p className="max-w-56 text-center text-sm font-medium text-amber-700 tabular-nums">{Math.round(total - target).toLocaleString()} kcal over your target</p>}
-          {(() => {
-            // Shown for every member, whatever their goal or tracking style; 0 g until something's logged.
-            const { total: m, missing } = sumMacros(foodLog.items);
-            return (
-              <div className="flex flex-col items-center gap-1.5">
-                <ul className="flex justify-center gap-1.5 whitespace-nowrap" aria-label="Macros today">
-                  {([["Protein", m.protein], ["Carbs", m.carbs], ["Fat", m.fat]] as const).map(([label, grams]) => (
-                    <li key={label} className="rounded-full bg-food/10 px-2.5 py-1 text-xs text-foreground/80 tabular-nums">
-                      {label} <span className="font-semibold text-foreground">{Math.round(grams)} g</span>
-                    </li>
-                  ))}
-                </ul>
-                {missing > 0 && (
-                  <p className="text-center text-xs text-muted-foreground">
-                    {missing} item{missing === 1 ? "" : "s"} without macros
-                  </p>
-                )}
-              </div>
-            );
-          })()}
         </div>
 
         <div className="grid auto-rows-fr grid-cols-2 gap-3">
@@ -537,6 +528,16 @@ function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog }: Pro
             );
           })}
         </div>
+      </div>
+
+      {/* Shown for every member, whatever their goal or tracking style; 0 g until something's logged. */}
+      <div className="mt-6 border-t pt-5">
+        <MacroBars eaten={macrosEaten} target={macroTarget} />
+        {missing > 0 && (
+          <p className="mt-3 text-xs text-muted-foreground">
+            {missing} item{missing === 1 ? "" : "s"} without macro data {missing === 1 ? "isn't" : "aren't"} counted in these bars.
+          </p>
+        )}
       </div>
 
       {foodLog.loadError && (

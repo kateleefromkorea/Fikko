@@ -288,7 +288,7 @@ export default function App() {
             medications={medications}
             userId={userId}
             profileName={profile.name}
-            goals={{ calories: profile.calorie_goal, water: profile.water_goal, sleepHours: profile.sleep_goal, weightKg: profile.weight_kg }}
+            goals={{ calories: profile.calorie_goal, water: profile.water_goal, sleepHours: profile.sleep_goal, weightKg: profile.weight_kg, goalKey: profile.primary_goal }}
             trackMacros={tracksMacros(profile.tracking_style)}
             onOpenCommunity={() => setTab("community")}
           />

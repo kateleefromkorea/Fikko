@@ -138,3 +138,58 @@ export function moodComment(
   if (mood === 3) return "Steady. That counts.";
   return mood === 5 ? "Love that. Enjoy it, and notice what made today great." : "Glad it's a good one.";
 }
+
+const MEAL_ORDER = ["breakfast", "lunch", "dinner", "snacks"] as const;
+
+/**
+ * A smarter Calories line once macros are known: what's left in calories and
+ * protein, and how to fit one into the other. Null when there's nothing
+ * macro-specific to say, so the card falls back to foodComment.
+ */
+export function macroComment(
+  { net, target, eaten, macros, macroTarget, macrosKnown, meals }: {
+    net: number; target: number; eaten: number;
+    macros: { protein: number; carbs: number; fat: number };
+    macroTarget: { protein: number; carbs: number; fat: number };
+    /** False when no logged food carries macro data, so the grams would read 0. */
+    macrosKnown: boolean;
+    meals: Record<"breakfast" | "lunch" | "dinner" | "snacks", number>;
+  },
+  { isToday, hour }: Moment,
+): string | null {
+  if (eaten === 0 || !macrosKnown) return null;
+  const kcalLeft = target - net;
+  const proteinLeft = macroTarget.protein - macros.protein;
+
+  if (!isToday) {
+    return `Finished on ${n(macros.protein)} g of ${n(macroTarget.protein)} g protein, ${n(Math.abs(kcalLeft))} kcal ${kcalLeft >= 0 ? "under" : "over"} target.`;
+  }
+  if (kcalLeft < 0) return null; // foodComment's "over target" line says it best.
+
+  const proteinDone = proteinLeft <= macroTarget.protein * 0.1;
+  if (proteinDone && macros.fat > macroTarget.fat * 1.15) {
+    return `Protein's covered. Fat is already at ${n(macros.fat)} g of ${n(macroTarget.fat)} g, so keep the rest of today on the lighter side.`;
+  }
+  if (proteinDone) {
+    return `Protein target hit with ${n(macros.protein)} g. ${n(kcalLeft)} kcal left for whatever you fancy.`;
+  }
+  // Protein has 4 kcal a gram. Past what the calories left can hold, the gap won't close today.
+  if (proteinLeft * 4 > kcalLeft) {
+    return `${n(proteinLeft)} g protein to go but only ${n(kcalLeft)} kcal left, so it won't all fit today. A protein-rich breakfast tomorrow helps.`;
+  }
+  // If what's left would have to be mostly protein, say how.
+  if (proteinLeft * 4 > kcalLeft * 0.6) {
+    return `${n(kcalLeft)} kcal left but ${n(proteinLeft)} g of protein to go. Lean picks like chicken, fish, tofu or Greek yogurt get you there.`;
+  }
+  const mealsLeft = MEAL_ORDER.filter((m) => m !== "snacks" && !meals[m]);
+  if (mealsLeft.length > 1 && hour < 18) {
+    return `${n(kcalLeft)} kcal and ${n(proteinLeft)} g protein left. About ${n(proteinLeft / mealsLeft.length)} g protein in each of your next ${mealsLeft.length} meals keeps you on track.`;
+  }
+  if (mealsLeft.length === 1 && proteinLeft >= 20) {
+    return `${n(kcalLeft)} kcal and ${n(proteinLeft)} g protein left. Build ${mealsLeft[0]} around a good protein source to close the gap.`;
+  }
+  if (macros.fat > macroTarget.fat * 1.15) {
+    return `${n(kcalLeft)} kcal and ${n(proteinLeft)} g protein left. Fat's running high, so go for something lean.`;
+  }
+  return `${n(kcalLeft)} kcal and ${n(proteinLeft)} g protein left for today.`;
+}

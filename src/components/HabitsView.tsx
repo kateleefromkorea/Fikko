@@ -495,7 +495,7 @@ function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog, biome
           </ProgressRing>
           {burned > 0 && (
             <p className="text-center text-xs text-muted-foreground tabular-nums">
-              {Math.round(eaten).toLocaleString()} eaten − <span className="text-exercise-strong">{burned.toLocaleString()} burned</span>
+              {Math.round(eaten).toLocaleString()} eaten − <span className="text-exercise-fg">{burned.toLocaleString()} burned</span>
             </p>
           )}
           {/* The plain answer to "how much more can I eat?", after workouts. */}
@@ -643,7 +643,7 @@ function WaterCard({ data, onChange, activeDate, biometrics, goals }: Props) {
               aria-pressed={filled}
               className={cn(
                 "relative h-full min-h-20 overflow-hidden rounded-t-md rounded-b-2xl border-2 transition-colors",
-                filled ? "border-water/50" : "border-border hover:border-water/40 hover:bg-water/5",
+                filled ? "border-marine/50" : "border-border hover:border-marine/40 hover:bg-marine/5",
                 extra && !filled && "border-dashed",
               )}
             >
@@ -652,7 +652,7 @@ function WaterCard({ data, onChange, activeDate, biometrics, goals }: Props) {
                 style={{
                   height: filled && mounted ? "100%" : "0%",
                   transitionDelay: filled ? `${i * 40}ms` : "0ms",
-                  background: "linear-gradient(180deg, color-mix(in srgb, var(--water) 14%, white), color-mix(in srgb, var(--water) 48%, white))",
+                  background: "linear-gradient(180deg, color-mix(in srgb, var(--marine) 14%, white), color-mix(in srgb, var(--marine) 60%, white))",
                 }}
                 aria-hidden="true"
               />

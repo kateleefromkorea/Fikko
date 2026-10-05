@@ -137,16 +137,17 @@
   --teal: #157954;
   --sky: #1F73C2;
 
-  /* Every habit wears Fikko green: icons tell them apart, so colour stays calm.
-     Green on the pale tint reads at 4.75:1. Charts keep their own series colours
-     in components/dashboard/ui.tsx. */
-  --water: #E6F4EC;    --water-fg: #157954;    --water-strong: #157954;
-  --meds: #E6F4EC;     --meds-fg: #157954;     --meds-strong: #157954;
-  --food: #E6F4EC;     --food-fg: #157954;     --food-strong: #157954;
-  --exercise: #E6F4EC; --exercise-fg: #157954; --exercise-strong: #157954;
-  --sleep: #E6F4EC;    --sleep-fg: #157954;    --sleep-strong: #157954;
-  --mood: #E6F4EC;     --mood-fg: #157954;     --mood-strong: #157954;
-  --custom: #E6F4EC;   --custom-fg: #157954;   --custom-strong: #157954;
+  /* Habit icons take the daily overview's teal and sky tones, in deeper shades
+     so they read: teal glyph on teal tint 5.4:1, sky glyph on sky tint 4.8:1.
+     The -strong shades are for progress bars (3:1+ on white). Charts keep their
+     own series colours in components/dashboard/ui.tsx. */
+  --water: #E2EFFC;    --water-fg: #1F6AB0;    --water-strong: #3D8FDB;
+  --meds: #DDF5F1;     --meds-fg: #0A6E63;     --meds-strong: #1A9C8C;
+  --food: #DDF5F1;     --food-fg: #0A6E63;     --food-strong: #1A9C8C;
+  --exercise: #E2EFFC; --exercise-fg: #1F6AB0; --exercise-strong: #3D8FDB;
+  --sleep: #E2EFFC;    --sleep-fg: #1F6AB0;    --sleep-strong: #3D8FDB;
+  --mood: #DDF5F1;     --mood-fg: #0A6E63;     --mood-strong: #1A9C8C;
+  --custom: #DDF5F1;   --custom-fg: #0A6E63;   --custom-strong: #1A9C8C;
 }
 
 /* The accent pairs, as text-on-background utilities. */

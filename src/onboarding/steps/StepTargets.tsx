@@ -76,7 +76,7 @@ export default function StepTargets({ api, showError }: { api: Api; showError: b
       <div className="flex flex-col gap-8">
         <Field label="Water" hint={`About ${(glasses * 0.25).toFixed(1).replace(/\.0$/, "")} litres a day, suggested from your weight and activity.`}>
           <div className="flex items-center gap-4">
-            <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-water/15 text-water" aria-hidden="true">
+            <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-water text-water-fg" aria-hidden="true">
               <Droplet className="size-5" />
             </span>
             <Stepper value={s.waterGoal} onChange={(v) => set("waterGoal", v)} step={1} min={1} max={30} unit="glasses" label="water" />
@@ -85,7 +85,7 @@ export default function StepTargets({ api, showError }: { api: Api; showError: b
 
         <Field label="Sleep" hint="Most adults do best on 7 to 9 hours a night.">
           <div className="flex items-center gap-4">
-            <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-sleep/15 text-sleep" aria-hidden="true">
+            <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-sleep text-sleep-fg" aria-hidden="true">
               <Moon className="size-5" />
             </span>
             <Stepper value={s.sleepGoal} onChange={(v) => set("sleepGoal", v)} step={0.5} min={4} max={12} unit="hours" label="sleep" />

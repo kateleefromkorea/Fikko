@@ -20,7 +20,6 @@
   --color-ink: var(--ink);
   --color-cream: var(--cream);
   --color-evergreen: var(--evergreen);
-  --color-sage: var(--sage);
   --color-fikko-tint: var(--fikko-tint);
   --color-marine: var(--marine);
   --color-marine-tint: var(--marine-tint);
@@ -89,15 +88,15 @@
      Evergreen     #003A35  buttons and calls to action (white 12.7:1)
      Ink black     #001F27  body text, dark bars and elements (17.1:1 on white)
      Bright marine #1F73C2  pop: focus rings, highlights, callouts (white 4.9:1)
-     Sage          #719A73  only as pair C's text on ink. Nowhere else.
    Pairs, as the pair-* utilities below:
      A  White on Fikko green: 5.4:1
      B  Cream on evergreen: 11.2:1
-     C  Sage on ink black: 5.4:1
      D  Ink on a marine tint with a marine accent edge: 14.0:1. Ink on solid
         marine is only 3.5:1, so a solid marine block uses white text (4.9:1),
         see pair-d-solid.
    pair-soft is ink on a pale Fikko green tint (14.9:1) for quiet highlights.
+
+   Sage green is not used anywhere, at the user's request.
 
    The Habits page's daily overview keeps its original colours on purpose:
    see .daily-overview further down, which is locked. */
@@ -128,8 +127,6 @@
   --ink: #001F27;
   --cream: #F3F1E7;
   --evergreen: #003A35;
-  /* Sage appears only in pair C (sage text on ink). */
-  --sage: #719A73;
   --fikko-tint: #E4F2EB;
   --marine: #1F73C2;
   --marine-tint: #DCEAF7;
@@ -151,7 +148,6 @@
 /* The accent pairs, as text-on-background utilities. */
 @utility pair-a { background-color: var(--primary); color: #FFFFFF; }
 @utility pair-b { background-color: var(--evergreen); color: var(--cream); }
-@utility pair-c { background-color: var(--ink); color: var(--sage); }
 @utility pair-d { background-color: var(--marine-tint); color: var(--ink); box-shadow: inset 3px 0 0 var(--marine); }
 @utility pair-d-solid { background-color: var(--marine); color: #FFFFFF; }
 @utility pair-soft { background-color: var(--fikko-tint); color: var(--ink); }

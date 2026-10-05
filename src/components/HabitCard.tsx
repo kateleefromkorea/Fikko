@@ -93,7 +93,12 @@ export function HabitCard({
   className?: string;
 }) {
   return (
-    <Card id={id} className={cn(habitCardCls(done), "scroll-mt-24 gap-6 [--card-spacing:--spacing(6)]", className)}>
+    <Card
+      id={id}
+      className={cn(habitCardCls(done), "scroll-mt-24 gap-6 [--card-spacing:--spacing(6)]", className)}
+      // The habit's tones, for selected options and charts inside the card.
+      style={{ "--hue": `var(--${hue})`, "--hue-fg": `var(--${hue}-fg)`, "--hue-strong": `var(--${hue}-strong)` } as React.CSSProperties}
+    >
       <CardHeader className="grid-cols-[auto_1fr] items-center gap-x-4 has-data-[slot=card-action]:grid-cols-[auto_1fr_auto]">
         <HabitIcon icon={icon} hue={hue} className="row-span-2" />
         <CardTitle className="flex items-center gap-2 text-base font-semibold">
@@ -132,13 +137,13 @@ export function Figure({ value, unit, className }: { value: ReactNode; unit?: st
 }
 
 /**
- * Progress bar in the habit's own hue, turning Fikko green once the target is
- * met. Grows in from zero on first render.
+ * Progress bar in the habit's own hue, deepening to its darker shade once the
+ * target is met. Grows in from zero on first render.
  */
 export function HabitBar({ value, max, hue, className }: { value: number; max: number; hue: HabitHue; className?: string }) {
   const mounted = useMounted();
   const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
-  const color = value >= max && max > 0 ? "var(--primary)" : `var(--${hue}-strong)`;
+  const color = value >= max && max > 0 ? `var(--${hue}-fg)` : `var(--${hue}-strong)`;
   return (
     <Progress
       value={mounted ? pct : 0}

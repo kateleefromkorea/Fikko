@@ -4,9 +4,9 @@ import { cn } from "@/lib/utils";
 
 // Each macro takes a colour from the meal ring above it, so the card reads as one set.
 const MACROS: { key: keyof Macros; label: string; color: string }[] = [
-  { key: "protein", label: "Protein", color: "#157954" },
-  { key: "carbs", label: "Carbs", color: "#1F73C2" },
-  { key: "fat", label: "Fat", color: "#003A35" },
+  { key: "protein", label: "Protein", color: "#1A9C8C" },
+  { key: "carbs", label: "Carbs", color: "#3D8FDB" },
+  { key: "fat", label: "Fat", color: "#0A6E63" },
 ];
 
 /** Within this share of the target counts as reached. */

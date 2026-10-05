@@ -185,9 +185,9 @@ function setDateValue(entries: HabitEntry[], date: string, value: number, note?:
   return [...entries, { date, value, ...(note !== undefined ? { note } : {}) }];
 }
 
-/** Shared look for a selectable option: neutral at rest, Fikko green when chosen. */
+/** Shared look for a selectable option: neutral at rest, the card's teal or sky when chosen. */
 const optionCls =
-  "rounded-lg border border-transparent bg-foreground/[0.04] text-left transition-colors hover:bg-foreground/[0.07] aria-pressed:border-primary aria-pressed:bg-primary/8 aria-pressed:text-primary-ink";
+  "rounded-lg border border-transparent bg-foreground/[0.04] text-left transition-colors hover:bg-foreground/[0.07] aria-pressed:border-(--hue-strong) aria-pressed:bg-(--hue) aria-pressed:text-(--hue-fg)";
 
 function Stat({ value, label }: { value: string | number; label: string }) {
   return (
@@ -427,10 +427,10 @@ interface MealCalories { breakfast: number; lunch: number; dinner: number; snack
 
 // Amber shades, deepest first, so the ring reads breakfast → snacks.
 export const MEALS: { key: MealKey; label: string; icon: LucideIcon; color: string }[] = [
-  { key: "breakfast", label: "Breakfast", icon: Sunrise, color: "#157954" },
-  { key: "lunch",     label: "Lunch",     icon: Sun,     color: "#1F73C2" },
-  { key: "dinner",    label: "Dinner",    icon: Sunset,  color: "#003A35" },
-  { key: "snacks",    label: "Snacks",    icon: Apple,   color: "#A9CBEB" },
+  { key: "breakfast", label: "Breakfast", icon: Sunrise, color: "#1A9C8C" },
+  { key: "lunch",     label: "Lunch",     icon: Sun,     color: "#3D8FDB" },
+  { key: "dinner",    label: "Dinner",    icon: Sunset,  color: "#0A6E63" },
+  { key: "snacks",    label: "Snacks",    icon: Apple,   color: "#9CCBF2" },
 ];
 
 function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog, biometrics }: Props & { foodLog: FoodLog }) {
@@ -643,7 +643,7 @@ function WaterCard({ data, onChange, activeDate, biometrics, goals }: Props) {
               aria-pressed={filled}
               className={cn(
                 "relative h-full min-h-20 overflow-hidden rounded-t-md rounded-b-2xl border-2 transition-colors",
-                filled ? "border-marine/50" : "border-border hover:border-marine/40 hover:bg-marine/5",
+                filled ? "border-[#5BA9F0]/60" : "border-border hover:border-[#5BA9F0]/50 hover:bg-[#5BA9F0]/5",
                 extra && !filled && "border-dashed",
               )}
             >
@@ -652,7 +652,7 @@ function WaterCard({ data, onChange, activeDate, biometrics, goals }: Props) {
                 style={{
                   height: filled && mounted ? "100%" : "0%",
                   transitionDelay: filled ? `${i * 40}ms` : "0ms",
-                  background: "linear-gradient(180deg, color-mix(in srgb, var(--marine) 14%, white), color-mix(in srgb, var(--marine) 60%, white))",
+                  background: "linear-gradient(180deg, color-mix(in srgb, #5BA9F0 14%, white), color-mix(in srgb, #5BA9F0 60%, white))",
                 }}
                 aria-hidden="true"
               />
@@ -1000,7 +1000,7 @@ function SleepCard({ data, onChange, activeDate, biometrics, goals }: Props) {
                 aria-pressed={restScore === r.value}
                 className={cn(optionCls, "group flex items-center gap-3 px-4 py-2.5")}
               >
-                <span className="w-4 text-center text-sm text-muted-foreground tabular-nums group-aria-pressed:text-primary-ink">
+                <span className="w-4 text-center text-sm text-muted-foreground tabular-nums group-aria-pressed:text-(--hue-fg)">
                   {r.value}
                 </span>
                 <span>
@@ -1109,9 +1109,9 @@ function MoodWeek({ data, endDate: centerDate }: { data: HabitData; endDate: str
               <span
                 className={cn(
                   "grid size-8 place-items-center rounded-full",
-                  option ? "pair-soft ring-1 ring-ink/10" : "border border-dashed text-muted-foreground/40",
+                  option ? "bg-(--hue) text-(--hue-fg) ring-1 ring-(--hue-strong)/30" : "border border-dashed text-muted-foreground/40",
                   future && "border-muted-foreground/15 bg-muted/40",
-                  isCenter && "ring-2 ring-primary ring-offset-2",
+                  isCenter && "ring-2 ring-(--hue-strong) ring-offset-2",
                 )}
                 aria-hidden="true"
               >

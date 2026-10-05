@@ -102,7 +102,7 @@ export default function ActivityComposer({
                 type="button"
                 onClick={() => setMinutes(String(p))}
                 aria-pressed={mins === p}
-                className="h-8 rounded-full px-3 text-sm text-muted-foreground transition-colors hover:bg-muted aria-pressed:bg-primary/10 aria-pressed:font-medium aria-pressed:text-primary-ink"
+                className="h-8 rounded-full px-3 text-sm text-muted-foreground transition-colors hover:bg-muted aria-pressed:bg-exercise aria-pressed:font-medium aria-pressed:text-exercise-fg"
               >
                 {p}
               </button>
@@ -116,7 +116,7 @@ export default function ActivityComposer({
               type="button"
               onClick={() => setMinutes(String(p))}
               aria-pressed={mins === p}
-              className="h-8 flex-1 rounded-full text-sm text-muted-foreground transition-colors hover:bg-muted aria-pressed:bg-primary/10 aria-pressed:font-medium aria-pressed:text-primary-ink"
+              className="h-8 flex-1 rounded-full text-sm text-muted-foreground transition-colors hover:bg-muted aria-pressed:bg-exercise aria-pressed:font-medium aria-pressed:text-exercise-fg"
             >
               {p} min
             </button>

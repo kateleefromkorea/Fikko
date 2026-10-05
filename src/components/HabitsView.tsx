@@ -602,6 +602,9 @@ function ExerciseCard({ data, onChange, activeDate, biometrics, goals }: Props) 
   };
 
   const done = total >= EXERCISE_TARGET_MIN;
+  // The day's total, shown above and also taken off the Calories card's net.
+  const burned = workouts.reduce((sum, w) => sum + activityCalories(w.name, w.minutes, goals.weightKg), 0);
+  const isToday = (d: string) => d === todayKey();
 
   return (
     <HabitCard
@@ -617,6 +620,15 @@ function ExerciseCard({ data, onChange, activeDate, biometrics, goals }: Props) 
       <div className="space-y-2">
         <HabitBar value={total} max={EXERCISE_TARGET_MIN} hue="exercise" />
       </div>
+
+      {workouts.length > 0 && (
+        <p className="mt-4 flex items-baseline justify-between gap-3 rounded-lg bg-exercise/10 px-3 py-2.5 text-sm" aria-live="polite">
+          <span className="font-medium">Calories burned {isToday(activeDate) ? "today" : "this day"}</span>
+          <span className="tabular-nums" title="Estimated from each activity, its length and your weight">
+            <span className="text-lg font-semibold">≈ {burned.toLocaleString()}</span> kcal
+          </span>
+        </p>
+      )}
 
       {(device > 0 || workouts.length > 0) && (
         <ul className="mt-4 space-y-1.5" aria-label="Today's activity">

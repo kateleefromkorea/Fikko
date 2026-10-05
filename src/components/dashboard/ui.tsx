@@ -12,14 +12,14 @@ import type { Point } from "../../lib/dashboardStats";
 // habit "-strong" hues and neutrals in index.css (readable as lines on white)
 // rather than reading the variables.
 export const C = {
-  primary: "#157954",
-  teal: "#E1DC53",
-  water: "#157954",
-  meds: "#266533",
-  food: "#857F10",
-  exercise: "#C24416",
-  sleep: "#0E3B2B",
-  mood: "#F16838",
+  primary: "#165F39",
+  teal: "#BCD5AC",
+  water: "#165F39",
+  meds: "#094217",
+  food: "#6A9A5A",
+  exercise: "#518F5C",
+  sleep: "#042509",
+  mood: "#3E7A49",
   grid: "#EBEBEB",
   tick: "#737373",
 };

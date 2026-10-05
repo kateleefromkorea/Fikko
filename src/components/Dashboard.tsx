@@ -372,7 +372,7 @@ export default function Dashboard({ data: logged, biometrics, profile }: Props) 
             <ChartCard title="Stress level" className="flex-1" action={<span className="text-lg font-semibold tabular-nums">{stressNow}</span>}>
               <Progress
                 value={stressNow}
-                className={cn("h-2", stressNow > 65 ? "[&>div]:bg-destructive" : stressNow > 40 && "[&>div]:bg-tangerine")}
+                className={cn("h-2", stressNow > 65 ? "[&>div]:bg-destructive" : stressNow > 40 && "[&>div]:bg-ink")}
               />
               <p className="mt-3 text-sm text-muted-foreground">
                 {stressNow > 65 ? "Elevated. Try a breathing exercise." : stressNow > 40 ? "Moderate and manageable." : "Low. You're calm today."}

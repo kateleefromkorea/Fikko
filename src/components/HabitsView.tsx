@@ -356,7 +356,7 @@ function StickyDayBar({ show, data, activeDate, onDateChange, waterGoal, onSpeak
           </Button>
           <button
             onClick={onDateClick}
-            className="min-w-0 rounded-md px-1 text-sm font-semibold whitespace-nowrap text-citron hover:underline"
+            className="min-w-0 rounded-md px-1 text-sm font-semibold whitespace-nowrap text-lime hover:underline"
             aria-label={`${isToday ? "Today" : dateLabel}. Back to the summary`}
           >
             {isToday ? <>Today<span className="hidden font-normal text-white/60 sm:inline"> · {dateLabel}</span></> : dateLabel}
@@ -382,7 +382,7 @@ function StickyDayBar({ show, data, activeDate, onDateChange, waterGoal, onSpeak
                     aria-label={`${CORE_META[key].label}, ${done ? "done" : "not done yet"}`}
                     className={cn(
                       "grid size-7 place-items-center rounded-full transition-colors",
-                      done ? "pair-citron" : "bg-white/10 text-white/80 hover:bg-white/20",
+                      done ? "pair-b" : "bg-white/10 text-white/80 hover:bg-white/20",
                     )}
                   >
                     {done ? <Check className="size-3.5" strokeWidth={3} /> : <Icon className="size-3.5" />}
@@ -399,7 +399,7 @@ function StickyDayBar({ show, data, activeDate, onDateChange, waterGoal, onSpeak
         </div>
 
         {onSpeak && (
-          <Button onClick={onSpeak} size="sm" className="h-8 shrink-0 gap-1.5 rounded-full bg-cream px-4 font-semibold text-ink shadow-sm hover:bg-white">
+          <Button onClick={onSpeak} size="sm" className="h-8 shrink-0 gap-1.5 rounded-full pair-b px-4 font-semibold shadow-sm hover:bg-mist">
             <Mic />
             Speak
           </Button>
@@ -414,10 +414,10 @@ interface MealCalories { breakfast: number; lunch: number; dinner: number; snack
 
 // Amber shades, deepest first, so the ring reads breakfast → snacks.
 export const MEALS: { key: MealKey; label: string; icon: LucideIcon; color: string }[] = [
-  { key: "breakfast", label: "Breakfast", icon: Sunrise, color: "#F16838" },
-  { key: "lunch",     label: "Lunch",     icon: Sun,     color: "#E1DC53" },
-  { key: "dinner",    label: "Dinner",    icon: Sunset,  color: "#266533" },
-  { key: "snacks",    label: "Snacks",    icon: Apple,   color: "#157954" },
+  { key: "breakfast", label: "Breakfast", icon: Sunrise, color: "#BCD5AC" },
+  { key: "lunch",     label: "Lunch",     icon: Sun,     color: "#518F5C" },
+  { key: "dinner",    label: "Dinner",    icon: Sunset,  color: "#165F39" },
+  { key: "snacks",    label: "Snacks",    icon: Apple,   color: "#094217" },
 ];
 
 function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog, biometrics }: Props & { foodLog: FoodLog }) {
@@ -495,7 +495,7 @@ function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog, biome
                   : `${Math.round(target - total).toLocaleString()} kcal under your target`}
             </p>
           )}
-          {overTarget && <p className="max-w-56 text-center text-sm font-medium text-tangerine-deep tabular-nums">{Math.round(total - target).toLocaleString()} kcal over your target</p>}
+          {overTarget && <p className="max-w-56 text-center text-sm font-semibold text-ink tabular-nums">{Math.round(total - target).toLocaleString()} kcal over your target</p>}
         </div>
 
         <div className="grid auto-rows-fr grid-cols-2 gap-3">
@@ -1096,7 +1096,7 @@ function MoodWeek({ data, endDate: centerDate }: { data: HabitData; endDate: str
               <span
                 className={cn(
                   "grid size-8 place-items-center rounded-full",
-                  option ? "pair-cream ring-1 ring-ink/10" : "border border-dashed text-muted-foreground/40",
+                  option ? "pair-d ring-1 ring-ink/10" : "border border-dashed text-muted-foreground/40",
                   future && "border-muted-foreground/15 bg-muted/40",
                   isCenter && "ring-2 ring-primary ring-offset-2",
                 )}

@@ -30,7 +30,9 @@ export default function MacroBars({ eaten, target, className }: { eaten: Macros;
                 {state === "reached" && <Check className="tick-pop size-3.5 text-primary" strokeWidth={3} aria-label="target reached" />}
               </span>
               <span className="text-muted-foreground tabular-nums">
-                <span className={cn("font-semibold text-foreground", state === "over" && "text-tangerine-deep")}>{got}</span> / {goal} g
+                <span className={cn("font-semibold text-foreground", state === "over" && "text-ink")}>{got}</span> / {goal} g
+                {/* In a single-hue palette, "over" is said in words, not just a darker bar. */}
+                {state === "over" && <span className="ml-1.5 rounded-full bg-ink px-1.5 py-0.5 text-[10px] font-semibold text-cream uppercase">over</span>}
               </span>
             </div>
             <div
@@ -44,7 +46,7 @@ export default function MacroBars({ eaten, target, className }: { eaten: Macros;
               <div
                 className={cn(
                   "h-full rounded-full transition-[width] duration-500 motion-reduce:transition-none",
-                  state === "under" ? "bg-citron" : state === "reached" ? "bg-primary" : "bg-tangerine-deep",
+                  state === "under" ? "bg-middle" : state === "reached" ? "bg-primary" : "bg-ink",
                 )}
                 style={{ width: `${Math.min(share, 1) * 100}%` }}
               />

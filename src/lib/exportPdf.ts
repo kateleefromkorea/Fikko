@@ -62,8 +62,8 @@ export function buildPdf(tables: Record<string, Row[]>, exportedAt: Date, range:
   // Landscape gives wide tables like the food log room to breathe.
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
   const margin = 40;
-  // Fikko green (#157954).
-  const accent: [number, number, number] = [21, 121, 84];
+  // Fikko green (#165F39).
+  const accent: [number, number, number] = [22, 95, 57];
   let y = margin;
 
   const nextY = () => (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? y;

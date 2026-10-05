@@ -52,8 +52,8 @@ export default function StepResult({ baseline, goalKey, name, onDone }: Props) {
       </div>
 
       {clampedToFloor && (
-        <p className="mt-3 flex gap-2 rounded-lg border border-tangerine/30 bg-tangerine/8 p-3 text-sm text-ink">
-          <TriangleAlert className="mt-0.5 size-4 shrink-0 text-tangerine-deep" aria-hidden="true" />
+        <p className="mt-3 flex gap-2 rounded-lg pair-d border border-lime p-3 text-sm">
+          <TriangleAlert className="mt-0.5 size-4 shrink-0 text-pine" aria-hidden="true" />
           <span>
             Your chosen pace worked out below a safe daily minimum, so we raised your target to{" "}
             {calorieTarget.toLocaleString()} kcal. Pick a gentler rate in your profile if you would like the maths to

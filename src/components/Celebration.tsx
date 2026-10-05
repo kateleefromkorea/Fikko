@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 import { PartyPopper } from "lucide-react";
 
-// The Fikko palette: greens, citron, tangerine and cream.
-const COLORS = ["#157954", "#0F5C40", "#266533", "#E1DC53", "#F16838", "#F6F4DC"];
+// The Fikko green scale.
+const COLORS = ["#042509", "#094217", "#165F39", "#518F5C", "#BCD5AC", "#EEF4E8"];
 const DURATION = 3000;
 const PIECES = 160;
 

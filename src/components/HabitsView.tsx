@@ -39,6 +39,7 @@ import { shiftDateKey, todayKey } from "../lib/dates";
 import { activityComment, foodComment, medsComment, momentFor, moodComment, sleepComment, waterComment } from "./habitComments";
 import { dayRange, sleepHours } from "../lib/dashboardStats";
 import { sumMacros } from "../lib/macros";
+import { activityCalories } from "../lib/activityCalories";
 
 function timeGreeting() {
   const h = new Date().getHours();
@@ -128,6 +129,8 @@ export interface Goals {
   calories: number;
   water: number;
   sleepHours: number;
+  /** Body weight, for estimating the calories a workout burns. */
+  weightKg?: number | null;
 }
 
 const TODAY = todayKey();
@@ -536,7 +539,7 @@ function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog }: Pro
 const QUICK_MINUTES = [10, 20, 30];
 const WORKOUT_SUGGESTIONS = ["Walk", "Run", "Gym", "Yoga", "Cycling", "Swim"];
 
-function ExerciseCard({ data, onChange, activeDate, biometrics }: Props) {
+function ExerciseCard({ data, onChange, activeDate, biometrics, goals }: Props) {
   const { device, total } = activityMinutes(data, activeDate);
   const workouts = workoutsOf(getEntry(data.exercise, activeDate));
   const steps      = biometrics?.steps?.find((e) => e.date === activeDate)?.value ?? null;
@@ -584,7 +587,8 @@ function ExerciseCard({ data, onChange, activeDate, biometrics }: Props) {
               <Watch className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
               <span className="min-w-0 flex-1 truncate">Your wearable</span>
               <span className="tabular-nums text-muted-foreground">{device} min</span>
-              {/* Lines up with the remove buttons below. */}
+              {/* Lines up with the calorie estimates and remove buttons below. */}
+              <span className="w-20" aria-hidden="true" />
               <span className="w-7" aria-hidden="true" />
             </li>
           )}
@@ -593,6 +597,12 @@ function ExerciseCard({ data, onChange, activeDate, biometrics }: Props) {
               <Dumbbell className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
               <span className="min-w-0 flex-1 truncate">{w.name || "Workout"}</span>
               <span className="tabular-nums text-muted-foreground">{w.minutes} min</span>
+              <span
+                className="w-20 text-right tabular-nums text-muted-foreground"
+                title="Estimated from the activity, its length and your weight"
+              >
+                ≈ {activityCalories(w.name, w.minutes, goals.weightKg)} kcal
+              </span>
               <Button
                 variant="ghost"
                 size="icon-sm"

@@ -154,7 +154,7 @@ export default function MobileApp() {
             medications={medications}
             userId={userId}
             profileName={profile.name}
-            goals={{ calories: profile.calorie_goal, water: profile.water_goal, sleepHours: profile.sleep_goal }}
+            goals={{ calories: profile.calorie_goal, water: profile.water_goal, sleepHours: profile.sleep_goal, weightKg: profile.weight_kg }}
             trackMacros={tracksMacros(profile.tracking_style)}
             onOpenCommunity={() => open("community")}
           />

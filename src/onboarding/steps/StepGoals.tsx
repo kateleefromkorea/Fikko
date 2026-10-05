@@ -109,8 +109,8 @@ export default function StepGoals({ api, showError }: { api: Api; showError: boo
           )}
 
           {direction === "loss" && s.weeklyRate != null && s.weeklyRate >= 0.75 && (
-            <p className="flex gap-2 rounded-lg border border-food/30 bg-food/10 p-3 text-sm text-amber-900">
-              <TriangleAlert className="mt-0.5 size-4 shrink-0 text-food" aria-hidden="true" />
+            <p className="flex gap-2 rounded-lg border border-tangerine/30 bg-tangerine/8 p-3 text-sm text-ink">
+              <TriangleAlert className="mt-0.5 size-4 shrink-0 text-tangerine-deep" aria-hidden="true" />
               That is a fast pace. It is safe for many people short-term, but it is harder to
               sustain — you can ease off any time from your profile.
             </p>

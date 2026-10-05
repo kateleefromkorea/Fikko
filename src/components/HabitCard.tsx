@@ -30,11 +30,13 @@ export function useMounted() {
 export function HabitIcon({ icon: Icon, hue, className }: { icon: LucideIcon; hue: HabitHue; className?: string }) {
   return (
     <span
-      className={cn("grid size-10 shrink-0 place-items-center rounded-xl shadow-sm", className)}
-      style={{ background: `var(--${hue})` }}
+      // The habit's palette pair: tile colour with its matching icon colour. A light
+      // tile (cream) gets a hairline so it doesn't melt into the white card.
+      className={cn("grid size-10 shrink-0 place-items-center rounded-xl shadow-sm ring-1 ring-inset ring-ink/8", className)}
+      style={{ background: `var(--${hue})`, color: `var(--${hue}-fg)` }}
       aria-hidden="true"
     >
-      <Icon className="size-5 text-white" strokeWidth={2.25} />
+      <Icon className="size-5" strokeWidth={2.25} />
     </span>
   );
 }
@@ -136,7 +138,7 @@ export function Figure({ value, unit, className }: { value: ReactNode; unit?: st
 export function HabitBar({ value, max, hue, className }: { value: number; max: number; hue: HabitHue; className?: string }) {
   const mounted = useMounted();
   const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
-  const color = value >= max && max > 0 ? "var(--primary)" : `var(--${hue})`;
+  const color = value >= max && max > 0 ? "var(--primary)" : `var(--${hue}-strong)`;
   return (
     <Progress
       value={mounted ? pct : 0}

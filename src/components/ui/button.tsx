@@ -8,7 +8,8 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/80",
+        // Buttons use the deeper green, so calls to action stand out from Fikko green's selected states.
+        default: "bg-primary-deep text-primary-foreground hover:bg-primary-deep/90 active:bg-ink",
         outline:
           "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
         secondary:

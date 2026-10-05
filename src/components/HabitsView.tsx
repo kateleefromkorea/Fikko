@@ -345,7 +345,7 @@ function StickyDayBar({ show, data, activeDate, onDateChange, waterGoal, onSpeak
       aria-hidden={!show}
       inert={!show}
       className={cn(
-        "fixed inset-x-0 top-16 z-30 bg-[#0E3B2B] text-white shadow-md transition-[translate,opacity] duration-200 motion-reduce:transition-none",
+        "fixed inset-x-0 top-16 z-30 bg-ink text-white shadow-md transition-[translate,opacity] duration-200 motion-reduce:transition-none",
         show ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-full opacity-0",
       )}
     >
@@ -356,7 +356,7 @@ function StickyDayBar({ show, data, activeDate, onDateChange, waterGoal, onSpeak
           </Button>
           <button
             onClick={onDateClick}
-            className="min-w-0 rounded-md px-1 text-sm font-semibold whitespace-nowrap text-emerald-300 hover:underline"
+            className="min-w-0 rounded-md px-1 text-sm font-semibold whitespace-nowrap text-citron hover:underline"
             aria-label={`${isToday ? "Today" : dateLabel}. Back to the summary`}
           >
             {isToday ? <>Today<span className="hidden font-normal text-white/60 sm:inline"> · {dateLabel}</span></> : dateLabel}
@@ -382,7 +382,7 @@ function StickyDayBar({ show, data, activeDate, onDateChange, waterGoal, onSpeak
                     aria-label={`${CORE_META[key].label}, ${done ? "done" : "not done yet"}`}
                     className={cn(
                       "grid size-7 place-items-center rounded-full transition-colors",
-                      done ? "bg-emerald-400 text-[#0E3B2B]" : "bg-white/10 text-white/80 hover:bg-white/20",
+                      done ? "pair-citron" : "bg-white/10 text-white/80 hover:bg-white/20",
                     )}
                   >
                     {done ? <Check className="size-3.5" strokeWidth={3} /> : <Icon className="size-3.5" />}
@@ -399,7 +399,7 @@ function StickyDayBar({ show, data, activeDate, onDateChange, waterGoal, onSpeak
         </div>
 
         {onSpeak && (
-          <Button onClick={onSpeak} size="sm" className="h-8 shrink-0 gap-1.5 rounded-full bg-white px-4 font-semibold text-[#0E3B2B] shadow-sm hover:bg-emerald-100">
+          <Button onClick={onSpeak} size="sm" className="h-8 shrink-0 gap-1.5 rounded-full bg-cream px-4 font-semibold text-ink shadow-sm hover:bg-white">
             <Mic />
             Speak
           </Button>
@@ -414,10 +414,10 @@ interface MealCalories { breakfast: number; lunch: number; dinner: number; snack
 
 // Amber shades, deepest first, so the ring reads breakfast → snacks.
 export const MEALS: { key: MealKey; label: string; icon: LucideIcon; color: string }[] = [
-  { key: "breakfast", label: "Breakfast", icon: Sunrise, color: "#E08E0B" },
-  { key: "lunch",     label: "Lunch",     icon: Sun,     color: "#F5A623" },
-  { key: "dinner",    label: "Dinner",    icon: Sunset,  color: "#F8C063" },
-  { key: "snacks",    label: "Snacks",    icon: Apple,   color: "#FBD89C" },
+  { key: "breakfast", label: "Breakfast", icon: Sunrise, color: "#F16838" },
+  { key: "lunch",     label: "Lunch",     icon: Sun,     color: "#E1DC53" },
+  { key: "dinner",    label: "Dinner",    icon: Sunset,  color: "#266533" },
+  { key: "snacks",    label: "Snacks",    icon: Apple,   color: "#157954" },
 ];
 
 function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog, biometrics }: Props & { foodLog: FoodLog }) {
@@ -482,7 +482,7 @@ function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog, biome
           </ProgressRing>
           {burned > 0 && (
             <p className="text-center text-xs text-muted-foreground tabular-nums">
-              {Math.round(eaten).toLocaleString()} eaten − <span className="text-exercise">{burned.toLocaleString()} burned</span>
+              {Math.round(eaten).toLocaleString()} eaten − <span className="text-exercise-strong">{burned.toLocaleString()} burned</span>
             </p>
           )}
           {/* The plain answer to "how much more can I eat?", after workouts. */}
@@ -495,7 +495,7 @@ function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog, biome
                   : `${Math.round(target - total).toLocaleString()} kcal under your target`}
             </p>
           )}
-          {overTarget && <p className="max-w-56 text-center text-sm font-medium text-amber-700 tabular-nums">{Math.round(total - target).toLocaleString()} kcal over your target</p>}
+          {overTarget && <p className="max-w-56 text-center text-sm font-medium text-tangerine-deep tabular-nums">{Math.round(total - target).toLocaleString()} kcal over your target</p>}
         </div>
 
         <div className="grid auto-rows-fr grid-cols-2 gap-3">
@@ -639,7 +639,7 @@ function WaterCard({ data, onChange, activeDate, biometrics, goals }: Props) {
                 style={{
                   height: filled && mounted ? "100%" : "0%",
                   transitionDelay: filled ? `${i * 40}ms` : "0ms",
-                  background: "linear-gradient(180deg, color-mix(in srgb, var(--water) 35%, white), var(--water))",
+                  background: "linear-gradient(180deg, color-mix(in srgb, var(--water) 14%, white), color-mix(in srgb, var(--water) 48%, white))",
                 }}
                 aria-hidden="true"
               />
@@ -1096,7 +1096,7 @@ function MoodWeek({ data, endDate: centerDate }: { data: HabitData; endDate: str
               <span
                 className={cn(
                   "grid size-8 place-items-center rounded-full",
-                  option ? "bg-mood/15 text-amber-700" : "border border-dashed text-muted-foreground/40",
+                  option ? "pair-cream ring-1 ring-ink/10" : "border border-dashed text-muted-foreground/40",
                   future && "border-muted-foreground/15 bg-muted/40",
                   isCenter && "ring-2 ring-primary ring-offset-2",
                 )}

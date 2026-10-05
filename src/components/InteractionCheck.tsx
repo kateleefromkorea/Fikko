@@ -8,9 +8,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 
 const SEVERITY: Record<Severity, { label: string; icon: typeof AlertTriangle; cls: string }> = {
   avoid: { label: "Avoid together", icon: ShieldAlert, cls: "bg-red-50 text-red-700 ring-red-200" },
-  caution: { label: "Check with a pharmacist", icon: AlertTriangle, cls: "bg-amber-50 text-amber-800 ring-amber-200" },
-  timing: { label: "Space them out", icon: Clock, cls: "bg-sky-50 text-sky-800 ring-sky-200" },
-  overlap: { label: "Doubling up", icon: Copy, cls: "bg-violet-50 text-violet-800 ring-violet-200" },
+  caution: { label: "Check with a pharmacist", icon: AlertTriangle, cls: "bg-tangerine/10 text-tangerine-deep ring-tangerine/30" },
+  timing: { label: "Space them out", icon: Clock, cls: "pair-cream ring-ink/15" },
+  overlap: { label: "Doubling up", icon: Copy, cls: "bg-forest/10 text-forest ring-forest/25" },
 };
 
 /**

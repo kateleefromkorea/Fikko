@@ -13,18 +13,41 @@
   /* Accent face, used sparingly: the sign-in page's tagline. */
   --font-tagline: 'Roboto', system-ui, sans-serif;
 
-  /* Teal and sky are the fresh accents; the rest are one hue per habit,
-     shared with the marketing site, used only to identify a habit or a
-     chart series. */
+  /* The Fikko palette (see :root). Brand greens, the four accent colours,
+     and one hue per habit built from them. */
+  --color-primary-deep: var(--primary-deep);
+  --color-ink: var(--ink);
+  --color-cream: var(--cream);
+  --color-citron: var(--citron);
+  --color-tangerine: var(--tangerine);
+  --color-tangerine-deep: var(--tangerine-deep);
+  --color-forest: var(--forest);
   --color-teal: var(--teal);
   --color-sky: var(--sky);
+
+  /* Each habit: --x is its tile and fill colour, --x-fg the icon on that tile,
+     --x-strong the version for lines, icons and text on white (3:1 or better). */
   --color-water: var(--water);
+  --color-water-fg: var(--water-fg);
+  --color-water-strong: var(--water-strong);
   --color-meds: var(--meds);
+  --color-meds-fg: var(--meds-fg);
+  --color-meds-strong: var(--meds-strong);
   --color-food: var(--food);
+  --color-food-fg: var(--food-fg);
+  --color-food-strong: var(--food-strong);
   --color-exercise: var(--exercise);
+  --color-exercise-fg: var(--exercise-fg);
+  --color-exercise-strong: var(--exercise-strong);
   --color-sleep: var(--sleep);
+  --color-sleep-fg: var(--sleep-fg);
+  --color-sleep-strong: var(--sleep-strong);
   --color-mood: var(--mood);
+  --color-mood-fg: var(--mood-fg);
+  --color-mood-strong: var(--mood-strong);
   --color-custom: var(--custom);
+  --color-custom-fg: var(--custom-fg);
+  --color-custom-strong: var(--custom-strong);
 
   --color-ring: var(--ring);
   --color-input: var(--input);
@@ -53,9 +76,21 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* shadcn's neutral base with Fikko green as the primary — the same tokens
-   as the marketing site (fikko-site/src/index.css), so the two read as one
-   product. The page sits on a faint grey so white cards lift off it. */
+/* shadcn's neutral base with Fikko green as the primary. The page sits on a
+   faint grey so white cards lift off it.
+
+   The Fikko palette. Contrast ratios are WCAG, against the pair's background:
+     Fikko green  #157954  the brand colour: selected and done states, links, focus
+     Deep green   #0F5C40  buttons and calls to action (white text 8.0:1)
+     Ink          #0E3B2B  the "dark green font"
+     Cream        #F6F4DC
+     A  Citron    #E1DC53  with ink text 8.7:1
+     B  Tangerine #F16838  with cream, decorative only (2.8:1); text uses
+                  tangerine-deep #C24416 with cream (4.6:1)
+     C  Forest    #266533  with cream text 6.3:1 (ink on forest is 1.8:1, unreadable)
+     D  Cream     #F6F4DC  with ink text 11.3:1
+   The pairs are ready-made as the pair-citron, pair-tangerine, pair-forest and
+   pair-cream utilities below. */
 :root {
   --background: oklch(0.985 0 0);
   --foreground: oklch(0.145 0 0);
@@ -74,20 +109,34 @@
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: #2DC4B2;
+  --ring: #157954;
   --radius: 0.625rem;
 
-  --teal: #2DC4B2;
-  --sky: #5BA9F0;
+  --primary-deep: #0F5C40;
+  --ink: #0E3B2B;
+  --cream: #F6F4DC;
+  --citron: #E1DC53;
+  --tangerine: #F16838;
+  --tangerine-deep: #C24416;
+  --forest: #266533;
+  /* The old fresh accents, now from the palette: soft washes and highlights. */
+  --teal: #157954;
+  --sky: #E1DC53;
 
-  --water: #5BA9F0;
-  --meds: #8FA9E0;
-  --food: #F5A623;
-  --exercise: #FF7575;
-  --sleep: #7E6FD8;
-  --mood: #E9B92F;
-  --custom: #2DC4B2;
+  --water: #157954;   --water-fg: #FFFFFF;   --water-strong: #157954;
+  --meds: #266533;    --meds-fg: #F6F4DC;    --meds-strong: #266533;
+  --food: #E1DC53;    --food-fg: #0E3B2B;    --food-strong: #857F10;
+  --exercise: #F16838; --exercise-fg: #F6F4DC; --exercise-strong: #C24416;
+  --sleep: #0E3B2B;   --sleep-fg: #F6F4DC;   --sleep-strong: #0E3B2B;
+  --mood: #F6F4DC;    --mood-fg: #0E3B2B;    --mood-strong: #C24416;
+  --custom: #0F5C40;  --custom-fg: #FFFFFF;  --custom-strong: #0F5C40;
 }
+
+/* The four accent pairs, as text-on-background utilities. */
+@utility pair-citron { background-color: var(--citron); color: var(--ink); }
+@utility pair-tangerine { background-color: var(--tangerine-deep); color: var(--cream); }
+@utility pair-forest { background-color: var(--forest); color: var(--cream); }
+@utility pair-cream { background-color: var(--cream); color: var(--ink); }
 
 @layer base {
   * {

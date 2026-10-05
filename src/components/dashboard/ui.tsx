@@ -9,16 +9,17 @@ import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle }
 import type { Point } from "../../lib/dashboardStats";
 
 // Chart colours. SVG gradients need literal values, so these mirror the
-// habit hues and neutrals in index.css rather than reading the variables.
+// habit "-strong" hues and neutrals in index.css (readable as lines on white)
+// rather than reading the variables.
 export const C = {
   primary: "#157954",
-  teal: "#2DC4B2",
-  water: "#5BA9F0",
-  meds: "#8FA9E0",
-  food: "#F5A623",
-  exercise: "#FF7575",
-  sleep: "#7E6FD8",
-  mood: "#E9B92F",
+  teal: "#E1DC53",
+  water: "#157954",
+  meds: "#266533",
+  food: "#857F10",
+  exercise: "#C24416",
+  sleep: "#0E3B2B",
+  mood: "#F16838",
   grid: "#EBEBEB",
   tick: "#737373",
 };

@@ -407,10 +407,10 @@ export function MoodMedsSection({ ctx }: { ctx: DashCtx }) {
                 <ul className="mt-5 space-y-2">
                   {[...counts].reverse().map((c) => (
                     <li key={c.value} className="flex items-center gap-2 text-xs">
-                      <c.icon className="size-4 shrink-0" style={{ color: "var(--mood)" }} aria-hidden="true" />
+                      <c.icon className="size-4 shrink-0" style={{ color: "var(--mood-strong)" }} aria-hidden="true" />
                       <span className="w-10 text-muted-foreground">{c.label}</span>
                       <span className="h-2 flex-1 overflow-hidden rounded-full bg-foreground/[0.06]">
-                        <span className="block h-full rounded-full bg-mood" style={{ width: `${(c.n / maxCount) * 100}%` }} />
+                        <span className="block h-full rounded-full bg-mood-strong" style={{ width: `${(c.n / maxCount) * 100}%` }} />
                       </span>
                       <span className="w-5 text-right tabular-nums">{c.n}</span>
                     </li>

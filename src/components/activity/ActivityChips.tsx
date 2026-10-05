@@ -53,7 +53,7 @@ export default function ActivityChips({ chips, selected, onPick, onQuickLog, onM
               onClick={() => { if (!held.current) onPick(choice); }}
               className={chipCls}
             >
-              <Icon className="size-4 text-exercise" aria-hidden="true" />
+              <Icon className="size-4 text-exercise-strong" aria-hidden="true" />
               {label}
             </button>
           </li>

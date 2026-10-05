@@ -469,7 +469,17 @@ function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog }: Pro
               {Math.round(eaten).toLocaleString()} eaten − <span className="text-exercise">{burned.toLocaleString()} burned</span>
             </p>
           )}
-          {overTarget && <p className="max-w-48 text-center text-sm text-amber-700">{Math.round(total - target).toLocaleString()} kcal over</p>}
+          {/* The plain answer to "how much more can I eat?", after workouts. */}
+          {eaten > 0 && !overTarget && (
+            <p className="max-w-56 text-center text-sm font-medium text-primary tabular-nums">
+              {Math.round(target - total) === 0
+                ? "You've reached your target"
+                : activeDate === todayKey()
+                  ? `You can eat ${Math.round(target - total).toLocaleString()} kcal more today`
+                  : `${Math.round(target - total).toLocaleString()} kcal under your target`}
+            </p>
+          )}
+          {overTarget && <p className="max-w-56 text-center text-sm font-medium text-amber-700 tabular-nums">{Math.round(total - target).toLocaleString()} kcal over your target</p>}
           {(() => {
             // Shown for every member, whatever their goal or tracking style; 0 g until something's logged.
             const { total: m, missing } = sumMacros(foodLog.items);

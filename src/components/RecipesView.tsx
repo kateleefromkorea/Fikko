@@ -47,8 +47,8 @@ function EarlyUsersNote() {
       <div className="min-w-0 flex-1">
         <p className="font-semibold">Hi early users!</p>
         <p className="mt-1 text-sm text-foreground/75">
-          Yes, the images on the Fikko recipes are indeed AI-generated, as we aren&apos;t the best cooks. But hopefully
-          you are. Upload your healthy recipes and earn points!
+          Just a quick heads-up: the images on Fikko recipes are AI-generated because our cooking skills are a work in
+          progress! We&apos;re hoping yours are much better. Upload your healthy recipes and start earning points today!
         </p>
       </div>
       <button

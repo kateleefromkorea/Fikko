@@ -24,7 +24,7 @@ function DaySummary({ data, activeDate, profileName, waterGoal, voice }: {
 }) {
   const { core, custom, done, total } = completion(data, activeDate, waterGoal);
   return (
-    <section className="fresh-panel overflow-hidden rounded-2xl border border-teal/20 p-5 shadow-sm">
+    <section className="daily-overview overflow-hidden rounded-2xl border border-teal/20 p-5 shadow-sm">
       <div className="flex items-center gap-4">
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-semibold tracking-tight">{greeting(profileName)}</h1>

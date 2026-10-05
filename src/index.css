@@ -177,6 +177,25 @@
       color-mix(in srgb, var(--sky) 18%, white));
 }
 
+/* The Habits page's daily overview hero (web TodaySummary and the mobile app's
+   DaySummary). LOCKED: the member asked for this section to keep its original
+   teal-and-sky colours permanently, whatever the rest of the palette does.
+   Don't change these values or point them at the shared tokens. Everything
+   inside the section (the border, the progress ring's gradient, focus rings
+   and buttons) reads these locally restored variables. */
+.daily-overview {
+  --teal: #2DC4B2;
+  --sky: #5BA9F0;
+  --ring: #2DC4B2;
+  --primary: #157954;
+  --primary-deep: #157954;
+  background:
+    radial-gradient(60% 90% at 100% 0%, color-mix(in srgb, #5BA9F0 22%, transparent), transparent 70%),
+    linear-gradient(115deg,
+      color-mix(in srgb, #2DC4B2 16%, white),
+      color-mix(in srgb, #5BA9F0 18%, white));
+}
+
 /* A tick or "Done" badge popping in when a habit is completed. It plays on
    mount, which is exactly when the badge appears. */
 @keyframes tick-pop {

@@ -246,7 +246,7 @@ function TodaySummary({ data, activeDate, onDateChange, profileName, waterGoal, 
   const dateLabel = new Date(activeDate + "T00:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
   return (
-    <section ref={sectionRef} className="fresh-panel overflow-hidden rounded-2xl border border-teal/20 p-6 shadow-sm sm:p-8">
+    <section ref={sectionRef} className="daily-overview overflow-hidden rounded-2xl border border-teal/20 p-6 shadow-sm sm:p-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <p className="text-xs font-semibold tracking-wider text-primary uppercase">
           {isToday ? `Today · ${dateLabel}` : dateLabel}

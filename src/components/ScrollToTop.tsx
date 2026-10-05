@@ -21,7 +21,6 @@ export default function ScrollToTop() {
       type="button"
       onClick={() => window.scrollTo({ top: 0, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" })}
       aria-label="Scroll to top"
-      title="Back to top"
       tabIndex={show ? 0 : -1}
       aria-hidden={!show}
       // On phones it sits above the bottom tab bar.
@@ -30,6 +29,10 @@ export default function ScrollToTop() {
         show ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-4 opacity-0",
       )}
     >
+      {/* Says what the sprout does; part of the button, so tapping it works too. */}
+      <span aria-hidden="true" className="absolute right-0 bottom-full mb-2 rounded-full bg-primary px-2.5 py-1 text-xs font-medium whitespace-nowrap text-primary-foreground shadow-md">
+        Scroll to top
+      </span>
       <FikkoAvatar plain className="size-7 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:scale-110" />
     </button>
   );

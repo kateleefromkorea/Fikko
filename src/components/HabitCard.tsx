@@ -162,11 +162,12 @@ export function GroupLabel({ children, className }: { children: ReactNode; class
 }
 
 /** Section heading with a faint green hairline, heading a group of cards on the page. */
-export function SectionLabel({ children }: { children: ReactNode }) {
+export function SectionLabel({ children, aside }: { children: ReactNode; aside?: ReactNode }) {
   return (
     <div className="flex items-center gap-3">
       <h2 className="text-[15px] font-semibold text-[#3F4A45]">{children}</h2>
       <span className="h-px flex-1 bg-gradient-to-r from-primary/25 to-transparent" aria-hidden="true" />
+      {aside}
     </div>
   );
 }

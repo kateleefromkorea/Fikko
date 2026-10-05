@@ -85,7 +85,8 @@
    small text, 3:1 for icons, large text and chart lines).
      Fikko green   #157954  the primary: selected and done states, links, rings,
                    bars. White on it 5.4:1; as text on white 5.4:1
-     Evergreen     #003A35  buttons and calls to action (white 12.7:1)
+     Evergreen     #003A35  button hover/pressed state and pair B. Buttons are
+                   Fikko green with white text (5.4:1)
      Ink black     #001F27  body text, dark bars and elements (17.1:1 on white)
      Bright marine #1F73C2  pop: focus rings, highlights, callouts (white 4.9:1)
    Pairs, as the pair-* utilities below:
@@ -136,13 +137,16 @@
   --teal: #157954;
   --sky: #1F73C2;
 
-  --water: #1F73C2;    --water-fg: #FFFFFF;    --water-strong: #1F73C2;
-  --meds: #003A35;     --meds-fg: #F3F1E7;     --meds-strong: #003A35;
-  --food: #157954;     --food-fg: #FFFFFF;     --food-strong: #157954;
-  --exercise: #DCEAF7; --exercise-fg: #1F73C2; --exercise-strong: #4A8BD0;
-  --sleep: #001F27;    --sleep-fg: #F3F1E7;    --sleep-strong: #001F27;
-  --mood: #157954;     --mood-fg: #FFFFFF;     --mood-strong: #157954;
-  --custom: #2E5D57;   --custom-fg: #FFFFFF;   --custom-strong: #2E5D57;
+  /* Every habit wears Fikko green: icons tell them apart, so colour stays calm.
+     Green on the pale tint reads at 4.75:1. Charts keep their own series colours
+     in components/dashboard/ui.tsx. */
+  --water: #E6F4EC;    --water-fg: #157954;    --water-strong: #157954;
+  --meds: #E6F4EC;     --meds-fg: #157954;     --meds-strong: #157954;
+  --food: #E6F4EC;     --food-fg: #157954;     --food-strong: #157954;
+  --exercise: #E6F4EC; --exercise-fg: #157954; --exercise-strong: #157954;
+  --sleep: #E6F4EC;    --sleep-fg: #157954;    --sleep-strong: #157954;
+  --mood: #E6F4EC;     --mood-fg: #157954;     --mood-strong: #157954;
+  --custom: #E6F4EC;   --custom-fg: #157954;   --custom-strong: #157954;
 }
 
 /* The accent pairs, as text-on-background utilities. */

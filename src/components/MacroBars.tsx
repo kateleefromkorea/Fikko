@@ -2,10 +2,11 @@ import { Check } from "lucide-react";
 import type { Macros } from "@/lib/macros";
 import { cn } from "@/lib/utils";
 
-const MACROS: { key: keyof Macros; label: string }[] = [
-  { key: "protein", label: "Protein" },
-  { key: "carbs", label: "Carbs" },
-  { key: "fat", label: "Fat" },
+// Each macro takes a colour from the meal ring above it, so the card reads as one set.
+const MACROS: { key: keyof Macros; label: string; color: string }[] = [
+  { key: "protein", label: "Protein", color: "#157954" },
+  { key: "carbs", label: "Carbs", color: "#1F73C2" },
+  { key: "fat", label: "Fat", color: "#003A35" },
 ];
 
 /** Within this share of the target counts as reached. */
@@ -17,7 +18,7 @@ const OVER = 1.15;
 export default function MacroBars({ eaten, target, className }: { eaten: Macros; target: Macros; className?: string }) {
   return (
     <ul className={cn("grid gap-x-6 gap-y-4 sm:grid-cols-3", className)} aria-label="Macros against today's targets">
-      {MACROS.map(({ key, label }) => {
+      {MACROS.map(({ key, label, color }) => {
         const got = Math.round(eaten[key]);
         const goal = target[key];
         const share = goal > 0 ? got / goal : 0;
@@ -26,12 +27,13 @@ export default function MacroBars({ eaten, target, className }: { eaten: Macros;
           <li key={key} className="space-y-1.5">
             <div className="flex items-baseline justify-between gap-2 text-sm">
               <span className="flex items-center gap-1.5 font-medium">
+                <span className="size-2.5 rounded-full" style={{ background: color }} aria-hidden="true" />
                 {label}
                 {state === "reached" && <Check className="tick-pop size-3.5 text-primary-ink" strokeWidth={3} aria-label="target reached" />}
               </span>
               <span className="text-muted-foreground tabular-nums">
                 <span className={cn("font-semibold text-foreground", state === "over" && "text-ink")}>{got}</span> / {goal} g
-                {/* In a single-hue palette, "over" is said in words, not just a darker bar. */}
+                {/* Bars are coloured by macro, so "over" is said in words. */}
                 {state === "over" && <span className="ml-1.5 rounded-full bg-ink px-1.5 py-0.5 text-[10px] font-semibold text-cream uppercase">over</span>}
               </span>
             </div>
@@ -46,9 +48,8 @@ export default function MacroBars({ eaten, target, className }: { eaten: Macros;
               <div
                 className={cn(
                   "h-full rounded-full transition-[width] duration-500 motion-reduce:transition-none",
-                  state === "under" ? "bg-marine" : state === "reached" ? "bg-primary" : "bg-ink",
                 )}
-                style={{ width: `${Math.min(share, 1) * 100}%` }}
+                style={{ width: `${Math.min(share, 1) * 100}%`, background: color }}
               />
             </div>
           </li>

@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import {
-  Activity, Annoyed, Apple, BedDouble, Brain, CalendarDays, Check, ChevronLeft, ChevronRight, Coffee, Droplet, Dumbbell,
+  Activity, Annoyed, Flame, Apple, BedDouble, Brain, CalendarDays, Check, ChevronLeft, ChevronRight, Coffee, Droplet, Dumbbell,
   BatteryLow, CloudRain, Frown, Laugh, Leaf, Meh, Moon, SunMedium, Zap, Pill, Plus, Smartphone, Smile, SmilePlus, Sparkles, Sun, Sunrise, Sunset, Thermometer,
   Loader2, Mic, ShieldCheck, Trash2, Utensils, Volume2, Watch, Wine, X, type LucideIcon,
 } from "lucide-react";
 import { DB_LIMITS, clamp } from "../lib/limits";
 import { activityMinutes, completion, EXERCISE_TARGET_MIN, type CoreHabit } from "../lib/completion";
 import { workoutsOf } from "../lib/workouts";
+import { currentStreak, loggedOn } from "../lib/dashboardStats";
 import type { HabitData, BiometricData, HabitEntry, CustomHabit, MealKey, TimeOfDay } from "../types";
 import type { useMedications } from "../hooks/useMedications";
 import { mealTotals, useFoodLog } from "../hooks/useFoodLog";
@@ -231,6 +232,18 @@ function HabitChip({ icon: Icon, label, done, onClick }: { icon: LucideIcon; lab
       {label}
       <span className="sr-only">{done ? ", done" : ", not done yet"}</span>
     </button>
+  );
+}
+
+/** Days in a row with something logged, as a small green chip with a flame. Hidden until a streak starts. */
+function StreakChip({ data }: { data: HabitData }) {
+  const streak = currentStreak((d) => loggedOn(data, d));
+  if (streak < 1) return null;
+  return (
+    <span className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full bg-[#E6F4EC] px-3 text-sm font-medium text-[#0F5C40]">
+      <Flame className="size-3.5" aria-hidden="true" />
+      {streak}-day streak
+    </span>
   );
 }
 
@@ -1483,7 +1496,7 @@ export default function HabitsView({ data, onChange: saveData, biometrics, medic
       </div>
 
       <section className="space-y-4">
-        <SectionLabel>Nutrition & movement</SectionLabel>
+        <SectionLabel aside={<StreakChip data={data} />}>Nutrition & movement</SectionLabel>
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2"><FoodCard {...cardProps} foodLog={foodLog} /></div>
           <ActivityCard {...cardProps} />

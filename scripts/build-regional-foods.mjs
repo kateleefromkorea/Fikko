@@ -18,9 +18,12 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { readSheet } from "read-excel-file/node";
 
 const KJ_PER_KCAL = 4.184;
+/** Header patterns for a food's id, matched on lower-case text. */
+const FOOD_ID = [/public food key/, /food (id|key)/, /^(id|key)$/];
 const COLUMNS = ["source", "source_id", "name", "name_local", "category", "calories_per_100g", "protein_per_100g", "carbs_per_100g", "fat_per_100g"];
 
 // ── Reading files ──────────────────────────────────────────────────────────
@@ -49,21 +52,40 @@ function parseCsv(text) {
   return rows;
 }
 
-async function readRows(file) {
-  if (/\.csv$/i.test(file)) return parseCsv(fs.readFileSync(file, "utf8").replace(/^﻿/, ""));
-  return readSheet(file);
+/** The sheets of a file as arrays of rows. CSV files have just one. */
+async function readAllSheets(file) {
+  if (/\.csv$/i.test(file)) return [parseCsv(fs.readFileSync(file, "utf8").replace(/^\uFEFF/, ""))];
+  const sheets = [];
+  // Downloaded workbooks often open on a "content summary" sheet, so every sheet is read.
+  for (let i = 1; ; i++) {
+    try { sheets.push(await readSheet(file, i)); } catch (err) {
+      if (/not found/i.test(err.message)) break;
+      throw err;
+    }
+  }
+  return sheets;
 }
 
 const clean = (v) => (v == null ? "" : String(v).replace(/\s+/g, " ").trim());
 
-/** Rows as objects keyed by header. The header is the first row near the top with several text cells. */
+/** The header row near the top of a sheet: the first with several text cells. */
+const headerRowOf = (rows) => rows.slice(0, 25).findIndex((r) => r.filter((c) => /[a-z]/i.test(clean(c))).length >= 3);
+
+/**
+ * Rows as objects keyed by header, from the first sheet that has a table with a
+ * food id column (so the summary sheet at the front of a workbook is skipped).
+ */
 async function readTable(file) {
-  const rows = await readRows(file);
-  const at = rows.slice(0, 25).findIndex((r) => r.filter((c) => /[a-z]/i.test(clean(c))).length >= 3);
-  if (at < 0) throw new Error(`No header row found in ${path.basename(file)}`);
-  const headers = rows[at].map(clean);
-  const records = rows.slice(at + 1).map((r) => Object.fromEntries(headers.map((h, i) => [h, r[i]])));
-  return { headers, records, file: path.basename(file) };
+  const sheets = await readAllSheets(file);
+  for (const rows of sheets) {
+    const at = headerRowOf(rows);
+    if (at < 0) continue;
+    const headers = rows[at].map(clean);
+    if (!headers.some((h) => FOOD_ID.some((p) => p.test(h.toLowerCase())))) continue;
+    const records = rows.slice(at + 1).map((r) => Object.fromEntries(headers.map((h, i) => [h, r[i]])));
+    return { headers, records, file: path.basename(file) };
+  }
+  throw new Error(`No table with a food id column found in ${path.basename(file)} (${sheets.length} sheet${sheets.length === 1 ? "" : "s"} read)`);
 }
 
 /** The first header that matches the pattern, preferring earlier patterns. */
@@ -99,11 +121,11 @@ async function buildAfcd(folder) {
   const profiles = await readTable(find(/nutrient.?profiles?/i, "nutrient profiles"));
 
   // Food details: id, name, group.
-  const dKey = pick(details.headers, [/public food key/, /food (id|key)/, /^(id|key)$/], "food id", details.file);
+  const dKey = pick(details.headers, FOOD_ID, "food id", details.file);
   const dName = pick(details.headers, [/^food name/, /^name$/, /name/, /description/], "food name", details.file);
   const dGroup = pickOptional(details.headers, [/^classification\b/, /food group/, /group/]);
   // Nutrient profiles: the same id, then one column per nutrient.
-  const pKey = pick(profiles.headers, [/public food key/, /food (id|key)/, /^(id|key)$/], "food id", profiles.file);
+  const pKey = pick(profiles.headers, FOOD_ID, "food id", profiles.file);
   const h = profiles.headers;
   const energy = pick(h, [/^energy.*dietary fibre.*kj/, /^energy.*kj/, /^energy.*kcal/, /^energy/, /^(calories|kcal)/], "energy", profiles.file);
   const protein = pick(h, [/^protein/], "protein", profiles.file);
@@ -179,4 +201,8 @@ async function main() {
   }
 }
 
-main().catch((err) => { console.error(`\n${err.message}`); process.exit(1); });
+export { readTable };
+
+if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+  main().catch((err) => { console.error(`\n${err.message}`); process.exit(1); });
+}

@@ -461,13 +461,24 @@ function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog }: Pro
             </div>
           </ProgressRing>
           {overTarget && <p className="max-w-48 text-center text-sm text-amber-700">{Math.round(total - target).toLocaleString()} kcal over</p>}
-          {trackMacros && foodLog.items.length > 0 && (() => {
+          {(() => {
+            // Shown for every member, whatever their goal or tracking style; 0 g until something's logged.
             const { total: m, missing } = sumMacros(foodLog.items);
             return (
-              <p className="max-w-48 text-center text-xs text-muted-foreground tabular-nums">
-                Protein {Math.round(m.protein)} g · Carbs {Math.round(m.carbs)} g · Fat {Math.round(m.fat)} g
-                {missing > 0 && ` (${missing} item${missing === 1 ? "" : "s"} without macros)`}
-              </p>
+              <div className="flex flex-col items-center gap-1.5">
+                <ul className="flex justify-center gap-1.5 whitespace-nowrap" aria-label="Macros today">
+                  {([["Protein", m.protein], ["Carbs", m.carbs], ["Fat", m.fat]] as const).map(([label, grams]) => (
+                    <li key={label} className="rounded-full bg-food/10 px-2.5 py-1 text-xs text-foreground/80 tabular-nums">
+                      {label} <span className="font-semibold text-foreground">{Math.round(grams)} g</span>
+                    </li>
+                  ))}
+                </ul>
+                {missing > 0 && (
+                  <p className="text-center text-xs text-muted-foreground">
+                    {missing} item{missing === 1 ? "" : "s"} without macros
+                  </p>
+                )}
+              </div>
             );
           })()}
         </div>

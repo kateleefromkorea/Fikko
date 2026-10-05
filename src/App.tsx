@@ -177,8 +177,8 @@ export default function App() {
                 onClick={() => setTab(id)}
                 aria-current={tab === id ? "page" : undefined}
                 className={cn(
-                  "h-9 px-3 text-muted-foreground",
-                  tab === id && "bg-primary/8 text-primary hover:bg-primary/10 hover:text-primary",
+                  "h-9 px-3 font-medium text-foreground/80 hover:bg-foreground/[0.06] hover:text-foreground",
+                  tab === id && "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 hover:text-primary-foreground",
                 )}
               >
                 {ai && <Sparkles className={cn("size-4", tab !== id && "text-primary")} aria-hidden="true" />}

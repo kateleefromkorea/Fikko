@@ -21,11 +21,12 @@ function initialMode(): "signin" | "signup" {
 }
 
 export default function SignInScreen() {
-  const { signInWithPassword, signUpWithPassword, resendConfirmation, sendPasswordReset } = useAuth();
-  const [mode, setMode] = useState<"signin" | "signup" | "reset">(initialMode);
+  const { signInWithPassword, signUpWithPassword, resendConfirmation, sendPasswordReset, linkError } = useAuth();
+  // An expired reset link lands on "reset" with the reason, ready to ask for a new one.
+  const [mode, setMode] = useState<"signin" | "signup" | "reset">(() => (linkError?.type === "recovery" ? "reset" : initialMode()));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(linkError?.message ?? null);
   const [submitting, setSubmitting] = useState(false);
   const [checkEmail, setCheckEmail] = useState(false);
   // "Send the link again": when it can next be tapped, the seconds left, and how the last try went.

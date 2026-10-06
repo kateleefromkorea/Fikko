@@ -4,6 +4,7 @@ import { Browser } from "@capacitor/browser";
 import { Capacitor } from "@capacitor/core";
 import { useAuth } from "@/auth/AuthProvider";
 import { setAppAuthRedirect } from "@/auth/redirect";
+import { readEmailLink, verifyEmailLink } from "@/auth/emailLink";
 import { supabase } from "@/lib/supabase";
 
 /**
@@ -37,7 +38,7 @@ export function useAuthLinks() {
       // Closes Google's page on iOS; Android closes it by switching back to the app.
       Browser.close().catch(() => {});
 
-      // Supabase puts the session after "#" (or a one-time code after "?").
+      // Supabase puts the session after "#" (or a code after "?").
       const link = new URL(url.replace(AUTH_LINK, "https://app.invalid/"));
       const params = new URLSearchParams(link.hash.slice(1));
       link.searchParams.forEach((value, key) => params.set(key, value));
@@ -45,7 +46,10 @@ export function useAuthLinks() {
       const code = params.get("code");
       const accessToken = params.get("access_token");
       const refreshToken = params.get("refresh_token");
-      if (code) await supabase.auth.exchangeCodeForSession(code);
+      // Fikko's emails carry a one-time code instead (see src/auth/emailLink.ts).
+      const emailLink = readEmailLink(params);
+      if (emailLink) { if (await verifyEmailLink(emailLink)) return; }
+      else if (code) await supabase.auth.exchangeCodeForSession(code);
       else if (accessToken && refreshToken) await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
       else return;
 

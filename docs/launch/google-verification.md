@@ -20,7 +20,7 @@ Everything to paste into Google Cloud Console → **Google Auth Platform** (OAut
 | Developer contact email | hello@fikko.io |
 | User type | External |
 
-Authorised redirect URI on the OAuth client: the production `/api/device-callback` URL on fikko.io. Remove localhost / vercel.app redirect URIs from the production client (keep a separate client for development if you need one).
+Authorised redirect URI on the Fitbit OAuth client: `https://app.fikko.io/api/device-callback`. Authorised JavaScript origin on the sign-in client: `https://app.fikko.io`. (The marketing site is www.fikko.io; the app is app.fikko.io.) Remove localhost / vercel.app redirect URIs from the production client (keep a separate client for development if you need one).
 
 ## 2. App description (for the verification form)
 > Fikko is a habit and wellness tracking app for adults (14+). Members log water, meals, activity, sleep, mood and medications, and see their own trends on a dashboard. Members can optionally connect their Fitbit or Pixel Watch so their daily activity, sleep and health metrics fill in their habits automatically instead of being typed by hand. Access is read-only. Data is synced once when the member connects and then nightly, stored in our database (Supabase, Singapore region) encrypted in transit and at rest, shown only to that member, and deleted when they disconnect and choose to delete it, or delete their account. Google user data is never sold, never used for advertising, never used to train AI models, and never sent to any AI provider; Fikko's optional AI coach explicitly excludes Google-sourced data.
@@ -41,7 +41,7 @@ Authorised redirect URI on the OAuth client: the production `/api/device-callbac
 
 ## 4. Demo video script (~3 minutes, unlisted YouTube link)
 
-Record on the **production** site (www.fikko.io), English UI, screen recording with voice-over or captions. Use a test Google account with a Fitbit that has some data.
+Record on the **production** sites (www.fikko.io home page, app at app.fikko.io), English UI, screen recording with voice-over or captions. Use a test Google account with a Fitbit that has some data.
 
 | # | Show | Say / caption |
 |---|---|---|

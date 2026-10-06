@@ -95,28 +95,16 @@ export default function ActivityComposer({
           <Button type="button" variant="outline" size="icon" onClick={() => step(STEP)} aria-label={`${STEP} minutes more`} className="size-10 shrink-0">
             <Plus />
           </Button>
-          <div className="ml-auto hidden gap-1 sm:flex">
-            {PRESETS.map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => setMinutes(String(p))}
-                aria-pressed={mins === p}
-                className="h-8 rounded-full px-3 text-sm text-muted-foreground transition-colors hover:bg-muted aria-pressed:bg-exercise aria-pressed:font-medium aria-pressed:text-exercise-fg"
-              >
-                {p}
-              </button>
-            ))}
-          </div>
         </div>
-        <div className="flex gap-1 sm:hidden">
+        {/* Presets sit on their own row so they never spill out of a narrow card. */}
+        <div className="grid grid-cols-4 gap-1.5">
           {PRESETS.map((p) => (
             <button
               key={p}
               type="button"
               onClick={() => setMinutes(String(p))}
               aria-pressed={mins === p}
-              className="h-8 flex-1 rounded-full text-sm text-muted-foreground transition-colors hover:bg-muted aria-pressed:bg-exercise aria-pressed:font-medium aria-pressed:text-exercise-fg"
+              className="h-8 min-w-0 rounded-full border text-sm whitespace-nowrap text-muted-foreground transition-colors hover:bg-muted aria-pressed:border-exercise-strong aria-pressed:bg-exercise aria-pressed:font-medium aria-pressed:text-exercise-fg"
             >
               {p} min
             </button>

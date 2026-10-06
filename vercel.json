@@ -43,7 +43,7 @@
   ],
   "crons": [
     {
-      "path": "/api/device-sync",
+      "path": "/api/devices",
       "schedule": "0 20 * * *"
     },
     {

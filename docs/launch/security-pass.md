@@ -20,7 +20,7 @@ Self-review done 2026-10-06 before paying a CASA lab. Scope: `api/**`, `vercel.j
 1. **Dependencies:** `npm audit fix` (source-map-js 1.2.1 → 1.2.2, shadcn 4.21.0 → 4.21.3), and `shadcn` moved to `devDependencies` (it's a build-time CLI/CSS import). Production audit now clean; build verified.
 2. **HSTS:** added `includeSubDomains` in `vercel.json` (live header had `max-age` only).
 3. **Tokens encrypted at rest:** `device_connections` tokens are AES-256-GCM encrypted before storage (random IV per value, tamper-detecting). Older plain-text rows still read and are re-encrypted at the next refresh.
-4. **No collection after a deletion request:** the nightly sync (`api/device-sync.ts`) now skips members whose account is scheduled for deletion.
+4. **No collection after a deletion request:** the nightly sync (`api/devices.ts`) now skips members whose account is scheduled for deletion.
 
 ## Open items
 1. **No security event logging/alerting** beyond Vercel/Supabase logs (ASVS V7). Before CASA, enable Supabase Auth audit logs and Vercel log retention; document who checks them.

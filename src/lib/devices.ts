@@ -48,15 +48,15 @@ export async function fetchConnections(): Promise<Connection[]> {
 
 /** Sends the browser to the provider's sign-in page; it brings the member back afterwards. */
 export async function connectDevice(provider: Provider) {
-  const { url } = await call("/api/device-connect", { provider });
+  const { url } = await call("/api/devices", { action: "connect", provider });
   window.location.assign(url as string);
 }
 
 export async function syncDevice(provider: Provider) {
-  const { saved } = await call("/api/device-sync", { provider });
+  const { saved } = await call("/api/devices", { action: "sync", provider });
   return saved as number;
 }
 
 export async function disconnectDevice(provider: Provider, deleteData: boolean) {
-  await call("/api/device-disconnect", { provider, deleteData });
+  await call("/api/devices", { action: "disconnect", provider, deleteData });
 }

@@ -26,6 +26,8 @@ const USER_TABLES = [
   ["points_events", "created_at"],
   ["biometric_entries", "date"],
   ["coach_messages", "created_at"],
+  ["fikko_garden", "created_at"],
+  ["ai_recipes", "created_at"],
 ] as const;
 
 /** "daily" and "food" are spreadsheets (CSV): one row per day, or one row per logged food. */

@@ -6,7 +6,7 @@
 import { supabase } from "./supabase";
 
 /** Bump (here and on the server) when the Privacy Policy changes enough that members must agree again. */
-export const POLICY_VERSION = "2026-10-04";
+export const POLICY_VERSION = "2026-10-06";
 
 export type ConsentKey = "terms" | "personal_info" | "health_data" | "overseas_transfer" | "ai_processing";
 export type Region = "KR" | "AU" | "SG" | "US" | "OTHER";
@@ -86,12 +86,12 @@ export const CONSENT_ITEMS: ConsentItem[] = [
     details: [
       {
         label: "What's sent",
-        text: "AI coach: your message, recent conversation, profile details such as goals, diet and allergies, and your last four weeks of logs. Voice check-ins: what you said, as text, plus the names of your medications and custom habits. Photo logging: the meal photo, without your name. Medication check: names Fikko's own list doesn't recognise. Never your email address.",
+        text: "AI coach: your message, recent conversation, profile details such as goals, diet and allergies, and your last four weeks of logs. Voice check-ins: what you said, as text, plus the names of your medications and custom habits. Photo logging: the meal photo, without your name. Recipe ideas: the ingredients you type in, plus your diet and allergies. Medication check: names Fikko's own list doesn't recognise. Never your email address.",
       },
       { label: "Who and where", text: "Anthropic, PBC, in the United States, which runs the Claude AI model." },
-      { label: "Why", text: "To write the coach's replies, turn what you say or photograph into log entries, and check medication names. Replies are automatic suggestions, not medical advice, and nobody at Fikko reads them." },
+      { label: "Why", text: "To write the coach's replies, turn what you say or photograph into log entries, suggest recipes, and check medication names. Replies are automatic suggestions, not medical advice, and nobody at Fikko reads them." },
       { label: "How long", text: "Anthropic deletes it within 30 days and doesn't use it to train its models. Content its safety systems flag may be kept up to 2 years. Coach chats stay in Fikko until you clear them." },
-      { label: "If you say no", text: "Everything else works. The AI coach, voice check-ins, photo logging and the AI part of the medication check stay off. You can change this any time in Profile → Privacy." },
+      { label: "If you say no", text: "Everything else works. The AI coach, voice check-ins, photo logging, recipe ideas and the AI part of the medication check stay off. You can change this any time in Profile → Privacy." },
     ],
   },
 ];

@@ -11,8 +11,9 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { oura } from "./oura.js";
 import { google } from "./google.js";
 import { AuthError, type ProviderAdapter, type TokenSet } from "./common.js";
+import { decryptToken, encryptToken } from "./tokenCrypto.js";
 
-export { AuthError };
+export { AuthError, decryptToken };
 export type { ProviderAdapter };
 
 export const PROVIDERS: Record<string, ProviderAdapter> = { oura, google };
@@ -64,20 +65,21 @@ export async function pkceChallenge(verifier: string) {
 
 /**
  * Stores a token set. Some providers (Google) don't send a new refresh token
- * on refresh, so the existing one is kept when none comes back.
+ * on refresh, so the existing one is kept when none comes back. Both tokens
+ * are encrypted before they're stored (see tokenCrypto.ts).
  */
 export async function saveTokens(db: SupabaseClient, userId: string, provider: ProviderAdapter, t: TokenSet) {
   let refresh = t.refresh_token;
   if (!refresh) {
     const { data } = await db.from("device_connections").select("refresh_token").eq("user_id", userId).eq("provider", provider.id).maybeSingle();
-    refresh = data?.refresh_token;
+    refresh = data?.refresh_token ? await decryptToken(data.refresh_token) : undefined;
   }
   if (!refresh) throw new Error(`${provider.name} didn't grant ongoing access.`);
   const { error } = await db.from("device_connections").upsert({
     user_id: userId,
     provider: provider.id,
-    access_token: t.access_token,
-    refresh_token: refresh,
+    access_token: await encryptToken(t.access_token),
+    refresh_token: await encryptToken(refresh),
     expires_at: new Date(Date.now() + t.expires_in * 1000).toISOString(),
     scopes: t.scope ?? null,
     status: "active",
@@ -90,10 +92,10 @@ interface Connection { access_token: string; refresh_token: string; expires_at: 
 
 /** A usable access token, refreshed (and saved) first if it expires within five minutes. */
 async function accessToken(db: SupabaseClient, userId: string, provider: ProviderAdapter, conn: Connection) {
-  if (new Date(conn.expires_at).getTime() - Date.now() > 5 * 60 * 1000) return conn.access_token;
+  if (new Date(conn.expires_at).getTime() - Date.now() > 5 * 60 * 1000) return decryptToken(conn.access_token);
   let t: TokenSet;
   try {
-    t = await provider.refresh(conn.refresh_token);
+    t = await provider.refresh(await decryptToken(conn.refresh_token));
   } catch {
     throw new AuthError(provider.name);
   }

@@ -14,7 +14,7 @@
 create table if not exists public.ai_costs (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users (id) on delete set null,
-  feature text not null check (feature in ('coach', 'coach_screen', 'coach_review', 'voice', 'photo', 'interactions')),
+  feature text not null check (feature in ('coach', 'coach_screen', 'coach_review', 'voice', 'photo', 'interactions', 'recipe')),
   model text not null check (char_length(model) <= 60),
   input_tokens integer not null default 0 check (input_tokens >= 0),
   cache_read_tokens integer not null default 0 check (cache_read_tokens >= 0),

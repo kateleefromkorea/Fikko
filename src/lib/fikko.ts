@@ -22,10 +22,13 @@ export const PLAN_LABEL: Record<Plan, string> = { free: "Free", premium: "Premiu
 
 export type FlowerShape = "leaf" | "daisy" | "tulip" | "spike";
 
-export interface Seed {
-  id: string;
-  name: string;
-  tier: Plan;
+/**
+ * How a member gets an item: by plan, or (`earned`) by harvesting. Earned
+ * items are free on every plan once unlocked; see owns().
+ */
+interface Unlockable { id: string; name: string; tier: Plan; earned?: boolean }
+
+export interface Seed extends Unlockable {
   blurb: string;
   leaf: string;
   leafLight: string;
@@ -34,30 +37,63 @@ export interface Seed {
 }
 
 export const SEEDS: Seed[] = [
-  { id: "sprout", name: "Fikko Sprout", tier: "free", blurb: "Fikko's own leaf, with a dewdrop bud", leaf: "#22A06B", leafLight: "#2DC4B2", flower: "#2DC4B2", shape: "leaf" },
+  { id: "sprout", name: "Fikko Sprout", tier: "free", blurb: "Fikko's own leaf, with a star ornament", leaf: "#22A06B", leafLight: "#2DC4B2", flower: "#2DC4B2", shape: "leaf" },
   { id: "sunflower", name: "Sunflower", tier: "free", blurb: "Tall and always cheerful", leaf: "#3E9B4F", leafLight: "#58B565", flower: "#F2B630", shape: "daisy" },
   { id: "tulip", name: "Tulip", tier: "free", blurb: "A classic spring bloom", leaf: "#2F9A6A", leafLight: "#45B07E", flower: "#EE6A7B", shape: "tulip" },
   { id: "blossom", name: "Cherry Blossom", tier: "premium", blurb: "Soft pink petals", leaf: "#4E9A5B", leafLight: "#6DB47A", flower: "#F6A9C4", shape: "daisy" },
   { id: "lavender", name: "Lavender", tier: "premium", blurb: "Calm, fragrant spikes", leaf: "#3F8C74", leafLight: "#5AA68D", flower: "#9C7FE0", shape: "spike" },
   { id: "lotus", name: "Golden Lotus", tier: "max", blurb: "Rare and radiant", leaf: "#1F8E7A", leafLight: "#2DB59D", flower: "#F0C24B", shape: "tulip" },
+  { id: "fern", name: "Moon Fern", tier: "free", earned: true, blurb: "Only grown by gardeners", leaf: "#2C7F86", leafLight: "#4AA7AE", flower: "#C9D9F2", shape: "daisy" },
 ];
 
-export interface Pot { id: string; name: string; tier: Plan; body: string; rim: string }
+export interface Pot extends Unlockable { body: string; rim: string; stripes?: boolean }
 
 export const POTS: Pot[] = [
   { id: "clay", name: "Clay pot", tier: "free", body: "#D98B5F", rim: "#C27248" },
   { id: "white", name: "White ceramic", tier: "free", body: "#EEF2F1", rim: "#CBD5D3" },
   { id: "teal", name: "Teal glaze", tier: "premium", body: "#2DC4B2", rim: "#1FA595" },
   { id: "gold", name: "Gold leaf", tier: "max", body: "#E3B947", rim: "#C79A2E" },
+  { id: "mint", name: "Mint glaze", tier: "free", earned: true, body: "#BFE8DC", rim: "#93D3C1" },
+  { id: "stripe", name: "Striped pot", tier: "free", earned: true, body: "#F3D9A4", rim: "#E0BC72", stripes: true },
 ];
 
-export interface Companion { id: string; name: string; tier: Plan }
+export type Companion = Unlockable;
 
 export const COMPANIONS: Companion[] = [
   { id: "none", name: "None", tier: "free" },
   { id: "ladybug", name: "Ladybug", tier: "premium" },
   { id: "butterfly", name: "Butterfly", tier: "max" },
+  { id: "bee", name: "Bumblebee", tier: "free", earned: true },
+  { id: "snail", name: "Garden snail", tier: "free", earned: true },
 ];
+
+/** The free extras a member picks one of at each harvest (matches harvest_fikko in migration 026). */
+export const HARVEST_REWARDS = ["mint", "stripe", "bee", "snail"] as const;
+
+/** Seeds unlocked by the number of plants harvested. */
+export const GARDENER_SEEDS = [{ at: 3, seed: "fern" }];
+/** Every this many harvests earns a free month of Premium (at most one a year). */
+export const PREMIUM_EVERY = 3;
+
+/** Item ids unlocked by harvesting: the rewards picked, and seeds earned by garden size. */
+export function unlockedItems(garden: { reward: string | null }[]): string[] {
+  return [
+    ...garden.flatMap((g) => (g.reward ? [g.reward] : [])),
+    ...GARDENER_SEEDS.filter((b) => garden.length >= b.at).map((b) => b.seed),
+  ];
+}
+
+/** Whether the member can use an item: their plan includes it and, for earned items, they've unlocked it. */
+export function owns(item: Unlockable, plan: Plan, unlocked: string[]): boolean {
+  return planIncludes(plan, item.tier) && (!item.earned || unlocked.includes(item.id));
+}
+
+/** Where to find an item the member can't use yet, for its label. */
+export function lockedReason(item: Unlockable): string {
+  if (!item.earned) return `With ${PLAN_LABEL[item.tier]}`;
+  const bonus = GARDENER_SEEDS.find((b) => b.seed === item.id);
+  return bonus ? `Grow ${bonus.at} plants` : "Harvest reward";
+}
 
 export const seedById = (id: string | null) => SEEDS.find((s) => s.id === id) ?? null;
 export const potById = (id: string) => POTS.find((p) => p.id === id) ?? POTS[0];
@@ -73,7 +109,10 @@ export const STAGES = [
 
 /** More idle days than this and the plant withers. */
 export const WITHER_AFTER = 3;
-/** More idle days than this and the plant dies. */
+/** Complete days to reach full bloom, when the plant can be harvested. */
+export const BLOOM_DAYS = 40;
+
+/** More idle days than this and the plant dies (unless it has bloomed). */
 export const DIE_AFTER = 7;
 
 export type Health = "growing" | "withering" | "dead";
@@ -126,7 +165,8 @@ export function computeGrowth(data: HabitData, plantedOn: string, waterTarget?: 
     if (loggedOn(data, date)) idleRun = 0;
     else if (!isToday) {
       idleRun++;
-      if (idleRun > DIE_AFTER) died = true;
+      // A plant that has bloomed can wither but never dies.
+      if (idleRun > DIE_AFTER && completeDays < BLOOM_DAYS) died = true;
     }
   }
 

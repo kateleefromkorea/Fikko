@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Clock, Crown, Flag, Flame, Heart, MoreHorizontal, Trash2, Users } from "lucide-react";
+import { ArrowRight, Clock, Crown, Flag, Flame, Heart, MoreHorizontal, ShoppingBasket, Sparkles, Trash2, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -9,6 +9,7 @@ import RecipeArt from "./RecipeArt";
 import { tagLabel, type Recipe } from "../../lib/recipes";
 import { allergenLabel } from "../../lib/preferences";
 import { timeAgo } from "../../lib/community";
+import { isIdea } from "../../lib/aiRecipes";
 
 /** Ingredients to tick off while shopping or cooking. Keyed by recipe, so ticks reset per recipe. */
 function IngredientList({ items }: { items: string[] }) {
@@ -38,6 +39,42 @@ function IngredientList({ items }: { items: string[] }) {
   );
 }
 
+/** For AI recipes: what the member had, what to pick up, and what could stand in. */
+function Shopping({ recipe: r }: { recipe: Recipe }) {
+  const have = r.have ?? [], buy = r.buy ?? [], swaps = r.swaps ?? [];
+  if (!have.length && !buy.length && !swaps.length) return null;
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {have.length > 0 && (
+        <div className="rounded-xl bg-primary/5 px-4 py-3">
+          <p className="text-xs font-medium text-primary-ink">You have</p>
+          <p className="mt-1 text-sm">{have.join(", ")}</p>
+        </div>
+      )}
+      <div className="rounded-xl bg-muted px-4 py-3">
+        <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+          <ShoppingBasket className="size-3.5" aria-hidden="true" />You&apos;ll need to buy
+        </p>
+        <p className="mt-1 text-sm">{buy.length ? buy.join(", ") : "Nothing, you're all set."}</p>
+      </div>
+      {swaps.length > 0 && (
+        <div className="rounded-xl border px-4 py-3 sm:col-span-2">
+          <p className="text-xs font-medium text-muted-foreground">Easy swaps</p>
+          <ul className="mt-1.5 space-y-1.5">
+            {swaps.map((s, i) => (
+              <li key={i} className="flex flex-wrap items-center gap-x-1.5 text-sm">
+                <span className="text-muted-foreground">No {s.insteadOf}?</span>
+                <ArrowRight className="size-3.5 text-muted-foreground" aria-hidden="true" />
+                <span>{s.use}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** The full recipe: picture, facts, ingredients to tick off, and the method. */
 export default function RecipeDetail({
   recipe, userId, saved, featured, clash, onClose, onToggleSave, onDelete, onReport,
@@ -54,6 +91,7 @@ export default function RecipeDetail({
 }) {
   const r = recipe;
   const own = r?.source === "member" && r.userId === userId;
+  const idea = !!r && isIdea(r);
 
   return (
     <Dialog open={!!r} onOpenChange={(o) => !o && onClose()}>
@@ -77,10 +115,15 @@ export default function RecipeDetail({
                 )}
                 <DialogTitle className="text-2xl font-semibold tracking-tight sm:text-3xl">{r.title}</DialogTitle>
                 <DialogDescription className="text-base">
-                  {r.description || (r.source === "fikko" ? "A Fikko recipe." : "Shared by a Fikko member.")}
+                  {r.description || (r.source === "fikko" ? "A Fikko recipe." : r.source === "ai" ? "A recipe idea from Fikko AI." : "Shared by a Fikko member.")}
                 </DialogDescription>
                 <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-                  {r.source === "fikko" ? "Fikko recipe" : `Shared by ${r.authorName}${r.createdAt ? ` · ${timeAgo(r.createdAt)}` : ""}`}
+                  {r.source === "ai" ? (
+                    <span className="inline-flex items-center gap-1">
+                      <Sparkles className="size-3.5" aria-hidden="true" />
+                      {idea ? "Fikko AI idea · not saved yet" : "Your AI recipe · only you can see it"}
+                    </span>
+                  ) : r.source === "fikko" ? "Fikko recipe" : `Shared by ${r.authorName}${r.createdAt ? ` · ${timeAgo(r.createdAt)}` : ""}`}
                   {r.source === "member" && (r.saves ?? 0) > 0 && (
                     <span className="inline-flex items-center gap-1">· <Heart className="size-3.5" aria-hidden="true" />Saved by {r.saves} {r.saves === 1 ? "member" : "members"}</span>
                   )}
@@ -97,13 +140,13 @@ export default function RecipeDetail({
                   <Heart className={cn(saved && "fill-current")} />
                   {saved ? "Saved" : "Save"}
                 </Button>
-                {r.source === "member" && (
+                {(r.source === "member" || (r.source === "ai" && !idea)) && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="outline" size="icon" aria-label="More options"><MoreHorizontal /></Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start">
-                      {own ? (
+                      {own || r.source === "ai" ? (
                         <DropdownMenuItem variant="destructive" onSelect={onDelete}><Trash2 />Delete recipe</DropdownMenuItem>
                       ) : (
                         <DropdownMenuItem onSelect={onReport}><Flag />Report recipe</DropdownMenuItem>
@@ -144,7 +187,7 @@ export default function RecipeDetail({
                       </div>
                     ))}
                   </div>
-                  <p className="mt-2 text-xs text-muted-foreground">Approximate, per serving.</p>
+                  <p className="mt-2 text-xs text-muted-foreground">{r.source === "ai" ? "AI estimate, per serving." : "Approximate, per serving."}</p>
                 </div>
               )}
 
@@ -162,6 +205,7 @@ export default function RecipeDetail({
                       ? `Contains: ${r.contains.map(allergenLabel).join(", ")}. Check labels on packaged ingredients too.`
                       : "No dairy, eggs, gluten, nuts, shellfish or soy in the ingredients as listed. Check labels on packaged ingredients like stock or sauces."}
                 </p>
+                {r.source === "ai" && <Shopping recipe={r} />}
                 <IngredientList key={r.key} items={r.ingredients} />
               </section>
 

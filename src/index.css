@@ -115,7 +115,8 @@
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
+  /* Supporting text: a darker grey so it reads easily, 7.9:1 on white. */
+  --muted-foreground: #4B5257;
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
@@ -218,6 +219,12 @@
     linear-gradient(115deg,
       color-mix(in srgb, #2DC4B2 16%, white),
       color-mix(in srgb, #5BA9F0 18%, white));
+}
+
+/* The Habits hero keeps its original lighter supporting text too. The other
+   panels above take the darker grey, which the member asked for to read easily. */
+.daily-overview {
+  --muted-foreground: oklch(0.556 0 0);
 }
 
 /* A tick or "Done" badge popping in when a habit is completed. It plays on

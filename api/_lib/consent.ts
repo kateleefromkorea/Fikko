@@ -6,7 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { json } from "./devices.js";
 
 /** Bump when the Privacy Policy changes enough that members must agree again. */
-export const POLICY_VERSION = "2026-10-04";
+export const POLICY_VERSION = "2026-10-06";
 
 export const CONSENT_KEYS = ["terms", "personal_info", "health_data", "overseas_transfer", "ai_processing"] as const;
 export type ConsentKey = (typeof CONSENT_KEYS)[number];

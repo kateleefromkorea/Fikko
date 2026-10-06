@@ -2,7 +2,7 @@
 // the provider, removes the stored tokens, and, if asked, deletes the
 // readings synced from that provider.
 
-import { admin, json, memberFrom, providerFor } from "./_lib/devices.js";
+import { admin, decryptToken, json, memberFrom, providerFor } from "./_lib/devices.js";
 import { OPTIONS, withCors } from "./_lib/cors.js";
 
 async function handlePOST(request: Request) {
@@ -15,7 +15,7 @@ async function handlePOST(request: Request) {
 
   const { data: conn } = await db.from("device_connections").select("access_token")
     .eq("user_id", member.id).eq("provider", provider.id).maybeSingle();
-  if (conn) await provider.revoke(conn.access_token);
+  if (conn) await provider.revoke(await decryptToken(conn.access_token));
   await db.from("device_connections").delete().eq("user_id", member.id).eq("provider", provider.id);
   if (deleteData) await db.from("biometric_entries").delete().eq("user_id", member.id).eq("source", provider.id);
   return json({ disconnected: true });

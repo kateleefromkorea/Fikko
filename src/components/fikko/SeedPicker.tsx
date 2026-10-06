@@ -1,33 +1,43 @@
 import { Check, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PLAN_LABEL, SEEDS, planIncludes, type Plan } from "../../lib/fikko";
+import { PLAN_LABEL, SEEDS, lockedReason, owns, type Plan } from "../../lib/fikko";
 import FikkoPlant from "./FikkoPlant";
 
-/** A Premium or Max badge for items the member's plan doesn't include. */
-export function TierBadge({ tier, className }: { tier: Plan; className?: string }) {
-  if (tier === "free") return null;
+/** A Premium or Max badge for plan items, or a Gardener badge for items earned by harvesting. */
+export function TierBadge({ tier, earned, className }: { tier: Plan; earned?: boolean; className?: string }) {
+  if (tier === "free" && !earned) return null;
   return (
     <span
       className={cn(
         "rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wider uppercase",
-        tier === "premium" ? "bg-marine-tint text-marine" : "bg-[#FBF1D6] text-[#8A6414]",
+        earned ? "bg-fikko-tint text-primary-ink" : tier === "premium" ? "bg-marine-tint text-marine" : "bg-[#FBF1D6] text-[#8A6414]",
         className,
       )}
     >
-      {PLAN_LABEL[tier]}
+      {earned ? "Gardener" : PLAN_LABEL[tier]}
     </span>
   );
 }
 
 /**
- * The seed choices, each shown in full bloom. Seeds outside the member's plan
- * are shown but can't be picked. Used in onboarding and on the My Fikko page.
+ * The seed choices, each shown in full bloom. Seeds the member can't use yet
+ * are shown but can't be picked. Seeds earned by harvesting appear only where
+ * `unlocked` is given (the My Fikko page), not in onboarding.
  */
-export default function SeedPicker({ value, onChange, plan }: { value: string | null; onChange: (id: string) => void; plan: Plan }) {
+export default function SeedPicker({
+  value, onChange, plan, unlocked,
+}: {
+  value: string | null;
+  onChange: (id: string) => void;
+  plan: Plan;
+  /** Items unlocked by harvesting (unlockedItems in lib/fikko). */
+  unlocked?: string[];
+}) {
+  const seeds = SEEDS.filter((s) => !s.earned || unlocked);
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-      {SEEDS.map((seed) => {
-        const locked = !planIncludes(plan, seed.tier);
+      {seeds.map((seed) => {
+        const locked = !owns(seed, plan, unlocked ?? []);
         const selected = value === seed.id;
         return (
           <button
@@ -36,14 +46,14 @@ export default function SeedPicker({ value, onChange, plan }: { value: string | 
             onClick={() => !locked && onChange(seed.id)}
             aria-pressed={selected}
             aria-disabled={locked}
-            aria-label={locked ? `${seed.name}, included with ${PLAN_LABEL[seed.tier]}` : seed.name}
+            aria-label={locked ? `${seed.name}, locked: ${lockedReason(seed)}` : seed.name}
             className={cn(
               "relative flex flex-col items-center rounded-xl border bg-card p-3 pt-2 text-center transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
               locked ? "cursor-not-allowed" : "hover:bg-muted/60",
               selected && "border-primary bg-fikko-tint ring-1 ring-primary hover:bg-fikko-tint",
             )}
           >
-            <TierBadge tier={seed.tier} className="absolute top-2 right-2" />
+            <TierBadge tier={seed.tier} earned={seed.earned} className="absolute top-2 right-2" />
             {selected && (
               <span className="absolute top-2 left-2 grid size-5 place-items-center rounded-full bg-primary text-primary-foreground" aria-hidden="true">
                 <Check className="size-3" />
@@ -53,7 +63,7 @@ export default function SeedPicker({ value, onChange, plan }: { value: string | 
             <span className="mt-1 text-sm font-medium">{seed.name}</span>
             <span className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
               {locked && <Lock className="size-3" aria-hidden="true" />}
-              {locked ? `With ${PLAN_LABEL[seed.tier]}` : seed.blurb}
+              {locked ? lockedReason(seed) : seed.blurb}
             </span>
           </button>
         );

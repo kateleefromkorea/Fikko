@@ -15,7 +15,7 @@
 // those are removed first.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { admin, json, memberFrom, providerFor, supabaseReady } from "./_lib/devices.js";
+import { admin, decryptToken, json, memberFrom, providerFor, supabaseReady } from "./_lib/devices.js";
 import { OPTIONS, withCors } from "./_lib/cors.js";
 
 const GRACE_DAYS = 30;
@@ -68,7 +68,7 @@ async function handleGET(request: Request) {
 async function purgeAccount(db: SupabaseClient, userId: string) {
   // Revoke Fikko's access at any connected wearable provider before the tokens are deleted.
   const { data: conns } = await db.from("device_connections").select("provider, access_token").eq("user_id", userId);
-  for (const c of conns ?? []) await providerFor(c.provider)?.revoke(c.access_token);
+  for (const c of conns ?? []) await providerFor(c.provider)?.revoke(await decryptToken(c.access_token));
 
   // Photos are stored under "<user id>/" in the recipe-photos bucket.
   const photos = await db.storage.from("recipe-photos").list(userId, { limit: 1000 });

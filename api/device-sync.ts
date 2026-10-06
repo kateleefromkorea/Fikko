@@ -28,10 +28,14 @@ async function handleGET(request: Request) {
 
   const db = admin();
   const { data: conns } = await db.from("device_connections").select("user_id, provider");
+  // Members who asked to delete their account get nothing new collected during the grace period.
+  const { data: leaving } = await db.from("profiles").select("user_id").not("deletion_scheduled_for", "is", null);
+  const skip = new Set((leaving ?? []).map((p) => p.user_id));
   let synced = 0;
   let failed = 0;
   // One at a time keeps well inside providers' rate limits.
   for (const c of conns ?? []) {
+    if (skip.has(c.user_id)) continue;
     const provider = providerFor(c.provider);
     if (!provider?.ready()) continue;
     try { await syncMember(db, c.user_id, provider); synced++; } catch { failed++; }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import GoogleHealthDisclosure from "../../components/profile/GoogleHealthDisclosure";
 import { Check, Heart, Loader2, Watch, type LucideIcon } from "lucide-react";
 import type { useOnboardingState } from "../useOnboardingState";
 import { saveDraft } from "../draft";
@@ -98,6 +99,7 @@ export default function StepLifestyle({ api, showError, userId, outcome }: {
             </div>
           ) : (
             <div className="flex flex-col gap-2">
+              <GoogleHealthDisclosure />
               <Button type="button" variant="outline" onClick={connect} disabled={connecting} className="h-11 justify-start px-4">
                 {connecting ? <Loader2 className="animate-spin" /> : <Watch className="text-muted-foreground" />}
                 {connecting ? "Opening Google sign-in…" : `Connect ${FITBIT}`}

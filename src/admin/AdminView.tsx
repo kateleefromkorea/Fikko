@@ -230,6 +230,7 @@ const FEATURE_LABEL: Record<string, string> = {
   voice: "Voice check-ins",
   photo: "Photo logging",
   interactions: "Interaction check",
+  recipe: "Recipe ideas",
 };
 
 /** US$ with enough decimals to see fractions of a cent. */

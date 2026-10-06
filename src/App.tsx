@@ -309,6 +309,7 @@ export default function App() {
         {tab === "fikko" && !habitsLoading && !habitsLoadError && (
           <Suspense fallback={<p className="py-10 text-center text-sm text-muted-foreground">Loading My Fikko…</p>}>
             <MyFikkoView
+              userId={session.user.id}
               data={data}
               profile={profile}
               onUpdateProfile={updateProfile}

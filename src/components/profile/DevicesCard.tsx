@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import GoogleHealthDisclosure from "./GoogleHealthDisclosure";
 import { Loader2, RefreshCw } from "lucide-react";
 import {
   PROVIDER_INFO, connectDevice, disconnectDevice, fetchConnections, syncDevice, type Connection, type Provider,
@@ -14,14 +15,11 @@ import { Label } from "@/components/ui/label";
 // but switched off; add "oura" here to let members connect it.
 const LIVE: Provider[] = ["google"];
 
-// Integrations members can't connect yet, in priority order. "Up next" are
-// the two being built first; the rest are planned.
+// Integrations members can't connect yet, shown as "Up next". Only the ones
+// being built for launch are listed; add others here once they're in progress.
 const PLANNED: { id: string; name: string; description: string; next?: boolean }[] = [
   { id: "apple-health", name: "Apple Health", description: "Steps, workouts, sleep & heart rate from iPhone and Apple Watch", next: true },
   { id: "garmin", name: "Garmin Connect", description: "Workouts, sleep, heart rate, VO2 max & body battery", next: true },
-  { id: "oura", name: "Oura Ring", description: "Sleep, readiness, HRV & SpO₂" },
-  { id: "whoop", name: "WHOOP", description: "Recovery score, strain & sleep performance" },
-  { id: "samsung", name: "Samsung Health", description: "Steps, workouts & sleep from Galaxy Watch" },
 ];
 
 export interface DeviceOutcome { provider: Provider | null; result: "connected" | "declined" | "failed" }
@@ -90,6 +88,8 @@ export default function DevicesCard({ outcome, onSynced }: { outcome: DeviceOutc
             {error ?? message}
           </p>
         )}
+
+        {LIVE.includes("google") && <GoogleHealthDisclosure />}
 
         {LIVE.map((p) => {
           const info = PROVIDER_INFO[p];

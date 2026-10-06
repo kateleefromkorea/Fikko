@@ -1,10 +1,11 @@
-import { ArrowLeft, ArrowRight, BrainCircuit, EyeOff, HandCoins, Loader2, ShieldCheck, Target, Watch } from "lucide-react";
+import { ArrowLeft, ArrowRight, BrainCircuit, Sparkles, EyeOff, HandCoins, Loader2, ShieldCheck, Target, Watch } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const PROMISES = [
   { icon: EyeOff, title: "We never look at your data", body: "No one at Fikko looks at what you log or what your devices share." },
   { icon: BrainCircuit, title: "Never used to train models", body: "Your data is not used to train any AI or machine learning model." },
   { icon: Watch, title: "Only what is necessary", body: "We collect only the device and fitness data needed to give you fitness advice." },
+  { icon: Sparkles, title: "AI features are optional", body: "If you opt in, the AI coach, voice and photo features send what they need to Anthropic to reply. Turn them off any time in Profile → Privacy." },
   { icon: Target, title: "100% ad-free", body: "No ads, and your data is never used to target ads." },
   { icon: HandCoins, title: "Never sold", body: "We never sell your data, to anyone, for any reason." },
 ];

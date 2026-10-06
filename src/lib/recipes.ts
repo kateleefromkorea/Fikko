@@ -54,7 +54,8 @@ export interface CatalogRecipe {
 export interface Recipe {
   /** Catalogue id, or a member recipe's uuid. Also the key for saves. */
   key: string;
-  source: "fikko" | "member";
+  /** "ai": the member's own AI recipe, private to them (see aiRecipes.ts). */
+  source: "fikko" | "member" | "ai";
   title: string;
   description: string;
   tags: RecipeTag[];
@@ -75,7 +76,13 @@ export interface Recipe {
   userId?: string;
   authorName?: string;
   createdAt?: string;
+  /** AI recipes: what the member had, what to buy, and substitutions. */
+  have?: string[];
+  buy?: string[];
+  swaps?: Swap[];
 }
+
+export interface Swap { insteadOf: string; use: string }
 
 // Photos for Fikko's recipes: drop an image into src/assets/recipes/ named
 // after the recipe's key (e.g. fikko-lemon-herb-chicken.jpg) and it's picked

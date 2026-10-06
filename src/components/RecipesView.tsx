@@ -7,6 +7,8 @@ import RecipeDetail from "./recipes/RecipeDetail";
 import AddRecipeDialog from "./recipes/AddRecipeDialog";
 import FeaturedRecipe from "./recipes/FeaturedRecipe";
 import RewardsCard from "./recipes/RewardsCard";
+import RecipeGenerator from "./recipes/RecipeGenerator";
+import { isIdea } from "../lib/aiRecipes";
 import { useRecipes } from "../hooks/useRecipes";
 import { RECIPE_TAGS, type Recipe, type RecipeTag } from "../lib/recipes";
 import { recipeClash } from "../lib/preferences";
@@ -94,7 +96,7 @@ export default function RecipesView({ userId, profileName, diets, allergies }: {
   diets: string[];
   allergies: string[];
 }) {
-  const { recipes, saved, loading, error, setError, toggleSave, create, remove, report, rewards, featured } = useRecipes(userId);
+  const { recipes, saved, loading, error, setError, toggleSave, create, remove, report, rewards, featured, saveIdea, removeAi } = useRecipes(userId);
   const [tags, setTags] = useState<RecipeTag[]>([]);
   const [query, setQuery] = useState("");
   const [source, setSource] = useState<Source>("all");
@@ -105,8 +107,11 @@ export default function RecipesView({ userId, profileName, diets, allergies }: {
   const [reportReason, setReportReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  // Ideas from "Cook with what you have", and which of them have been saved (idea key → saved key).
+  const [ideas, setIdeas] = useState<Recipe[]>([]);
+  const [savedIdeas, setSavedIdeas] = useState<Map<string, string>>(new Map());
 
-  const open = recipes.find((r) => r.key === openKey) ?? null;
+  const open = recipes.find((r) => r.key === openKey) ?? ideas.find((r) => r.key === openKey) ?? null;
   const featuredRecipe = featured ? recipes.find((r) => r.key === featured.recipeId) ?? null : null;
 
   const [showAll, setShowAll] = useState(false);
@@ -118,6 +123,8 @@ export default function RecipesView({ userId, profileName, diets, allergies }: {
     const q = query.trim().toLowerCase();
     return recipes.filter((r) => {
       if (!showAll && clashes.get(r.key)) return false;
+      // The member's own AI recipes are private, so they live under Saved only.
+      if (r.source === "ai" && source !== "saved") return false;
       if (source === "saved" && !saved.has(r.key)) return false;
       if ((source === "fikko" || source === "member") && r.source !== source) return false;
       // Every selected tag must match, so each chip narrows the list.
@@ -132,11 +139,36 @@ export default function RecipesView({ userId, profileName, diets, allergies }: {
   const toggleTag = (t: RecipeTag) => setTags((prev) => (prev.includes(t) ? prev.filter((k) => k !== t) : [...prev, t]));
   const filtered = tags.length > 0 || query.trim() !== "" || source !== "all";
 
+  async function keepIdea(idea: Recipe) {
+    const recipe = await saveIdea(idea);
+    setSavedIdeas((prev) => new Map(prev).set(idea.key, recipe.key));
+    return recipe;
+  }
+
+  /** The heart: AI ideas get saved, saved AI recipes ask before they're removed, the rest toggle. */
+  async function onHeart(r: Recipe) {
+    if (r.source !== "ai") return toggleSave(r);
+    if (!isIdea(r)) return setConfirmDelete(r);
+    if (savedIdeas.has(r.key)) return;
+    try {
+      const recipe = await keepIdea(r);
+      if (openKey === r.key) setOpenKey(recipe.key);
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
+
   async function doDelete() {
     if (!confirmDelete) return;
     setBusy(true);
     try {
-      await remove(confirmDelete);
+      if (confirmDelete.source === "ai") {
+        await removeAi(confirmDelete);
+        const gone = confirmDelete.key;
+        setSavedIdeas((prev) => new Map([...prev].filter(([, saved]) => saved !== gone)));
+      } else {
+        await remove(confirmDelete);
+      }
       setConfirmDelete(null);
       setOpenKey(null);
     } catch (err) {
@@ -174,12 +206,22 @@ export default function RecipesView({ userId, profileName, diets, allergies }: {
 
       <EarlyUsersNote />
 
-      <div className={cn("grid gap-4", featuredRecipe && "lg:grid-cols-[minmax(0,1fr)_20rem]")}>
-        {featuredRecipe && featured && (
-          <FeaturedRecipe recipe={featuredRecipe} saves={featured.saves} onOpen={() => setOpenKey(featuredRecipe.key)} />
-        )}
-        <RewardsCard rewards={rewards} recipes={recipes} className={cn(!featuredRecipe && "lg:max-w-md")} />
+      <div className="grid items-start gap-4 lg:grid-cols-[20rem_minmax(0,1fr)]">
+        <RewardsCard rewards={rewards} recipes={recipes} />
+        <RecipeGenerator
+          diets={diets}
+          allergies={allergies}
+          ideas={ideas}
+          onIdeas={setIdeas}
+          savedIdeas={savedIdeas}
+          onOpen={setOpenKey}
+          onSave={async (idea) => { await keepIdea(idea); }}
+        />
       </div>
+
+      {featuredRecipe && featured && (
+        <FeaturedRecipe recipe={featuredRecipe} saves={featured.saves} onOpen={() => setOpenKey(featuredRecipe.key)} />
+      )}
 
       <div className="space-y-4">
         {/* Ingredient and diet tags. One scrolling row on phones, wrapping on larger screens. */}
@@ -259,7 +301,7 @@ export default function RecipesView({ userId, profileName, diets, allergies }: {
               featured={r.key === featuredRecipe?.key}
               clash={clashes.get(r.key) ?? null}
               onOpen={() => setOpenKey(r.key)}
-              onToggleSave={() => void toggleSave(r)}
+              onToggleSave={() => void onHeart(r)}
             />
           ))}
         </div>
@@ -283,11 +325,11 @@ export default function RecipesView({ userId, profileName, diets, allergies }: {
       <RecipeDetail
         recipe={open}
         userId={userId}
-        saved={open ? saved.has(open.key) : false}
+        saved={open ? saved.has(open.key) || savedIdeas.has(open.key) : false}
         featured={!!open && open.key === featuredRecipe?.key}
         clash={open ? clashes.get(open.key) ?? null : null}
         onClose={() => setOpenKey(null)}
-        onToggleSave={() => open && void toggleSave(open)}
+        onToggleSave={() => open && void onHeart(open)}
         onDelete={() => open && setConfirmDelete(open)}
         onReport={() => open && setReporting(open)}
       />
@@ -297,8 +339,12 @@ export default function RecipesView({ userId, profileName, diets, allergies }: {
       <Dialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete this recipe?</DialogTitle>
-            <DialogDescription>It will be removed for everyone, along with its photo. This can&apos;t be undone.</DialogDescription>
+            <DialogTitle>{confirmDelete?.source === "ai" ? "Remove this AI recipe?" : "Delete this recipe?"}</DialogTitle>
+            <DialogDescription>
+              {confirmDelete?.source === "ai"
+                ? "It will be removed from your saved recipes. This can't be undone."
+                : "It will be removed for everyone, along with its photo. This can't be undone."}
+            </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>

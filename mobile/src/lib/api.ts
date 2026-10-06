@@ -8,7 +8,7 @@ import { Capacitor } from "@capacitor/core";
  */
 export function routeApiCalls() {
   if (!Capacitor.isNativePlatform()) return;
-  const origin = import.meta.env.VITE_API_ORIGIN || "https://fikko-eta.vercel.app";
+  const origin = import.meta.env.VITE_API_ORIGIN || "https://app.fikko.io";
   const toServer = (url: string) => (url.startsWith("/api/") ? origin + url : url);
 
   const fetch = window.fetch.bind(window);

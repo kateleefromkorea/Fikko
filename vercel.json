@@ -1,5 +1,13 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "redirects": [
+    {
+      "source": "/:path((?!api/).*)",
+      "has": [{ "type": "host", "value": "fikko-eta.vercel.app" }],
+      "destination": "https://app.fikko.io/:path",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/admin",

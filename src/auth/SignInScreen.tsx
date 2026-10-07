@@ -6,6 +6,7 @@ import { DELETION_GRACE_DAYS } from "../lib/account";
 import TestimonialLoop from "./TestimonialLoop";
 import { SHOW_TESTIMONIALS } from "./testimonials";
 import { Button } from "@/components/ui/button";
+import { FoundingPlacesLeft } from "../components/FoundingMember";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -106,6 +107,9 @@ export default function SignInScreen() {
           <p className="mt-4 font-tagline text-lg leading-relaxed text-balance text-muted-foreground">
             Your entire day, simplified into one check-in. Completely ad-free.
           </p>
+          {mode === "signup" && !checkEmail && (
+            <FoundingPlacesLeft className="mt-4 text-sm text-pretty text-muted-foreground" />
+          )}
         </div>
 
         <Card className="w-full max-w-sm gap-6 shadow-xl shadow-teal/10 [--card-spacing:--spacing(8)]">

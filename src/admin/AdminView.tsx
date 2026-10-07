@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { C, ax, ttStyle } from "../components/dashboard/ui";
 import AdminMfa from "./AdminMfa";
+import { FOUNDING_PLACES, fetchPlacesLeft } from "../lib/founding";
 
 interface Stats {
   daily: { day: string; views: number; visitors: number; signups: number }[];
@@ -501,8 +502,6 @@ interface Launch {
   };
 }
 
-/** The founding-member offer: the first 100 members to finish setup (see the Terms). */
-const FOUNDING_PLACES = 100;
 
 const FUNNEL_STEPS: { key: keyof Funnel; label: string }[] = [
   { key: "signed_up", label: "Signed up" },
@@ -518,6 +517,9 @@ function LaunchMetrics({ days }: { days: number }) {
   const [data, setData] = useState<Launch | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [cohort, setCohort] = useState<"all" | "range">("all");
+  // Recorded places (migration 030); until it's run, an estimate from who qualifies.
+  const [placesLeft, setPlacesLeft] = useState<number | null>(null);
+  useEffect(() => { void fetchPlacesLeft().then(setPlacesLeft); }, []);
 
   useEffect(() => {
     let live = true;
@@ -536,7 +538,7 @@ function LaunchMetrics({ days }: { days: number }) {
   if (!data) return state === "loading" ? <p className="text-sm text-muted-foreground">Loading…</p> : null;
 
   const f = cohort === "all" ? data.funnel : data.funnel_range;
-  const founding = Math.min(FOUNDING_PLACES, Number(data.founding_qualified));
+  const founding = placesLeft != null ? FOUNDING_PLACES - placesLeft : Math.min(FOUNDING_PLACES, Number(data.founding_qualified));
   const h = data.features.habits;
   const ai = data.features.ai;
   const features: [string, number][] = (

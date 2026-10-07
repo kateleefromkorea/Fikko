@@ -4,6 +4,7 @@ import { ChartNoAxesColumn, Loader2, ChefHat, ListChecks, LogOut, Sparkles, Spro
 import { completion } from "./lib/completion";
 import HabitsView from "./components/HabitsView";
 import ScrollToTop from "./components/ScrollToTop";
+import { FoundingWelcome } from "./components/FoundingMember";
 import type { DeviceOutcome } from "./components/profile/DevicesCard";
 import CoachView from "./components/CoachView";
 import { useAuth } from "./auth/AuthProvider";
@@ -371,6 +372,8 @@ export default function App() {
           />
         </Suspense>
       )}
+
+      {!needsOnboarding && !needsConsent && !profileLoading && <FoundingWelcome userId={session.user.id} />}
 
       <footer className="border-t">
         <div className="mx-auto flex max-w-screen-2xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-8 text-sm text-muted-foreground sm:px-6">

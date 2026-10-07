@@ -8,6 +8,7 @@ import DeleteAccountDialog from "./profile/DeleteAccountDialog";
 import ExportDialog from "./profile/ExportDialog";
 import ResetDataDialog from "./profile/ResetDataDialog";
 import PrivacyCard from "./profile/PrivacyCard";
+import { FoundingBadge } from "./FoundingMember";
 import { ageFromDob, computeBaseline, LIMITS, inRange } from "../lib/metabolics";
 import { DB_LIMITS, clamp } from "../lib/limits";
 import { exportAllData, type ExportFormat } from "../lib/account";
@@ -280,6 +281,7 @@ export default function ProfileView({ email, profile, onUpdateProfile, userId, o
                   {age} years old{profile.gender ? ` · ${profile.gender}` : ""}
                 </p>
               )}
+              <FoundingBadge userId={userId} />
 
               <Separator className="my-6" />
 

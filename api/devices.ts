@@ -7,6 +7,9 @@
 //     sign-in URL for the browser to open.
 //   POST { action: "sync", provider }
 //     The app's "Sync now" button: syncs the member now.
+//   POST { action: "request-invite", provider, googleEmail }
+//     Asks to join an invite-only beta (see INVITE_ONLY) with the Google account
+//     the member will connect. An admin approves it on /admin (migration 028).
 //   POST { action: "disconnect", provider, deleteData }
 //     Revokes Fikko's access at the provider, removes the stored tokens, and,
 //     if asked, deletes the readings synced from that provider.
@@ -18,19 +21,20 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { User } from "@supabase/supabase-js";
 import {
-  admin, decryptToken, json, memberFrom, pkceChallenge, providerFor, randomToken, redirectUri, supabaseReady, syncMember,
+  INVITE_ONLY, admin, decryptToken, json, memberFrom, pkceChallenge, providerFor, randomToken, redirectUri, supabaseReady, syncMember,
   type ProviderAdapter,
 } from "./_lib/devices.js";
 import { consentError } from "./_lib/consent.js";
 import { OPTIONS, withCors } from "./_lib/cors.js";
 
+const ACTIONS = ["connect", "sync", "disconnect", "request-invite"];
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 async function handlePOST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as { action?: string; provider?: string; deleteData?: boolean };
+  const body = (await request.json().catch(() => ({}))) as { action?: string; provider?: string; deleteData?: boolean; googleEmail?: unknown };
   const provider = providerFor(body.provider);
   if (!provider) return json({ error: "Unknown device." }, 400);
-  if (body.action !== "connect" && body.action !== "sync" && body.action !== "disconnect") {
-    return json({ error: "Unknown action." }, 400);
-  }
+  if (!ACTIONS.includes(body.action ?? "")) return json({ error: "Unknown action." }, 400);
   if (body.action !== "disconnect" && !provider.ready()) {
     return json({ error: `${provider.name} sync isn't set up on the server yet.` }, 503);
   }
@@ -42,12 +46,16 @@ async function handlePOST(request: Request) {
 
   if (body.action === "connect") return connect(request, db, member, provider);
   if (body.action === "sync") return sync(db, member, provider);
+  if (body.action === "request-invite") return requestInvite(db, member, provider, body.googleEmail);
   return disconnect(db, member, provider, body.deleteData === true);
 }
 
 async function connect(request: Request, db: SupabaseClient, member: User, provider: ProviderAdapter) {
   const blocked = await consentError(db, member.id, ["health_data", "overseas_transfer"]);
   if (blocked) return blocked;
+  if (INVITE_ONLY.includes(provider.id) && !(await isInvited(db, member.id, provider.id))) {
+    return json({ error: `${provider.name} is in an invite-only beta. Request an invite and we'll let you know when you're in.` }, 403);
+  }
 
   const state = randomToken();
   const verifier = randomToken(48);
@@ -57,6 +65,35 @@ async function connect(request: Request, db: SupabaseClient, member: User, provi
   if (error) return json({ error: `Couldn't start connecting ${provider.name}. Please try again.` }, 500);
 
   return json({ url: provider.authorizeUrl(redirectUri(request), state, await pkceChallenge(verifier)) });
+}
+
+/** Invited to the beta, or already connected (members who joined before the beta began). */
+async function isInvited(db: SupabaseClient, userId: string, providerId: string) {
+  const [{ data: invite }, { data: conn }] = await Promise.all([
+    db.from("wearable_beta").select("status").eq("user_id", userId).eq("provider", providerId).maybeSingle(),
+    db.from("device_connections").select("user_id").eq("user_id", userId).eq("provider", providerId).maybeSingle(),
+  ]);
+  return invite?.status === "invited" || !!conn;
+}
+
+async function requestInvite(db: SupabaseClient, member: User, provider: ProviderAdapter, googleEmail: unknown) {
+  if (!INVITE_ONLY.includes(provider.id)) return json({ error: `${provider.name} doesn't need an invite.` }, 400);
+  const email = typeof googleEmail === "string" ? googleEmail.trim().toLowerCase() : "";
+  if (email.length > 254 || !EMAIL.test(email)) return json({ error: "Enter the email address of the Google account you'll connect." }, 400);
+
+  const { data: existing } = await db.from("wearable_beta").select("status").eq("user_id", member.id).maybeSingle();
+  // Changing the email of an approved invite sends it back for approval, because
+  // the new Google account has to be added in Google Cloud too.
+  const { error } = await db.from("wearable_beta").upsert({
+    user_id: member.id,
+    provider: provider.id,
+    google_email: email,
+    status: existing?.status === "declined" ? "declined" : "requested",
+    requested_at: new Date().toISOString(),
+    decided_at: null,
+  });
+  if (error) return json({ error: "Couldn't send your request. Please try again." }, 500);
+  return json({ requested: true });
 }
 
 async function sync(db: SupabaseClient, member: User, provider: ProviderAdapter) {

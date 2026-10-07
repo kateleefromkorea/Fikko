@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import GoogleHealthDisclosure from "./GoogleHealthDisclosure";
+import { BetaGate } from "./WearableBetaInvite";
 import { Loader2, RefreshCw } from "lucide-react";
 import {
-  PROVIDER_INFO, connectDevice, disconnectDevice, fetchConnections, syncDevice, type Connection, type Provider,
+  INVITE_ONLY, PROVIDER_INFO, connectDevice, disconnectDevice, fetchConnections, syncDevice, type Connection, type Provider,
 } from "../../lib/devices";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -80,7 +81,11 @@ export default function DevicesCard({ outcome, onSynced }: { outcome: DeviceOutc
     <Card className="gap-6 [--card-spacing:--spacing(6)]">
       <CardHeader>
         <CardTitle className="text-base font-semibold">Connected devices</CardTitle>
-        <CardDescription>Connect Fitbit or Pixel Watch now. Apple Health and Garmin are coming next.</CardDescription>
+        <CardDescription>
+          {INVITE_ONLY.includes("google")
+            ? "Fitbit and Pixel Watch are in an invite-only beta. Apple Health and Garmin are coming next."
+            : "Connect Fitbit or Pixel Watch now. Apple Health and Garmin are coming next."}
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         {(message || error) && (
@@ -99,6 +104,7 @@ export default function DevicesCard({ outcome, onSynced }: { outcome: DeviceOutc
               <div className="min-w-0 flex-1">
                 <p className="flex items-center gap-2 text-sm font-medium">
                   {info.name}
+                  {INVITE_ONLY.includes(p) && !c && <Badge variant="secondary">Beta</Badge>}
                   {c && (
                     <Badge variant="outline" className={c.status === "active" ? "border-primary/30 bg-primary/5 text-primary-ink" : "border-destructive/30 text-destructive"}>
                       {c.status === "active" ? "Connected" : "Needs attention"}
@@ -116,6 +122,7 @@ export default function DevicesCard({ outcome, onSynced }: { outcome: DeviceOutc
                 </p>
               </div>
               {!c || c.status === "error" ? (
+                <BetaGate provider={p} connected={!!c}>
                 <div className="flex gap-2">
                   <Button onClick={() => run(`connect-${p}`, () => connectDevice(p), undefined, false)} disabled={busy !== null} className="h-9">
                     {busy === `connect-${p}` && <Loader2 className="animate-spin" />}
@@ -127,6 +134,7 @@ export default function DevicesCard({ outcome, onSynced }: { outcome: DeviceOutc
                     </Button>
                   )}
                 </div>
+                </BetaGate>
               ) : (
                 <div className="flex gap-2">
                   <Button

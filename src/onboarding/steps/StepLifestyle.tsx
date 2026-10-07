@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import GoogleHealthDisclosure from "../../components/profile/GoogleHealthDisclosure";
+import { BetaGate } from "../../components/profile/WearableBetaInvite";
 import { Check, Heart, Loader2, Watch, type LucideIcon } from "lucide-react";
 import type { useOnboardingState } from "../useOnboardingState";
 import { saveDraft } from "../draft";
@@ -100,10 +101,12 @@ export default function StepLifestyle({ api, showError, userId, outcome }: {
           ) : (
             <div className="flex flex-col gap-2">
               <GoogleHealthDisclosure />
-              <Button type="button" variant="outline" onClick={connect} disabled={connecting} className="h-11 justify-start px-4">
-                {connecting ? <Loader2 className="animate-spin" /> : <Watch className="text-muted-foreground" />}
-                {connecting ? "Opening Google sign-in…" : `Connect ${FITBIT}`}
-              </Button>
+              <BetaGate provider="google" connected={false}>
+                <Button type="button" variant="outline" onClick={connect} disabled={connecting} className="h-11 justify-start px-4">
+                  {connecting ? <Loader2 className="animate-spin" /> : <Watch className="text-muted-foreground" />}
+                  {connecting ? "Opening Google sign-in…" : `Connect ${FITBIT}`}
+                </Button>
+              </BetaGate>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {SOON.map((x) => (
                   <div key={x.name} className="flex h-11 items-center gap-2 rounded-md border px-4 text-sm text-muted-foreground">

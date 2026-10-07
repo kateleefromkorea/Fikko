@@ -1,5 +1,6 @@
 // The admin site at /admin: visitor stats for the app and the marketing site,
-// plus sign-ups and AI spend (admin_ai_costs in migration 024). Everything comes from one database call (admin_stats in
+// plus sign-ups, AI spend (admin_ai_costs in migration 024) and Fitbit beta
+// invites (admin_wearable_beta in migration 028). Everything comes from one database call (admin_stats in
 // migration 016), which refuses anyone not listed in the admins table or
 // who hasn't entered a code from their authenticator app (migration 017).
 
@@ -7,7 +8,9 @@ import { useEffect, useState, type ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { supabase } from "../lib/supabase";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { C, ax, ttStyle } from "../components/dashboard/ui";
 import AdminMfa from "./AdminMfa";
@@ -155,6 +158,7 @@ function StatsView() {
       )}
 
       <AiSpend days={days} />
+      <WearableBeta />
     </Shell>
   );
 }
@@ -355,5 +359,116 @@ function MoneyList({ title, rows }: { title: string; rows: [string, number, stri
         )}
       </CardContent>
     </Card>
+  );
+}
+
+interface BetaRequest {
+  user_id: string;
+  email: string;
+  google_email: string;
+  status: "requested" | "invited" | "declined";
+  requested_at: string;
+  decided_at: string | null;
+  connected: boolean;
+}
+
+/** Google lets an unverified app's test-user list hold at most this many accounts. */
+const GOOGLE_TEST_USER_LIMIT = 100;
+
+const STATUS_LABEL: Record<BetaRequest["status"], string> = { requested: "Waiting", invited: "Invited", declined: "Declined" };
+
+/**
+ * Fitbit beta requests. Approving here only lets the member start connecting:
+ * their Google account must also be on the test-user list in Google Cloud, or
+ * Google blocks the sign-in.
+ */
+function WearableBeta() {
+  const [rows, setRows] = useState<BetaRequest[] | null>(null);
+  const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const [busy, setBusy] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const load = () =>
+    supabase.rpc("admin_wearable_beta").then(({ data, error }) => {
+      if (error) return setState("error");
+      setRows(data as BetaRequest[]);
+      setState("ready");
+    });
+
+  useEffect(() => { void load(); }, []);
+
+  async function decide(userId: string, status: BetaRequest["status"]) {
+    setBusy(userId);
+    const { error } = await supabase.rpc("admin_wearable_beta_decide", { p_user: userId, p_status: status });
+    setBusy(null);
+    if (error) return setState("error");
+    await load();
+  }
+
+  async function copy(email: string) {
+    try {
+      await navigator.clipboard.writeText(email);
+      setCopied(email);
+      setTimeout(() => setCopied((c) => (c === email ? null : c)), 2000);
+    } catch { /* the address is on screen to copy by hand */ }
+  }
+
+  if (state === "error") {
+    return <p className="text-sm text-destructive">Couldn't load Fitbit beta requests. Has migration 028 been run?</p>;
+  }
+  if (!rows) return null;
+
+  const invited = rows.filter((r) => r.status === "invited").length;
+  const waiting = rows.filter((r) => r.status === "requested");
+  const others = rows.filter((r) => r.status !== "requested");
+
+  const row = (r: BetaRequest) => (
+    <li key={r.user_id} className="flex flex-wrap items-center gap-x-4 gap-y-2 py-3">
+      <div className="min-w-0 flex-1 basis-64">
+        <p className="flex flex-wrap items-center gap-2 text-sm font-medium">
+          <span className="break-all">{r.google_email}</span>
+          <Badge variant={r.status === "invited" ? "default" : "secondary"}>{STATUS_LABEL[r.status]}</Badge>
+          {r.connected && <Badge variant="outline">Connected</Badge>}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Fikko account {r.email} · asked {shortDay(r.requested_at.slice(0, 10))}
+        </p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" size="sm" onClick={() => copy(r.google_email)}>
+          {copied === r.google_email ? "Copied" : "Copy Google email"}
+        </Button>
+        {r.status !== "invited" && (
+          <Button size="sm" disabled={busy !== null} onClick={() => decide(r.user_id, "invited")}>Approve</Button>
+        )}
+        {r.status !== "declined" && (
+          <Button variant="ghost" size="sm" disabled={busy !== null} onClick={() => decide(r.user_id, "declined")}>
+            {r.status === "invited" ? "Remove" : "Decline"}
+          </Button>
+        )}
+      </div>
+    </li>
+  );
+
+  return (
+    <>
+      <h2 className="pt-4 text-lg font-semibold">Fitbit beta</h2>
+      <Card>
+        <CardHeader>
+          <CardTitle>{waiting.length} waiting · {invited} of {GOOGLE_TEST_USER_LIMIT} invited</CardTitle>
+          <CardDescription>
+            To approve someone: copy their Google email, add it in Google Cloud → Google Auth Platform → Audience → Test users, then press Approve.
+            If you remove someone, also remove them from the test users to free the place.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {rows.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No requests yet.</p>
+          ) : (
+            <ul className="divide-y">{[...waiting, ...others].map(row)}</ul>
+          )}
+        </CardContent>
+      </Card>
+    </>
   );
 }

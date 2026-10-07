@@ -19,6 +19,13 @@ export type { ProviderAdapter };
 export const PROVIDERS: Record<string, ProviderAdapter> = { oura, google };
 export const providerFor = (id: unknown) => (typeof id === "string" ? PROVIDERS[id] ?? null : null);
 
+/**
+ * Providers that only invited members may connect: Google keeps an unverified
+ * app to its listed test users. Remove "google" once Google has verified Fikko
+ * (and the same in src/lib/devices.ts) to open Fitbit to everyone.
+ */
+export const INVITE_ONLY: string[] = ["google"];
+
 /** Days fetched on first connect, and overlap re-fetched on later syncs (providers revise recent days). */
 const INITIAL_DAYS = 30;
 const OVERLAP_DAYS = 3;

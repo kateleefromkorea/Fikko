@@ -60,3 +60,24 @@ export async function syncDevice(provider: Provider) {
 export async function disconnectDevice(provider: Provider, deleteData: boolean) {
   await call("/api/devices", { action: "disconnect", provider, deleteData });
 }
+
+// ── Invite-only beta ───────────────────────────────────────────────────────
+
+/**
+ * Providers only invited members can connect (Google limits an unverified app
+ * to its listed test users). Keep in step with INVITE_ONLY in api/_lib/devices.ts.
+ */
+export const INVITE_ONLY: Provider[] = ["google"];
+
+export interface BetaAccess { status: "requested" | "invited" | "declined"; googleEmail: string }
+
+/** This member's beta request, or null if they haven't asked (or migration 028 isn't run). */
+export async function fetchBetaAccess(provider: Provider): Promise<BetaAccess | null> {
+  const { data, error } = await supabase.from("wearable_beta").select("status, google_email").eq("provider", provider).maybeSingle();
+  if (error || !data) return null;
+  return { status: data.status as BetaAccess["status"], googleEmail: data.google_email };
+}
+
+export async function requestBetaInvite(provider: Provider, googleEmail: string) {
+  await call("/api/devices", { action: "request-invite", provider, googleEmail });
+}

@@ -1,0 +1,6 @@
+# app.fikko.io: the Fikko web app. The homepage is www.fikko.io.
+User-agent: *
+Disallow: /admin
+Disallow: /api/
+
+Sitemap: https://app.fikko.io/sitemap.xml

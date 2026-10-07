@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Public pages served only from the app. The legal pages are listed on www.fikko.io instead. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://app.fikko.io/</loc></url>
+  <url><loc>https://app.fikko.io/help.html</loc></url>
+  <url><loc>https://app.fikko.io/install.html</loc></url>
+</urlset>

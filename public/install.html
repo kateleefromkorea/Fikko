@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Add Fikko to your home screen · Fikko</title>
+  <meta name="description" content="How to add Fikko to the home screen of your iPhone, iPad or Android phone." />
+  <link rel="icon" href="/icon-192.png" />
+  <style>
+    :root { --fg: #171717; --muted: #5f6368; --primary: #157954; --border: #e5e5e5; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #fff; color: var(--fg); font: 16px/1.65 Inter, system-ui, -apple-system, "Segoe UI", sans-serif; }
+    header { border-bottom: 1px solid var(--border); }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 0 20px; }
+    header .wrap { height: 64px; display: flex; align-items: center; justify-content: space-between; }
+    .brand { font-weight: 700; letter-spacing: .04em; color: var(--fg); text-decoration: none; }
+    header a.back { color: var(--primary); text-decoration: none; font-size: 14px; }
+    main { padding: 48px 0 80px; }
+    h1 { font-size: 36px; line-height: 1.15; letter-spacing: -.02em; margin: 0 0 8px; }
+    h2 { font-size: 20px; letter-spacing: -.01em; margin: 40px 0 8px; }
+    p, li { color: #2b2b2b; }
+    .meta { color: var(--muted); font-size: 14px; margin: 0 0 32px; }
+    ul { padding-left: 22px; }
+    li { margin: 6px 0; }
+    a { color: var(--primary); }
+    footer { border-top: 1px solid var(--border); color: var(--muted); font-size: 14px; padding: 24px 0; }
+      ol.steps { padding-left: 0; list-style: none; counter-reset: s; }
+    ol.steps li { counter-increment: s; position: relative; padding-left: 44px; margin: 14px 0; }
+    ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 28px; height: 28px; border-radius: 50%; background: var(--primary); color: #fff; font-weight: 600; font-size: 14px; display: grid; place-items: center; }
+    .note { background: #f3f7f5; border-radius: 12px; padding: 14px 18px; color: #2b2b2b; }
+    .why { display: flex; gap: 16px; align-items: center; margin: 0 0 8px; }
+    .why img { width: 56px; height: 56px; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+    kbd { font: inherit; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <header><div class="wrap"><a class="brand" href="/">FIKKO</a><a class="back" href="/">Back to Fikko</a></div></header>
+  <main class="wrap">
+    <div class="why"><img src="/icon-192.png" alt="" /><h1>Add Fikko to your home screen</h1></div>
+    <p class="meta">About 30 seconds. Free, and nothing to download from an app store.</p>
+    <p>Fikko then opens full screen from its own icon, like any other app, so checking in takes one tap. You stay signed in, and it updates by itself.</p>
+
+    <h2 id="iphone">iPhone and iPad</h2>
+    <ol class="steps">
+      <li>Open <a href="/">app.fikko.io</a> in <strong>Safari</strong> and sign in.</li>
+      <li>Tap the <kbd>Share</kbd> button: the square with an arrow pointing up. In newer versions of Safari it&rsquo;s inside the <kbd>⋯</kbd> menu next to the address bar.</li>
+      <li>Scroll down and tap <kbd>Add to Home Screen</kbd>. If you don&rsquo;t see it, tap <kbd>Edit Actions</kbd> at the bottom and add it.</li>
+      <li>Make sure <kbd>Open as Web App</kbd> is on, if you see it, then tap <kbd>Add</kbd>.</li>
+    </ol>
+    <p class="note">Using Chrome or another browser on iPhone? It works there too on iOS 16.4 and later: tap <kbd>Share</kbd> in the address bar, then <kbd>Add to Home Screen</kbd>. On older versions, use Safari.</p>
+
+    <h2 id="android">Android</h2>
+    <ol class="steps">
+      <li>Open <a href="/">app.fikko.io</a> in <strong>Chrome</strong> and sign in.</li>
+      <li>If you see <kbd>Install Fikko</kbd> on the Habits page or at the bottom of the screen, tap it, then <kbd>Install</kbd>. That&rsquo;s it.</li>
+      <li>Otherwise, tap the menu <kbd>⋮</kbd> at the top right, then <kbd>Install app</kbd> or <kbd>Add to Home screen</kbd>.</li>
+    </ol>
+    <p class="note">On Samsung Internet, tap the menu <kbd>≡</kbd>, then <kbd>Add page to</kbd> → <kbd>Home screen</kbd>.</p>
+
+    <h2 id="computer">Computer</h2>
+    <p>In Chrome or Edge, click the install icon at the right of the address bar (a screen with a down arrow), then <kbd>Install</kbd>. Fikko gets its own window and a place in your dock or Start menu.</p>
+
+    <h2>Questions</h2>
+    <ul>
+      <li><strong>Is it safe?</strong> Yes. It&rsquo;s the same Fikko you use in the browser, with the same privacy protections. Nothing extra is installed.</li>
+      <li><strong>Do I need to update it?</strong> No. It always opens the latest version. If something looks out of date, close it fully and open it again.</li>
+      <li><strong>Will reminders come as notifications?</strong> Not yet: reminders come by email, and you can set them in Profile → Reminders. Phone notifications will come with the Fikko app for iPhone.</li>
+      <li><strong>How do I remove it?</strong> Press and hold the icon, then choose Remove or Uninstall. Your account and data stay.</li>
+    </ul>
+    <p>Stuck? Email <a href="mailto:hello@fikko.io">hello@fikko.io</a> and tell us your phone and browser.</p>
+  </main>
+  <footer><div class="wrap">Fikko &middot; <a href="/privacy.html">Privacy</a> &middot; <a href="/terms.html">Terms</a> &middot; <a href="mailto:hello@fikko.io">hello@fikko.io</a></div></footer>
+</body>
+</html>

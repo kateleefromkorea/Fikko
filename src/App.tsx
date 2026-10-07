@@ -4,6 +4,7 @@ import { ChartNoAxesColumn, Loader2, ChefHat, ListChecks, LogOut, Sparkles, Spro
 import { completion } from "./lib/completion";
 import HabitsView from "./components/HabitsView";
 import ScrollToTop from "./components/ScrollToTop";
+import InstallCard from "./components/InstallCard";
 import { FoundingWelcome } from "./components/FoundingMember";
 import { syncReminderTimeZone } from "./lib/reminders";
 import type { DeviceOutcome } from "./components/profile/DevicesCard";
@@ -295,6 +296,8 @@ export default function App() {
           </div>
         )}
         {tab === "habits" && !habitsLoading && !habitsLoadError && (
+          <>
+          <div className="mb-6 empty:hidden"><InstallCard /></div>
           <HabitsView
             data={data}
             onChange={setData}
@@ -306,6 +309,7 @@ export default function App() {
             trackMacros={tracksMacros(profile.tracking_style)}
             onOpenCommunity={() => setTab("community")}
           />
+          </>
         )}
         {tab === "dashboard" && !habitsLoading && !habitsLoadError && (
           <Suspense fallback={<p className="py-10 text-center text-sm text-muted-foreground">Loading dashboard…</p>}>

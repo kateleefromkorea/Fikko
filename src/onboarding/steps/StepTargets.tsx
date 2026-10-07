@@ -3,6 +3,7 @@ import { Droplet, Minus, Moon, Pill, Plus, X } from "lucide-react";
 import type { useOnboardingState } from "../useOnboardingState";
 import { ErrorText, Field, inputCls, StepHeading } from "../ui";
 import { suggestMedications } from "../../lib/medicationNames";
+import { ReminderPicker } from "../../components/profile/RemindersCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -137,6 +138,13 @@ export default function StepTargets({ api, showError }: { api: Api; showError: b
               ))}
             </ul>
           )}
+        </Field>
+
+        <Field
+          label="Reminder emails"
+          hint="A short nudge if you haven't checked in yet, never more than one a day. Change it any time in Profile."
+        >
+          <ReminderPicker idPrefix="onboarding-reminder" value={s.reminders} onChange={(v) => set("reminders", v)} />
         </Field>
 
         {showError && errors[6] && <ErrorText>{errors[6]}</ErrorText>}

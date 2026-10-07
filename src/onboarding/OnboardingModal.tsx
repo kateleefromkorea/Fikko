@@ -22,6 +22,7 @@ import type { ConsentKey, Region } from "../lib/consent";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { saveReminderSettings } from "../lib/reminders";
 
 /** The seven questionnaire steps; step 8 is the result, which is not counted. */
 const TOTAL_STEPS = 7;
@@ -98,6 +99,8 @@ export default function OnboardingModal({ profile, userId, deviceOutcome, onAddM
     const focus = focusWithin(s.goalFocus, s.goals);
     try {
       for (const name of s.medications) onAddMedication(name);
+      // Not worth blocking setup over; it can be changed in Profile.
+      await saveReminderSettings(userId, s.reminders).catch((err) => console.error(err));
       await onComplete(
         {
           name: s.name.trim(),

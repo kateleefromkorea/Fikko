@@ -8,6 +8,7 @@ import DeleteAccountDialog from "./profile/DeleteAccountDialog";
 import ExportDialog from "./profile/ExportDialog";
 import ResetDataDialog from "./profile/ResetDataDialog";
 import PrivacyCard from "./profile/PrivacyCard";
+import RemindersCard from "./profile/RemindersCard";
 import { FoundingBadge } from "./FoundingMember";
 import { ageFromDob, computeBaseline, LIMITS, inRange } from "../lib/metabolics";
 import { DB_LIMITS, clamp } from "../lib/limits";
@@ -432,6 +433,8 @@ export default function ProfileView({ email, profile, onUpdateProfile, userId, o
           </Card>
 
           <PreferencesCard profile={profile} onUpdateProfile={onUpdateProfile} />
+
+          <RemindersCard userId={userId} className={cardCls} />
 
           <DevicesCard outcome={deviceOutcome} onSynced={onDevicesSynced} />
 

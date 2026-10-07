@@ -8,6 +8,7 @@ import {
 import { DB_LIMITS } from "../lib/limits";
 import { MAX_DIET_PATTERNS, dietsOf } from "../lib/preferences";
 import { focusGroupsFor, focusWithin, mainGoal, toggleGoal as toggleGoalIn } from "../lib/goals";
+import { DEFAULT_REMINDERS, type ReminderSettings } from "../lib/reminders";
 
 export type HeightUnit = "cm" | "ft";
 export type WeightUnit = "kg" | "lb";
@@ -49,6 +50,8 @@ export interface OnboardingState {
   medications: string[];
   /** The My Fikko seed (step 7). */
   seed: string | null;
+  /** Email reminders, chosen with the daily targets (step 6). */
+  reminders: ReminderSettings;
 }
 
 function initialState(profile: ProfileRow): OnboardingState {
@@ -81,6 +84,7 @@ function initialState(profile: ProfileRow): OnboardingState {
     sleepGoal: "",
     medications: [],
     seed: profile.fikko_seed ?? null,
+    reminders: DEFAULT_REMINDERS,
   };
 }
 

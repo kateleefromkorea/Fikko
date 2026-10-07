@@ -9,12 +9,16 @@ const FROM = process.env.EMAIL_FROM ?? "Fikko <hello@fikko.io>";
 
 export const emailReady = () => !!process.env.RESEND_API_KEY;
 
-export async function sendEmail({ to, subject, html, text }: { to: string; subject: string; html: string; text: string }) {
+export async function sendEmail({ to, subject, html, text, headers }: {
+  to: string; subject: string; html: string; text: string;
+  /** Extra headers, e.g. List-Unsubscribe for reminder emails. */
+  headers?: Record<string, string>;
+}) {
   if (!emailReady()) throw new Error("Email isn't set up on the server (RESEND_API_KEY).");
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: FROM, to: [to], subject, html, text, reply_to: "hello@fikko.io" }),
+    body: JSON.stringify({ from: FROM, to: [to], subject, html, text, reply_to: "hello@fikko.io", ...(headers ? { headers } : {}) }),
   });
   if (!res.ok) throw new Error(`Resend refused the email (${res.status}): ${(await res.text()).slice(0, 200)}`);
 }
@@ -25,12 +29,14 @@ const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&
  * The same layout as the sign-in emails in email-templates/. `paragraphs` are
  * plain text (escaped here); `footnote` is small grey text under the button.
  */
-export function layout({ title, heading, paragraphs, button, footnote }: {
+export function layout({ title, heading, paragraphs, button, footnote, links }: {
   title: string;
   heading: string;
   paragraphs: string[];
   button?: { label: string; url: string };
   footnote?: string;
+  /** Small links under the footnote, e.g. reminder settings and unsubscribe. */
+  links?: { label: string; url: string }[];
 }) {
   const font = "Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif";
   const body = paragraphs
@@ -57,7 +63,7 @@ export function layout({ title, heading, paragraphs, button, footnote }: {
           </td>
         </tr>
         ${button ? `<tr><td style="padding:12px 32px 24px;"><a href="${esc(button.url)}" style="display:inline-block;background:#157954;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 24px;border-radius:10px;">${esc(button.label)}</a></td></tr>` : ""}
-        ${footnote ? `<tr><td style="padding:0 32px 32px;"><p style="margin:0;font-size:13px;line-height:1.6;color:#6b6b6b;">${esc(footnote)}</p></td></tr>` : `<tr><td style="padding:0 0 16px;"></td></tr>`}
+        ${footnote || links?.length ? `<tr><td style="padding:0 32px 32px;">${footnote ? `<p style="margin:0 0 8px;font-size:13px;line-height:1.6;color:#6b6b6b;">${esc(footnote)}</p>` : ""}${links?.length ? `<p style="margin:0;font-size:13px;line-height:1.6;color:#6b6b6b;">${links.map((l) => `<a href="${esc(l.url)}" style="color:#157954;">${esc(l.label)}</a>`).join(" · ")}</p>` : ""}</td></tr>` : `<tr><td style="padding:0 0 16px;"></td></tr>`}
       </table>
       <p style="margin:16px 0 0;font-family:${font};font-size:12px;color:#8a8a8a;">
         Fikko · PipePiper, Seoul · Questions? <a href="mailto:hello@fikko.io" style="color:#8a8a8a;">hello@fikko.io</a>

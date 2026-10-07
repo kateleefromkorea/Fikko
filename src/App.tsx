@@ -5,6 +5,7 @@ import { completion } from "./lib/completion";
 import HabitsView from "./components/HabitsView";
 import ScrollToTop from "./components/ScrollToTop";
 import { FoundingWelcome } from "./components/FoundingMember";
+import { syncReminderTimeZone } from "./lib/reminders";
 import type { DeviceOutcome } from "./components/profile/DevicesCard";
 import CoachView from "./components/CoachView";
 import { useAuth } from "./auth/AuthProvider";
@@ -83,12 +84,16 @@ export default function App() {
     return { provider: provider === "oura" || provider === "google" ? provider : null, result };
   });
   // Unless the sign-in was started from onboarding, which picks up where it left off.
-  const [tab, setTab] = useState<Tab>(deviceOutcome && !hasDraft() ? "profile" : "habits");
+  // Links in Fikko's emails open Profile with /?open=profile.
+  const [openProfile] = useState(() => new URLSearchParams(window.location.search).get("open") === "profile");
+  const [tab, setTab] = useState<Tab>((deviceOutcome && !hasDraft()) || openProfile ? "profile" : "habits");
   useEffect(() => {
-    if (deviceOutcome) window.history.replaceState(null, "", window.location.pathname);
-  }, [deviceOutcome]);
+    if (deviceOutcome || openProfile) window.history.replaceState(null, "", window.location.pathname);
+  }, [deviceOutcome, openProfile]);
   const { data: loggedData, setData, loading: habitsLoading, loadError: habitsLoadError, reload: reloadHabits, saveState, retrySave } = useHabitData(userId);
   const { profile, updateProfile, loading: profileLoading } = useProfile(userId);
+  // Reminders go out at the member's local hour, so follow them if they travel.
+  useEffect(() => { if (userId) void syncReminderTimeZone(userId); }, [userId]);
   const consent = useConsents(userId);
   const medications = useMedications(userId);
   const { biometrics, reload: reloadBiometrics } = useBiometrics(userId);

@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Help · Fikko</title>
+  <meta name="description" content="Answers to common questions about using Fikko: logging, reminders, devices, founding members, your data and your account." />
+  <link rel="icon" href="/icon-192.png" />
+  <style>
+    :root { --fg: #171717; --muted: #5f6368; --primary: #157954; --border: #e5e5e5; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #fff; color: var(--fg); font: 16px/1.65 Inter, system-ui, -apple-system, "Segoe UI", sans-serif; }
+    header { border-bottom: 1px solid var(--border); }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 0 20px; }
+    header .wrap { height: 64px; display: flex; align-items: center; justify-content: space-between; }
+    .brand { font-weight: 700; letter-spacing: .04em; color: var(--fg); text-decoration: none; }
+    header a.back { color: var(--primary); text-decoration: none; font-size: 14px; }
+    main { padding: 48px 0 80px; }
+    h1 { font-size: 36px; line-height: 1.15; letter-spacing: -.02em; margin: 0 0 8px; }
+    h2 { font-size: 20px; letter-spacing: -.01em; margin: 40px 0 8px; }
+    p, li { color: #2b2b2b; }
+    .meta { color: var(--muted); font-size: 14px; margin: 0 0 32px; }
+    ul { padding-left: 22px; }
+    li { margin: 6px 0; }
+    a { color: var(--primary); }
+    footer { border-top: 1px solid var(--border); color: var(--muted); font-size: 14px; padding: 24px 0; }
+      ol.steps { padding-left: 0; list-style: none; counter-reset: s; }
+    ol.steps li { counter-increment: s; position: relative; padding-left: 44px; margin: 14px 0; }
+    ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 28px; height: 28px; border-radius: 50%; background: var(--primary); color: #fff; font-weight: 600; font-size: 14px; display: grid; place-items: center; }
+    .note { background: #f3f7f5; border-radius: 12px; padding: 14px 18px; color: #2b2b2b; }
+    .why { display: flex; gap: 16px; align-items: center; margin: 0 0 8px; }
+    .why img { width: 56px; height: 56px; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+    kbd { font: inherit; font-weight: 600; }
+      nav.toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 24px 0 8px; }
+    nav.toc a { text-decoration: none; border: 1px solid var(--border); border-radius: 999px; padding: 6px 14px; font-size: 14px; color: var(--fg); }
+    nav.toc a:hover { border-color: var(--primary); color: var(--primary); }
+    h2 { scroll-margin-top: 16px; padding-top: 8px; border-top: 1px solid var(--border); margin-top: 48px; }
+    h3 { font-size: 16px; margin: 24px 0 4px; }
+    h3 + p { margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <header><div class="wrap"><a class="brand" href="/">FIKKO</a><a class="back" href="/">Back to Fikko</a></div></header>
+  <main class="wrap">
+    <h1>Help</h1>
+    <p class="meta">Can&rsquo;t find your answer? Email <a href="mailto:hello@fikko.io">hello@fikko.io</a>.</p>
+    <nav class="toc" aria-label="Topics">
+      <a href="#start">Getting started</a>
+      <a href="#logging">Logging your day</a>
+      <a href="#ai">AI features</a>
+      <a href="#reminders">Reminders</a>
+      <a href="#devices">Fitbit and other devices</a>
+      <a href="#plans">Plans and founding members</a>
+      <a href="#data">Your data and privacy</a>
+      <a href="#account">Account and sign-in</a>
+      <a href="#trouble">Something isn&rsquo;t working</a>
+    </nav>
+
+    <h2 id="start">Getting started</h2>
+    <h3>What is Fikko?</h3>
+    <p>Fikko helps you build healthy habits by checking in once a day: water, meals, activity, sleep, mood and medications, plus any habits of your own. Your Dashboard turns those check-ins into trends, and your My Fikko plant grows with every complete day.</p>
+    <h3>How do I sign up?</h3>
+    <p>Go to <a href="/?mode=signup">app.fikko.io</a>, choose Create your account and confirm your email from the link we send (check spam if it doesn&rsquo;t arrive within a few minutes). Setup then takes about three minutes and works out your daily calorie target from your height, weight, age, activity and goal.</p>
+    <h3>Is there an app to download?</h3>
+    <p>Not yet: Fikko runs in your browser. On a phone, add it to your home screen and it opens full screen like any other app. <a href="/install.html">See how</a>. An iPhone app is on the way.</p>
+
+    <h2 id="logging">Logging your day</h2>
+    <h3>How do I log a habit?</h3>
+    <p>Open Habits and tap a card. Water adds a glass per tap; Sleep asks how long you slept and how rested you feel; Mood has ten moods to pick from; Activity takes minutes and the name of a workout. A card is marked done when you reach its daily target.</p>
+    <h3>How do I log meals?</h3>
+    <p>Tap Calories, then a meal. Search for a food or brand, scan a barcode, snap a photo of your plate, or enter a food by hand. Fikko remembers foods you enter, and you can save a group of foods as a meal to log it in one tap next time.</p>
+    <h3>Can I log by talking?</h3>
+    <p>Yes. Tap the microphone and say something like &ldquo;two glasses of water and a banana for breakfast&rdquo;. Fikko shows you what it understood before anything is saved.</p>
+    <h3>Can I log a past day?</h3>
+    <p>Yes. Use the dates at the top of Habits to move to an earlier day.</p>
+    <h3>Can I track my own habits?</h3>
+    <p>Yes. Add a custom habit with a name, a unit and a daily target, such as pages read or minutes meditated.</p>
+    <h3>What does &ldquo;You can eat X kcal more&rdquo; mean?</h3>
+    <p>It&rsquo;s your daily target minus what you&rsquo;ve eaten, plus calories burned by workouts you&rsquo;ve logged or your watch recorded.</p>
+
+    <h2 id="ai">AI features</h2>
+    <h3>What uses AI?</h3>
+    <p>The coach, voice check-ins, photo logging, recipe ideas and the AI part of the medication check. Together they share an allowance of 20 a day, which resets at midnight. The medication check&rsquo;s built-in list of known interactions doesn&rsquo;t use any.</p>
+    <h3>Is the coach medical advice?</h3>
+    <p>No. The coach is an AI that helps with everyday habits using what you&rsquo;ve logged. It won&rsquo;t diagnose conditions or advise on medications, supplements or doses; talk to your doctor or pharmacist for those. In an emergency, call your local emergency number.</p>
+    <h3>Is my data used to train AI?</h3>
+    <p>No. Our AI provider processes your request only to answer it and doesn&rsquo;t train its models on it. Data from Fitbit or Pixel Watch is never sent to any AI feature.</p>
+
+    <h2 id="reminders">Reminders</h2>
+    <h3>How do reminders work?</h3>
+    <p>Fikko emails you at a time you choose, only on days you haven&rsquo;t logged anything yet, and never more than once a day. Choose Daily, Weekdays, a Sunday summary or Off in Profile &rarr; Reminders.</p>
+    <h3>Why did my reminders slow down?</h3>
+    <p>If you haven&rsquo;t logged for 7 days, we switch to one email a week so your inbox stays quiet, and stop after 30 days. Log anything and they go back to your usual setting.</p>
+    <h3>How do I stop them?</h3>
+    <p>Tap Turn off reminders at the bottom of any reminder email, or choose Off in Profile &rarr; Reminders.</p>
+    <h3>Can I get phone notifications instead?</h3>
+    <p>Not yet. They&rsquo;ll come with the Fikko app for iPhone.</p>
+
+    <h2 id="devices">Fitbit and other devices</h2>
+    <h3>Can I connect my Fitbit or Pixel Watch?</h3>
+    <p>Yes, through an invite-only beta while Google reviews Fikko. In Profile &rarr; Connected devices, enter the Google account your watch uses and request an invite. We&rsquo;ll let you know when you&rsquo;re in; then tap Connect and approve read-only access.</p>
+    <h3>What does it sync?</h3>
+    <p>Steps, active minutes and calories, sleep and sleep stages, resting heart rate, heart rate variability, breathing rate, blood oxygen, skin temperature and VO₂ max. Your last 30 days come in when you connect, then new data every night. Activity and Sleep fill in on their own.</p>
+    <h3>What about Apple Health and Garmin?</h3>
+    <p>They&rsquo;re next. Apple Health will come with the iPhone app.</p>
+    <h3>How do I disconnect?</h3>
+    <p>Profile &rarr; Connected devices &rarr; Disconnect. You can also delete everything that was synced.</p>
+
+    <h2 id="plans">Plans and founding members</h2>
+    <h3>Is Fikko free?</h3>
+    <p>Yes, for everyone while we launch, with every feature open. Paid plans (Premium and Max) will come later. We&rsquo;ll give at least 30 days&rsquo; notice before they start, and we never charge you unless you choose a paid plan.</p>
+    <h3>What is a founding member?</h3>
+    <p>One of the first 100 people to sign up, confirm their email and finish setup. Founding members get Premium free for 12 months, starting the day paid plans launch. You&rsquo;ll see your number in Profile. <a href="/terms.html#founding-members">Full terms</a>.</p>
+    <h3>What happens when the free year ends?</h3>
+    <p>About a month before, we&rsquo;ll email you with the date and the price of Premium. Then you can subscribe or carry on with the Free plan. Your data stays either way.</p>
+
+    <h2 id="data">Your data and privacy</h2>
+    <h3>Who can see my data?</h3>
+    <p>Only you. Other members can&rsquo;t see your entries; they only see posts and recipes you choose to share in Community. We don&rsquo;t sell your data or show ads. Our <a href="/privacy.html">Privacy Policy</a> has the details.</p>
+    <h3>How do I download my data?</h3>
+    <p>Profile &rarr; Account &rarr; Export my data. Choose a PDF report, a daily spreadsheet, a food diary or a JSON file, for a day, week, month or everything.</p>
+    <h3>How do I delete my account?</h3>
+    <p>Profile &rarr; Account &rarr; Delete account. Your account is closed straight away and permanently deleted after 30 days. Sign back in before then to restore it. To keep your account but clear your logs, use Reset my data instead.</p>
+
+    <h2 id="account">Account and sign-in</h2>
+    <h3>I forgot my password</h3>
+    <p>On the sign-in screen, tap Forgot password and we&rsquo;ll email you a link to choose a new one.</p>
+    <h3>The confirmation email didn&rsquo;t arrive</h3>
+    <p>Check your spam folder, then use Send the link again on the sign-in screen. If you signed up with this email before, sign in instead.</p>
+    <h3>How do I change my password?</h3>
+    <p>Profile &rarr; Account &rarr; Change password.</p>
+
+    <h2 id="trouble">Something isn&rsquo;t working</h2>
+    <h3>I don&rsquo;t see the latest changes</h3>
+    <p>Close Fikko fully and open it again. On the home-screen app, swipe it away first.</p>
+    <h3>My entries didn&rsquo;t save</h3>
+    <p>If you see &ldquo;That didn&rsquo;t save&rdquo;, check your connection; Fikko keeps trying and saves as soon as you&rsquo;re back online. If something is still missing, email us with the date and what you logged.</p>
+    <h3>My Fikko plant is wilting</h3>
+    <p>Your plant grows one stage for each complete day, when every habit counted that day is done. After more than 3 days in a row with nothing logged it starts to wilt, and after more than 7 it dies, unless it has already bloomed. Replant from My Fikko; you keep everything you&rsquo;ve unlocked.</p>
+
+  </main>
+  <footer><div class="wrap">Fikko &middot; <a href="/install.html">Add to home screen</a> &middot; <a href="/privacy.html">Privacy</a> &middot; <a href="/terms.html">Terms</a> &middot; <a href="mailto:hello@fikko.io">hello@fikko.io</a></div></footer>
+</body>
+</html>

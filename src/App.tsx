@@ -388,6 +388,7 @@ export default function App() {
         <div className="mx-auto flex max-w-screen-2xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-8 text-sm text-muted-foreground sm:px-6">
           <span>Fikko · {new Date().getFullYear()} · Stay consistent, stay you.</span>
           <nav aria-label="Legal" className="flex gap-4">
+            <a href="/help.html" className="hover:text-foreground">Help</a>
             <a href="/privacy.html" className="hover:text-foreground">Privacy</a>
             <a href="/terms.html" className="hover:text-foreground">Terms</a>
             <a href="/food-data-sources.html" className="hover:text-foreground">Food data</a>

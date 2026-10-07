@@ -1,5 +1,6 @@
 // The admin site at /admin: visitor stats for the app and the marketing site,
-// plus sign-ups, AI spend (admin_ai_costs in migration 024) and Fitbit beta
+// plus launch metrics (admin_launch_metrics in migration 029), sign-ups, AI
+// spend (admin_ai_costs in migration 024) and Fitbit beta
 // invites (admin_wearable_beta in migration 028). Everything comes from one database call (admin_stats in
 // migration 016), which refuses anyone not listed in the admins table or
 // who hasn't entered a code from their authenticator app (migration 017).
@@ -100,6 +101,9 @@ function StatsView() {
       </div>
 
       {state === "error" && <p className="text-sm text-destructive">Couldn't load stats. Try reloading the page.</p>}
+      <LaunchMetrics days={days} />
+
+      <h2 className="pt-4 text-lg font-semibold">Visitors</h2>
       {state === "loading" && !stats && <p className="text-sm text-muted-foreground">Loading…</p>}
 
       {stats && (
@@ -470,5 +474,206 @@ function WearableBeta() {
         </CardContent>
       </Card>
     </>
+  );
+}
+
+// ── Launch metrics ─────────────────────────────────────────────────────────
+
+interface Funnel { signed_up: number; confirmed: number; onboarded: number; logged: number; active_7d: number }
+interface Launch {
+  funnel: Funnel;
+  funnel_range: Funnel;
+  founding_qualified: number;
+  active_7d: number;
+  active_30d: number;
+  daily_active: { day: string; active: number }[];
+  weekly_active: { week: string; active: number }[];
+  day1: { members: number; returned: number };
+  week2: { members: number; returned: number };
+  features: {
+    habits: Record<string, number>;
+    food_items: number;
+    custom_habits: number;
+    ai: Record<string, number>;
+    fitbit_connected: number;
+    fitbit_requests: number;
+    my_fikko_seed: number;
+  };
+}
+
+/** The founding-member offer: the first 100 members to finish setup (see the Terms). */
+const FOUNDING_PLACES = 100;
+
+const FUNNEL_STEPS: { key: keyof Funnel; label: string }[] = [
+  { key: "signed_up", label: "Signed up" },
+  { key: "confirmed", label: "Confirmed their email" },
+  { key: "onboarded", label: "Finished setup" },
+  { key: "logged", label: "Logged a habit" },
+  { key: "active_7d", label: "Active in the last 7 days" },
+];
+
+const pct = (n: number, of: number) => (of > 0 ? `${Math.round((n / of) * 100)}%` : "–");
+
+function LaunchMetrics({ days }: { days: number }) {
+  const [data, setData] = useState<Launch | null>(null);
+  const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const [cohort, setCohort] = useState<"all" | "range">("all");
+
+  useEffect(() => {
+    let live = true;
+    supabase.rpc("admin_launch_metrics", { p_days: days }).then(({ data, error }) => {
+      if (!live) return;
+      if (error) return setState("error");
+      setData(data as Launch);
+      setState("ready");
+    });
+    return () => { live = false; };
+  }, [days]);
+
+  if (state === "error") {
+    return <p className="text-sm text-destructive">Couldn't load launch metrics. Has migration 029 been run?</p>;
+  }
+  if (!data) return state === "loading" ? <p className="text-sm text-muted-foreground">Loading…</p> : null;
+
+  const f = cohort === "all" ? data.funnel : data.funnel_range;
+  const founding = Math.min(FOUNDING_PLACES, Number(data.founding_qualified));
+  const h = data.features.habits;
+  const ai = data.features.ai;
+  const features: [string, number][] = (
+    [
+      ["Food (meal log)", data.features.food_items],
+      ["Water", h.water ?? 0],
+      ["Activity", h.exercise ?? 0],
+      ["Sleep", h.sleep ?? 0],
+      ["Mood", h.mood ?? 0],
+      ["Medications", h.medication ?? 0],
+      ["Custom habits", data.features.custom_habits],
+      ["AI coach", ai.coach ?? 0],
+      ["Voice check-ins", ai.voice ?? 0],
+      ["Photo logging", ai.photo ?? 0],
+      ["Interaction check (AI)", ai.interactions ?? 0],
+      ["Recipe ideas", ai.recipe ?? 0],
+    ] as [string, number][]
+  ).sort((a, b) => Number(b[1]) - Number(a[1]));
+
+  return (
+    <>
+      <h2 className="text-lg font-semibold">Launch</h2>
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <Card size="sm">
+          <CardContent>
+            <p className="text-sm text-muted-foreground">Founding places taken</p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums">{founding} <span className="text-base font-normal text-muted-foreground">of {FOUNDING_PLACES}</span></p>
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted" aria-hidden="true">
+              <div className="h-full rounded-full bg-primary" style={{ width: `${(founding / FOUNDING_PLACES) * 100}%` }} />
+            </div>
+          </CardContent>
+        </Card>
+        <Tile label="Active in the last 7 days" value={Number(data.active_7d)} />
+        <Tile label="Active in the last 30 days" value={Number(data.active_30d)} />
+        <Card size="sm">
+          <CardContent>
+            <p className="text-sm text-muted-foreground">Fitbit</p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums">{Number(data.features.fitbit_connected)} <span className="text-base font-normal text-muted-foreground">connected</span></p>
+            <p className="text-xs text-muted-foreground">{Number(data.features.fitbit_requests)} waiting for an invite</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+          <CardTitle>From sign-up to habit</CardTitle>
+          <Tabs value={cohort} onValueChange={(v) => setCohort(v as "all" | "range")}>
+            <TabsList>
+              <TabsTrigger value="all" className="px-3">Everyone</TabsTrigger>
+              <TabsTrigger value="range" className="px-3">Signed up in the last {days} days</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </CardHeader>
+        <CardContent>
+          <ol className="space-y-2">
+            {FUNNEL_STEPS.map((step, i) => {
+              const n = Number(f[step.key]);
+              const prev = i === 0 ? n : Number(f[FUNNEL_STEPS[i - 1].key]);
+              return (
+                <li key={step.key} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 sm:grid-cols-[12rem_minmax(0,1fr)_7rem]">
+                  <span className="text-sm">{step.label}</span>
+                  <span className="order-last col-span-2 h-2 overflow-hidden rounded-full bg-muted sm:order-none sm:col-span-1" aria-hidden="true">
+                    <span className="block h-full rounded-full bg-primary" style={{ width: `${f.signed_up ? (n / Number(f.signed_up)) * 100 : 0}%` }} />
+                  </span>
+                  <span className="text-right text-sm tabular-nums">
+                    {n.toLocaleString()}
+                    {i > 0 && <span className="ml-1.5 text-xs text-muted-foreground">{pct(n, prev)}</span>}
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+          <p className="mt-3 text-xs text-muted-foreground">The percentage is of the step before. Admin accounts are left out.</p>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <ReturnTile
+          label="Came back the next day"
+          hint="Logged something the day after finishing setup."
+          {...data.day1}
+        />
+        <ReturnTile
+          label="Still logging in week 2"
+          hint="Logged something 7 to 13 days after finishing setup."
+          {...data.week2}
+        />
+      </div>
+
+      <Card>
+        <CardHeader><CardTitle>Active members each week</CardTitle></CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={data.weekly_active}>
+              <CartesianGrid stroke={C.grid} vertical={false} />
+              <XAxis dataKey="week" tickFormatter={shortDay} {...ax} minTickGap={24} />
+              <YAxis allowDecimals={false} width={36} {...ax} />
+              <Tooltip contentStyle={ttStyle} labelFormatter={(d) => `Week of ${shortDay(String(d))}`} />
+              <Bar dataKey="active" name="Members who logged" fill={C.primary} radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Active members each day</CardTitle></CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={160}>
+            <LineChart data={data.daily_active}>
+              <CartesianGrid stroke={C.grid} vertical={false} />
+              <XAxis dataKey="day" tickFormatter={shortDay} {...ax} minTickGap={24} />
+              <YAxis allowDecimals={false} width={36} {...ax} />
+              <Tooltip contentStyle={ttStyle} labelFormatter={(d) => shortDay(String(d))} />
+              <Line dataKey="active" name="Members who logged" stroke={C.primary} strokeWidth={2} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      <List title={`Members using each feature (last ${days} days)`} rows={features} />
+      <p className="text-xs text-muted-foreground">
+        Counts of members only, never who. {Number(data.features.my_fikko_seed)} members have planted a My Fikko seed. Logged days are each member&apos;s own date; sign-up and setup days are in UTC.
+      </p>
+    </>
+  );
+}
+
+function ReturnTile({ label, hint, members, returned }: { label: string; hint: string; members: number; returned: number }) {
+  return (
+    <Card size="sm">
+      <CardContent>
+        <p className="text-sm text-muted-foreground">{label}</p>
+        <p className="mt-1 text-2xl font-semibold tabular-nums">{pct(Number(returned), Number(members))}</p>
+        <p className="text-xs text-muted-foreground">
+          {Number(members) > 0 ? `${Number(returned)} of ${Number(members)} members. ${hint}` : `Not enough members yet. ${hint}`}
+        </p>
+      </CardContent>
+    </Card>
   );
 }

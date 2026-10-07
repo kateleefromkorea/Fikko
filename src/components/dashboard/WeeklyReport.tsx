@@ -200,7 +200,7 @@ function ReportBody({ report: r }: { report: WeeklyReport }) {
                   <p className="truncate text-sm font-medium">{h.label}</p>
                   <p className="shrink-0 text-sm font-semibold tabular-nums">{h.done}/7</p>
                 </div>
-                <HabitBar value={h.done} max={7} hue={h.core ? HABIT_INFO[h.core].hue : "custom"} className="mt-1.5 h-1.5" />
+                <HabitBar value={h.done} max={7} hue={h.core ? HABIT_INFO[h.core].hue : "custom"} className="mt-1.5 h-1.5" label={`${h.label}: ${h.done} of 7 days`} />
                 <div className="mt-1 flex items-center justify-between gap-2">
                   <p className="truncate text-xs text-muted-foreground">{h.figure}</p>
                   {h.prevDone != null && <Delta value={h.done - h.prevDone} suffix={Math.abs(h.done - h.prevDone) === 1 ? " day" : " days"} />}

@@ -50,7 +50,7 @@ export async function generateIdeas(req: IdeaRequest): Promise<Recipe[]> {
   });
   const out = (await res.json().catch(() => ({}))) as { recipes?: IdeaResponse[]; error?: string };
   notifyAiUsed();
-  if (!res.ok || !out.recipes) throw new Error(out.error ?? "Something went wrong. Please try again.");
+  if (!res.ok || !out.recipes) throw new Error(out.error ?? "We couldn't come up with recipes. Please try again.");
   const batch = Date.now().toString(36);
   return out.recipes.map((r, i) => ({
     key: `${IDEA_PREFIX}${batch}-${i}`,

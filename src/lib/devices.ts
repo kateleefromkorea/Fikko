@@ -28,7 +28,7 @@ async function call(path: string, body: unknown) {
     body: JSON.stringify(body),
   });
   const out = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-  if (!res.ok) throw new Error(typeof out.error === "string" ? out.error : "Something went wrong. Please try again.");
+  if (!res.ok) throw new Error(typeof out.error === "string" ? out.error : "That didn't work. Please try again.");
   return out;
 }
 

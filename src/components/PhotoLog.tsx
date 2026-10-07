@@ -8,6 +8,7 @@ import { DB_LIMITS, clamp } from "../lib/limits";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { friendlyError } from "../lib/errors";
 
 type Stage = "idle" | "thinking" | "review";
 
@@ -58,7 +59,7 @@ export default function PhotoLog({ meal, onAddMany }: Props) {
       setNotUnderstood(out.notUnderstood);
       setStage("review");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setError(friendlyError(err, "We couldn't read that photo. Please try again."));
       setStage("idle");
     }
   }

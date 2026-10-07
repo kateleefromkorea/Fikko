@@ -49,7 +49,7 @@ export default function RecipeTile({
             {recipe.tags[0] && <span>{tagLabel(recipe.tags[0])}</span>}
           </p>
           {clash && <p className="text-xs font-medium text-destructive">{clash}</p>}
-          <p className="truncate text-xs text-muted-foreground/80">
+          <p className="truncate text-xs text-muted-foreground">
             {recipe.source === "fikko" ? "Fikko recipe" : recipe.source === "ai" ? "Your AI recipe" : `By ${recipe.authorName}`}
           </p>
         </div>

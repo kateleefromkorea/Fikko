@@ -459,7 +459,7 @@ function Customise({
               {tabs.map((t) => (
                 <TabsTrigger key={t.value} value={t.value} className="flex-none gap-1.5 px-3">
                   {t.label}
-                  {t.count && <span className="rounded-full bg-foreground/[0.07] px-1.5 text-[11px] font-medium tabular-nums">{t.count}</span>}
+                  {t.count && <span className="rounded-full bg-foreground/[0.07] px-1.5 text-[11px] font-medium text-foreground/80 tabular-nums">{t.count}</span>}
                 </TabsTrigger>
               ))}
             </TabsList>

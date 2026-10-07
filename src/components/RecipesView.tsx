@@ -250,10 +250,10 @@ export default function RecipesView({ userId, profileName, diets, allergies }: {
           </div>
           <Tabs value={source} onValueChange={(v) => setSource(v as Source)}>
             <TabsList className="h-10! w-full sm:w-auto">
-              <TabsTrigger value="all" className="px-3">All</TabsTrigger>
-              <TabsTrigger value="fikko" className="px-3">Fikko</TabsTrigger>
-              <TabsTrigger value="member" className="px-3">Members</TabsTrigger>
-              <TabsTrigger value="saved" className="px-3">Saved{savedCount > 0 && ` (${savedCount})`}</TabsTrigger>
+              <TabsTrigger aria-controls={undefined} value="all" className="px-3">All</TabsTrigger>
+              <TabsTrigger aria-controls={undefined} value="fikko" className="px-3">Fikko</TabsTrigger>
+              <TabsTrigger aria-controls={undefined} value="member" className="px-3">Members</TabsTrigger>
+              <TabsTrigger aria-controls={undefined} value="saved" className="px-3">Saved{savedCount > 0 && ` (${savedCount})`}</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>

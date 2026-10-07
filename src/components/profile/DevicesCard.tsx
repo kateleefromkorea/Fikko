@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { friendlyError } from "../../lib/errors";
 
 // Devices that connect for real, in display order. Oura's connection is built
 // but switched off; add "oura" here to let members connect it.
@@ -70,7 +71,7 @@ export default function DevicesCard({ outcome, onSynced }: { outcome: DeviceOutc
       await refresh();
       if (reload) onSynced();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setError(friendlyError(err, "That didn't work. Please try again, or reconnect the device."));
       await refresh();
     } finally {
       setBusy(null);

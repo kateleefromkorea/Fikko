@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { friendlyError } from "../../lib/errors";
 
 const ERASED = [
   "Meals and foods you've logged",
@@ -39,7 +40,7 @@ export default function ResetDataDialog({ userId, onClose }: { userId: string; o
       await resetMyLogs(userId);
       setDone(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setError(friendlyError(err, "We couldn't reset your data. Please try again."));
     } finally {
       setResetting(false);
     }

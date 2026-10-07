@@ -140,7 +140,7 @@ export function ScorecardSection({ ctx }: { ctx: DashCtx }) {
                   </div>
                   <p className="text-right text-sm font-semibold tabular-nums md:order-3">{pct(s.rate)}</p>
                   <div className="col-span-3 md:order-2 md:col-span-1">
-                    <HabitBar value={s.rate * 100} max={100} hue={core ? core.hue : "custom"} />
+                    <HabitBar value={s.rate * 100} max={100} hue={core ? core.hue : "custom"} label={`${habitLabel(s)}: done on ${s.done} of ${dates.length} days`} />
                     <p className="mt-1.5 text-xs text-muted-foreground md:hidden">
                       {s.done} of {dates.length} days
                       {s.streak > 0 && ` · ${s.streak}-day streak`}

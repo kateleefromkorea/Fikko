@@ -112,6 +112,8 @@ function PeriodToggle({ period, onChange }: { period: Period; onChange: (p: Peri
           <TabsTrigger
             key={p}
             value={p}
+            // A period switch with no tab panels, so nothing for aria-controls to point at.
+            aria-controls={undefined}
             className="px-4 capitalize data-active:bg-primary! data-active:text-primary-foreground! data-active:shadow-sm"
           >
             {p}
@@ -371,6 +373,7 @@ export default function Dashboard({ data: logged, biometrics, profile }: Props) 
             </ChartCard>
             <ChartCard title="Stress level" className="flex-1" action={<span className="text-lg font-semibold tabular-nums">{stressNow}</span>}>
               <Progress
+                aria-label={`Stress level: ${stressNow} out of 100`}
                 value={stressNow}
                 className={cn("h-2", stressNow > 65 ? "[&>div]:bg-destructive" : stressNow > 40 && "[&>div]:bg-ink")}
               />

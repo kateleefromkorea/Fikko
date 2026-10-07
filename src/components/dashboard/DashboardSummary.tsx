@@ -151,17 +151,17 @@ export default function DashboardSummary({ ctx, report, toggle, note }: {
         </div>
       </div>
 
-      <dl className="mt-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <ul className="mt-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {tiles.map(({ icon: Icon, label, value }) => (
-          <div key={label} className="flex items-center gap-3 rounded-xl bg-white/70 px-4 py-3 ring-1 ring-foreground/5">
+          <li key={label} className="flex items-center gap-3 rounded-xl bg-white/70 px-4 py-3 ring-1 ring-foreground/5">
             <Icon className="size-5 shrink-0 text-primary-ink" aria-hidden="true" />
             <div className="min-w-0">
-              <dt className="text-xs text-muted-foreground">{label}</dt>
-              <dd className="text-lg font-semibold tabular-nums">{value}</dd>
+              <p className="text-xs text-muted-foreground">{label}</p>
+              <p className="text-lg font-semibold tabular-nums">{value}</p>
             </div>
-          </div>
+          </li>
         ))}
-      </dl>
+      </ul>
 
       <div className={cn("mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3", glance.length === 6 ? "xl:grid-cols-6" : "xl:grid-cols-5")}>
         {glance.map((g) => {

@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import FikkoPlant from "./FikkoPlant";
 import { COMPANIONS, GARDENER_SEEDS, HARVEST_REWARDS, POTS, seedById } from "../../lib/fikko";
 import type { HarvestResult } from "../../hooks/useFikkoGarden";
+import { friendlyError } from "../../lib/errors";
 
 interface Props {
   open: boolean;
@@ -47,7 +48,7 @@ export default function HarvestDialog({ open, onOpenChange, seedId, potId, compa
     try {
       setResult(await onHarvest(choices.length ? reward : null));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong. Please try again.");
+      setError(friendlyError(e, "We couldn't harvest your plant. Please try again."));
     } finally {
       setSaving(false);
     }

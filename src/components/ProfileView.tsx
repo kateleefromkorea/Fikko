@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { friendlyError } from "../lib/errors";
 
 interface Draft {
   name: string;
@@ -215,7 +216,7 @@ export default function ProfileView({ email, profile, onUpdateProfile, userId, o
     try {
       await exportAllData(userId, format);
     } catch (err) {
-      setAccountError(err instanceof Error ? err.message : "Export failed. Please try again.");
+      setAccountError(friendlyError(err, "Export failed. Please try again."));
     } finally {
       setAccountBusy(null);
     }

@@ -140,12 +140,17 @@ export function Figure({ value, unit, className }: { value: ReactNode; unit?: st
  * Progress bar in the habit's own hue, deepening to its darker shade once the
  * target is met. Grows in from zero on first render.
  */
-export function HabitBar({ value, max, hue, className }: { value: number; max: number; hue: HabitHue; className?: string }) {
+export function HabitBar({ value, max, hue, className, label }: {
+  value: number; max: number; hue: HabitHue; className?: string;
+  /** What the bar measures, for screen readers, e.g. "Water: 5 of 7 days". */
+  label: string;
+}) {
   const mounted = useMounted();
   const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
   const color = value >= max && max > 0 ? `var(--${hue}-fg)` : `var(--${hue}-strong)`;
   return (
     <Progress
+      aria-label={label}
       value={mounted ? pct : 0}
       className={cn(
         "h-2 [&>div]:bg-(--bar) [&>div]:duration-700 [&>div]:ease-out motion-reduce:[&>div]:transition-none",

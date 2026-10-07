@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { friendlyError } from "../../lib/errors";
 
 /** How often and when; used in Profile and in onboarding's last step. */
 export function ReminderPicker({ value, onChange, idPrefix = "reminder" }: {
@@ -92,7 +93,7 @@ export default function RemindersCard({ userId, className }: { userId: string; c
       setSaved(draft);
       setMessage(draft.frequency === "off" ? "Reminder emails are off." : "Saved. Reminders use this device's time zone.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setError(friendlyError(err, "Your reminder settings didn't save. Please try again."));
     } finally {
       setBusy(false);
     }

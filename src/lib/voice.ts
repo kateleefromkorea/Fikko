@@ -71,7 +71,7 @@ export async function interpret(
   });
   const out = (await res.json().catch(() => ({}))) as { proposal?: VoiceProposal; error?: string };
   notifyAiUsed();
-  if (!res.ok || !out.proposal) throw new Error(out.error ?? "Something went wrong. Please try again.");
+  if (!res.ok || !out.proposal) throw new Error(out.error ?? "We couldn't read that check-in. Please try again.");
   return out.proposal;
 }
 

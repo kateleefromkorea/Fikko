@@ -1,4 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500&display=swap');
+/* Fonts are served from Fikko's own domain, so text doesn't wait on a chain of
+   requests to Google Fonts. Latin subsets load first; others only if used. */
+@import '@fontsource-variable/inter/wght.css';
+@import '@fontsource/roboto/latin-400.css';
+@import '@fontsource/roboto/latin-500.css';
 /* Classes are collected from src/ only, so the mobile app (mobile/) never
    adds to the web stylesheet. */
 @import 'tailwindcss' source('.');
@@ -8,8 +12,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: 'Inter', system-ui, sans-serif;
-  --font-heading: 'Inter', system-ui, sans-serif;
+  --font-sans: 'Inter Variable', 'Inter', system-ui, sans-serif;
+  --font-heading: 'Inter Variable', 'Inter', system-ui, sans-serif;
   /* Accent face, used sparingly: the sign-in page's tagline. */
   --font-tagline: 'Roboto', system-ui, sans-serif;
 
@@ -166,6 +170,13 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+  }
+  /* A clear keyboard focus ring for anything that doesn't draw its own (the
+     browser default was a faint 1px line). Components with their own
+     focus-visible styles, like Button, still use theirs. */
+  :where(a, button, [role="button"], [role="tab"], [role="radio"], [role="option"], [tabindex], input, select, textarea, summary):focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
   }
   body {
     @apply bg-background font-sans text-foreground antialiased;

@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import {
   CONSENT_ITEMS, REGION_NAMES, REGION_NOTES, type ConsentKey, type Region,
 } from "../lib/consent";
+import { friendlyError } from "../lib/errors";
 
 const REGION_ORDER: Region[] = ["AU", "KR", "SG", "US", "OTHER"];
 const selectCls =
@@ -55,7 +56,7 @@ export default function ConsentForm({ initialRegion, initialAi = false, title, s
     try {
       await onSubmit(region, checked);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "We couldn't save your choices. Please try again.");
+      setError(friendlyError(err, "We couldn't save your choices. Please try again."));
     } finally {
       setSaving(false);
     }

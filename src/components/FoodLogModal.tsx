@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import PhotoLog from "./PhotoLog";
 import FikkoAvatar from "./FikkoAvatar";
 import { cn } from "@/lib/utils";
+import { friendlyError } from "../lib/errors";
 
 // The camera code is only downloaded when someone taps Scan.
 const BarcodeScanner = lazy(() => import("./BarcodeScanner"));
@@ -95,9 +96,9 @@ function SectionHeader({ icon: Icon, id, title, hint, aside, inverse }: {
       </span>
       <div className="min-w-0 flex-1">
         <h3 id={id} className="text-base leading-8 font-semibold">{title}</h3>
-        {hint && <p className={cn("-mt-1 text-sm", inverse ? "text-white/80" : "text-muted-foreground")}>{hint}</p>}
+        {hint && <p className={cn("-mt-1 text-sm", inverse ? "text-white" : "text-muted-foreground")}>{hint}</p>}
       </div>
-      {aside && <span className={cn("pt-1.5 text-sm tabular-nums", inverse ? "text-white/85" : "text-muted-foreground")}>{aside}</span>}
+      {aside && <span className={cn("pt-1.5 text-sm tabular-nums", inverse ? "text-white" : "text-muted-foreground")}>{aside}</span>}
     </div>
   );
 }
@@ -188,7 +189,7 @@ export default function FoodLogModal({
     const timer = setTimeout(() => {
       searchFoods(q)
         .then((foods) => { if (live) { setRemote({ q, foods }); setError(null); } })
-        .catch((err) => { if (live) setError(err instanceof Error ? err.message : "Search failed"); })
+        .catch((err) => { if (live) setError(friendlyError(err, "Food search isn't working right now. Try again, or add the food yourself.")); })
         .finally(() => { if (live) setSearching(false); });
     }, SEARCH_DELAY_MS);
     return () => { live = false; clearTimeout(timer); };
@@ -275,7 +276,7 @@ export default function FoodLogModal({
         setManualMode(true);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Barcode lookup failed.");
+      setError(friendlyError(err, "Barcode lookup failed."));
     } finally {
       setLookingUp(false);
     }
@@ -337,7 +338,7 @@ export default function FoodLogModal({
       setNamingMeal(false);
       setMealName("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "We couldn't save that meal.");
+      setError(friendlyError(err, "We couldn't save that meal."));
     }
   }
 
@@ -797,7 +798,7 @@ export default function FoodLogModal({
           )}
         </section>
 
-        <div className="-mt-2 flex items-center justify-center gap-1.5 pt-2 text-xs text-muted-foreground/70 select-none" aria-hidden="true">
+        <div className="-mt-2 flex items-center justify-center gap-1.5 pt-2 text-xs text-muted-foreground select-none" aria-hidden="true">
           <FikkoAvatar plain className="size-4 opacity-70" />
           Fikko
         </div>

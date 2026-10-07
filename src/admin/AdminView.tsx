@@ -91,12 +91,12 @@ function StatsView() {
       <div className="flex flex-wrap items-center gap-3">
         <Tabs value={site} onValueChange={(v) => setSite(v as Site)}>
           <TabsList>
-            {SITES.map((s) => <TabsTrigger key={s.id} value={s.id} className="px-3">{s.label}</TabsTrigger>)}
+            {SITES.map((s) => <TabsTrigger aria-controls={undefined} key={s.id} value={s.id} className="px-3">{s.label}</TabsTrigger>)}
           </TabsList>
         </Tabs>
         <Tabs value={String(days)} onValueChange={(v) => setDays(Number(v))}>
           <TabsList>
-            {RANGES.map((d) => <TabsTrigger key={d} value={String(d)} className="px-3">{d} days</TabsTrigger>)}
+            {RANGES.map((d) => <TabsTrigger aria-controls={undefined} key={d} value={String(d)} className="px-3">{d} days</TabsTrigger>)}
           </TabsList>
         </Tabs>
       </div>
@@ -587,8 +587,8 @@ function LaunchMetrics({ days }: { days: number }) {
           <CardTitle>From sign-up to habit</CardTitle>
           <Tabs value={cohort} onValueChange={(v) => setCohort(v as "all" | "range")}>
             <TabsList>
-              <TabsTrigger value="all" className="px-3">Everyone</TabsTrigger>
-              <TabsTrigger value="range" className="px-3">Signed up in the last {days} days</TabsTrigger>
+              <TabsTrigger aria-controls={undefined} value="all" className="px-3">Everyone</TabsTrigger>
+              <TabsTrigger aria-controls={undefined} value="range" className="px-3">Signed up in the last {days} days</TabsTrigger>
             </TabsList>
           </Tabs>
         </CardHeader>

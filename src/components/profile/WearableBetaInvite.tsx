@@ -5,6 +5,7 @@ import { INVITE_ONLY, PROVIDER_INFO, fetchBetaAccess, requestBetaInvite, type Be
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { friendlyError } from "../../lib/errors";
 
 /**
  * Whether this member may connect a provider that's in an invite-only beta.
@@ -61,7 +62,7 @@ export default function WearableBetaInvite({ provider, access, onRequested }: {
       onRequested({ status: access?.status === "declined" ? "declined" : "requested", googleEmail: email.trim().toLowerCase() });
       setEditing(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setError(friendlyError(err, "We couldn't send your request. Please try again."));
     } finally {
       setSending(false);
     }

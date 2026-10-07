@@ -10,6 +10,7 @@ import type { DeviceOutcome } from "../../components/profile/DevicesCard";
 import { ACTIVITY_ICONS, ErrorText, FALLBACK_ICON, Field, SelectCard, StepHeading } from "../ui";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { friendlyError } from "../../lib/errors";
 
 type Api = ReturnType<typeof useOnboardingState>;
 
@@ -57,7 +58,7 @@ export default function StepLifestyle({ api, showError, userId, outcome }: {
       await connectDevice("google");
     } catch (err) {
       setConnecting(false);
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setError(friendlyError(err, "We couldn't open Google sign-in. Please try again."));
     }
   }
 

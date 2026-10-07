@@ -5,6 +5,7 @@ import { COACH_DAILY_LIMIT } from "../lib/coach";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { friendlyError } from "../lib/errors";
 
 const SEVERITY: Record<Severity, { label: string; icon: typeof AlertTriangle; cls: string }> = {
   avoid: { label: "Avoid together", icon: ShieldAlert, cls: "bg-red-50 text-red-700 ring-red-200" },
@@ -25,7 +26,7 @@ export default function InteractionCheck({ names, onClose }: { names: string[]; 
     let live = true;
     checkInteractions(names)
       .then((r) => { if (live) setResult(r); })
-      .catch((err) => { if (live) setError(err instanceof Error ? err.message : "We couldn't run the check. Please try again."); });
+      .catch((err) => { if (live) setError(friendlyError(err, "We couldn't run the check. Please try again.")); });
     return () => { live = false; };
   }, [names]);
 

@@ -57,6 +57,6 @@ export async function recognizePhoto(base64: string, meal: MealKey): Promise<Pho
   });
   const out = (await res.json().catch(() => ({}))) as Partial<PhotoProposal> & { error?: string };
   notifyAiUsed();
-  if (!res.ok || !out.foods) throw new Error(out.error ?? "Something went wrong. Please try again.");
+  if (!res.ok || !out.foods) throw new Error(out.error ?? "We couldn't read that photo. Please try again.");
   return { foods: out.foods, notUnderstood: out.notUnderstood ?? null };
 }

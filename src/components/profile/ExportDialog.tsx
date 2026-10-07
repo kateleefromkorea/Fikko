@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { friendlyError } from "../../lib/errors";
 
 const PERIODS: { key: Period | "all"; label: string; pick?: string }[] = [
   { key: "day", label: "Day", pick: "Which day?" },
@@ -45,7 +46,7 @@ export default function ExportDialog({ userId, onClose }: Props) {
       await exportAllData(userId, format, range);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Export failed. Please try again.");
+      setError(friendlyError(err, "Export failed. Please try again."));
       setBusy(false);
     }
   };

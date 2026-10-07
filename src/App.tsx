@@ -2,13 +2,11 @@ import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { useAiCredits } from "./hooks/useAiCredits";
 import { ChartNoAxesColumn, Loader2, ChefHat, ListChecks, LogOut, Sparkles, Sprout, UserRound, Users, type LucideIcon } from "lucide-react";
 import { completion } from "./lib/completion";
-import HabitsView from "./components/HabitsView";
 import ScrollToTop from "./components/ScrollToTop";
 import InstallCard from "./components/InstallCard";
 import { FoundingWelcome } from "./components/FoundingMember";
 import { syncReminderTimeZone } from "./lib/reminders";
 import type { DeviceOutcome } from "./components/profile/DevicesCard";
-import CoachView from "./components/CoachView";
 import { useAuth } from "./auth/AuthProvider";
 import SignInScreen from "./auth/SignInScreen";
 import SetNewPassword from "./auth/SetNewPassword";
@@ -43,6 +41,11 @@ import { CURRENT_PLAN } from "./lib/fikko";
 // Loaded on demand. The Dashboard carries the charting library (most of the
 // app's JavaScript) and onboarding only runs once per user, so neither should
 // slow down the first load of the Habits page.
+// Signed-in pages load after sign-in, so the sign-in screen downloads less.
+// The Habits page starts loading as soon as a session exists (see below).
+const loadHabitsView = () => import("./components/HabitsView");
+const HabitsView = lazy(loadHabitsView);
+const CoachView = lazy(() => import("./components/CoachView"));
 const Dashboard = lazy(() => import("./components/Dashboard"));
 const OnboardingModal = lazy(() => import("./onboarding/OnboardingModal"));
 const ConsentPrompt = lazy(() => import("./components/ConsentPrompt"));
@@ -93,6 +96,8 @@ export default function App() {
   }, [deviceOutcome, openProfile]);
   const { data: loggedData, setData, loading: habitsLoading, loadError: habitsLoadError, reload: reloadHabits, saveState, retrySave } = useHabitData(userId);
   const { profile, updateProfile, loading: profileLoading } = useProfile(userId);
+  // Start fetching the Habits page the moment someone is signed in, in parallel with their data.
+  useEffect(() => { if (userId) void loadHabitsView(); }, [userId]);
   // Reminders go out at the member's local hour, so follow them if they travel.
   useEffect(() => { if (userId) void syncReminderTimeZone(userId); }, [userId]);
   const consent = useConsents(userId);
@@ -206,7 +211,7 @@ export default function App() {
                         "ml-0.5 rounded-full px-1.5 text-[11px] leading-5 font-semibold tabular-nums",
                         credits.left === 0
                           ? "bg-destructive/15 text-destructive"
-                          : active ? "bg-white/25 text-white" : "bg-primary/10 text-primary-ink",
+                          : active ? "bg-white text-primary-ink" : "bg-primary/10 text-primary-ink",
                       )}
                     >
                       {credits.left}
@@ -298,6 +303,7 @@ export default function App() {
         {tab === "habits" && !habitsLoading && !habitsLoadError && (
           <>
           <div className="mb-6 empty:hidden"><InstallCard /></div>
+          <Suspense fallback={<div className="flex items-center justify-center gap-2 py-24 text-sm text-muted-foreground" role="status"><Loader2 className="size-4 animate-spin" aria-hidden="true" /> Loading your habits…</div>}>
           <HabitsView
             data={data}
             onChange={setData}
@@ -309,6 +315,7 @@ export default function App() {
             trackMacros={tracksMacros(profile.tracking_style)}
             onOpenCommunity={() => setTab("community")}
           />
+          </Suspense>
           </>
         )}
         {tab === "dashboard" && !habitsLoading && !habitsLoadError && (
@@ -338,7 +345,11 @@ export default function App() {
             <CommunityView userId={session.user.id} profileName={profile.name} />
           </Suspense>
         )}
-        {tab === "coaches" && <CoachView profileName={profile.name} />}
+        {tab === "coaches" && (
+          <Suspense fallback={<p className="py-10 text-center text-sm text-muted-foreground">Loading coach…</p>}>
+            <CoachView profileName={profile.name} />
+          </Suspense>
+        )}
         {tab === "profile" && (
           <Suspense fallback={<p className="py-10 text-center text-sm text-muted-foreground">Loading profile…</p>}>
           <ProfileView

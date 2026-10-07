@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { friendlyError } from "../../lib/errors";
 
 // Leaving takes two steps: an optional "why?" that can offer a fix for the
 // reason given, then the confirmation. The first step never blocks: every
@@ -58,7 +59,7 @@ export default function DeleteAccountDialog({ profile, onUpdateProfile, onExport
       await deleteAccount(reason ? { reason, details: reason === "other" ? details : "" } : undefined);
       // Signing out returns the app to the login screen.
     } catch (err) {
-      setError(err instanceof Error ? err.message : "We couldn't delete your account. Please try again.");
+      setError(friendlyError(err, "We couldn't delete your account. Please try again."));
       setDeleting(false);
     }
   };

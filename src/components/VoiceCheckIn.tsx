@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { friendlyError } from "../lib/errors";
 
 const REST = ["", "Exhausted", "Still tired", "Okay", "Rested", "Fully rested"];
 const MEAL_LABEL: Record<MealKey, string> = { breakfast: "Breakfast", lunch: "Lunch", dinner: "Dinner", snacks: "Snacks" };
@@ -132,7 +133,7 @@ export default function VoiceCheckIn({ data, date, isToday, medications, onSave,
       setProposal(p);
       setStage("review");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setError(friendlyError(err, "We couldn't read that check-in. Please try again."));
       setStage("typing");
     }
   }

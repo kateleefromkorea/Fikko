@@ -526,7 +526,14 @@ function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog, biome
                     {itemCount > 4 && <li>+{itemCount - 4} more</li>}
                   </ul>
                 )}
-                <Button variant="outline" className="mt-auto h-9" onClick={() => setOpenMeal(key)} disabled={!foodLog.ready}>
+                <Button
+                  variant="outline"
+                  className="mt-auto h-9"
+                  onClick={() => setOpenMeal(key)}
+                  disabled={!foodLog.ready}
+                  // Each meal has one of these, so say which meal it opens.
+                  aria-label={itemCount > 0 ? `${label}: ${itemCount} item${itemCount === 1 ? "" : "s"}, open to edit` : `Log food for ${label.toLowerCase()}`}
+                >
                   {foodLog.loading ? <Loader2 className="animate-spin" /> : <Plus />}
                   {foodLog.loading ? "Loading…" : itemCount > 0 ? `${itemCount} item${itemCount === 1 ? "" : "s"}` : "Log food"}
                 </Button>
@@ -958,7 +965,7 @@ function SleepCard({ data, onChange, activeDate, biometrics, goals }: Props) {
                       <span className="font-medium">{s.label}</span>
                       <span className="text-muted-foreground tabular-nums">{s.hours}h · {s.pct}%</span>
                     </div>
-                    <HabitBar value={s.pct} max={100} hue="sleep" />
+                    <HabitBar value={s.pct} max={100} hue="sleep" label={`${s.label} sleep: ${s.pct}% of the night`} />
                   </div>
                 ))}
               </div>
@@ -1105,7 +1112,7 @@ function MoodWeek({ data, endDate: centerDate }: { data: HabitData; endDate: str
               >
                 {option ? <option.icon className="size-4" /> : null}
               </span>
-              <span className={cn("text-[11px] text-muted-foreground", future && "text-muted-foreground/50", isCenter && "font-semibold text-foreground")} aria-hidden="true">
+              <span className={cn("text-[11px] text-muted-foreground", isCenter && "font-semibold text-foreground")} aria-hidden="true">
                 {isCenter && date === todayKey() ? "Today" : day}
               </span>
             </li>
@@ -1155,7 +1162,7 @@ function MoodCard({ data, onChange, activeDate, biometrics }: Props) {
               <span className="text-muted-foreground">Recovery</span>
               <span className="font-medium tabular-nums">{rec}/100</span>
             </div>
-            <HabitBar value={rec} max={100} hue="mood" />
+            <HabitBar value={rec} max={100} hue="mood" label={`Recovery: ${rec} out of 100`} />
           </div>
         )}
       </div>
@@ -1206,7 +1213,7 @@ function CustomHabitTile({ habit, activeDate, logValue, onLogValue, onLog, onDel
           </p>
           {done && <DoneBadge className="mb-1.5" />}
         </div>
-        <HabitBar value={todayVal} max={habit.target} hue="custom" />
+        <HabitBar value={todayVal} max={habit.target} hue="custom" label={`${habit.name}: ${todayVal} of ${habit.target} ${habit.unit}`} />
         <div className="mt-auto flex gap-2">
           <Input
             value={logValue}

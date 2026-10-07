@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { friendlyError } from "../lib/errors";
 
 const STARTERS = [
   "How did my week go?",
@@ -76,7 +77,7 @@ export default function CoachView({ profileName }: { profileName: string }) {
     let live = true;
     Promise.all([fetchCoachMessages(), fetchUsedToday()])
       .then(([m, u]) => { if (live) { setMessages(m); setUsed(u); } })
-      .catch((e: Error) => { if (live) setError(e.message); })
+      .catch((e: Error) => { if (live) setError(friendlyError(e, "We couldn't load your chat. Please try again.")); })
       .finally(() => { if (live) setLoading(false); });
     return () => { live = false; };
   }, []);
@@ -103,7 +104,7 @@ export default function CoachView({ profileName }: { profileName: string }) {
     } catch (err) {
       setMessages((m) => m.filter((x) => x.id !== `local-${now}`));
       setDraft(message);
-      setError(err instanceof Error ? err.message : "Fikko couldn't reply. Please try again.");
+      setError(friendlyError(err, "Fikko couldn't reply. Please try again."));
     } finally {
       setStreaming(null);
     }
@@ -127,7 +128,7 @@ export default function CoachView({ profileName }: { profileName: string }) {
       await clearCoachChat();
       setMessages([]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "We couldn't clear your chat.");
+      setError(friendlyError(err, "We couldn't clear your chat."));
     }
   }
 

@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { useConsents } from "../../hooks/useConsents";
 import { REGION_NAMES, type Region } from "../../lib/consent";
+import { friendlyError } from "../../lib/errors";
 
 export default function PrivacyCard({ userId }: { userId: string }) {
   const { consents, region, loading, save } = useConsents(userId);
@@ -24,7 +25,7 @@ export default function PrivacyCard({ userId }: { userId: string }) {
     try {
       await save(noticeRegion, { ai_processing: on });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "We couldn't save that. Please try again.");
+      setError(friendlyError(err, "We couldn't save that. Please try again."));
     } finally {
       setSaving(false);
     }

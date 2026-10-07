@@ -107,11 +107,11 @@ function SectionHeader({ icon: Icon, id, title, hint, aside, inverse }: {
 function Stat({ value, unit, label, big }: { value: string; unit: string; label: string; big?: boolean }) {
   return (
     <div className="min-w-0">
-      <p className={cn("leading-none font-semibold text-foreground tabular-nums", big ? "text-3xl" : "text-xl")}>
+      <p className={cn("leading-none font-semibold text-foreground tabular-nums", big ? "text-2xl" : "text-lg")}>
         {value}
         {unit && <span className={cn("ml-1 font-normal text-muted-foreground", big ? "text-base" : "text-sm")}>{unit}</span>}
       </p>
-      <p className="mt-1.5 text-xs text-muted-foreground">{label}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{label}</p>
     </div>
   );
 }
@@ -391,13 +391,13 @@ export default function FoodLogModal({
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="max-h-[92vh] gap-5 overflow-y-auto p-6 sm:max-w-2xl sm:p-8"
+        className="max-h-[94vh] gap-3 overflow-y-auto p-5 sm:max-w-2xl sm:p-6"
         // Escape closes the options list first, and the window only once it's gone.
         onEscapeKeyDown={(e) => { if (showList) { e.preventDefault(); setListOpen(false); } }}
       >
         {/* A very light grey band across the top, so the meal's totals read as a header. */}
-        <DialogHeader className="-mx-6 -mt-6 gap-4 border-b bg-[#F4F5F6] px-6 pt-6 pb-5 sm:-mx-8 sm:-mt-8 sm:px-8 sm:pt-8 sm:pb-6">
-          <DialogTitle className="text-2xl font-semibold">{mealLabel}</DialogTitle>
+        <DialogHeader className="-mx-5 -mt-5 gap-2.5 border-b bg-[#F4F5F6] px-5 pt-5 pb-4 sm:-mx-6 sm:-mt-6 sm:px-6 sm:pt-5 sm:pb-4">
+          <DialogTitle className="text-xl font-semibold">{mealLabel}</DialogTitle>
           <DialogDescription className="sr-only">
             {Math.round(total)} kcal logged
             {showMacros && items.length > 0 && ` · ${formatMacros(mealMacros.total)}`}
@@ -432,7 +432,7 @@ export default function FoodLogModal({
 
         {/* 1 · What's already in this meal. */}
         <section aria-labelledby="sec-logged" className="overflow-hidden rounded-2xl border bg-card shadow-xs">
-          <div className="bg-primary px-4 py-3.5 text-primary-foreground">
+          <div className="bg-primary px-4 py-2 text-primary-foreground">
             <SectionHeader
               inverse
               icon={ListChecks}
@@ -442,14 +442,14 @@ export default function FoodLogModal({
             />
           </div>
           {items.length === 0 ? (
-            <p className="px-4 py-6 text-center text-sm text-muted-foreground">
+            <p className="px-4 py-3.5 text-center text-sm text-muted-foreground">
               Nothing logged for {mealLabel.toLowerCase()} yet. Add something below.
             </p>
           ) : (
             <ul className="divide-y">
               {items.map((item) => (
                 // On a phone the amount and calories wrap under a long name instead of squeezing it.
-                <li key={item.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3.5">
+                <li key={item.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2.5">
                   <div className="min-w-0 flex-1 basis-44">
                     <p className="truncate text-base font-medium">{item.name}</p>
                     {showMacros && (
@@ -509,7 +509,7 @@ export default function FoodLogModal({
         </section>
 
         {/* 2 · Finding a food: search, scan, photo, and one-tap repeats. */}
-        <section aria-labelledby="sec-search" className="space-y-4 rounded-2xl border bg-card p-4 shadow-xs sm:p-5">
+        <section aria-labelledby="sec-search" className="space-y-3 rounded-2xl border bg-card p-3.5 shadow-xs sm:p-4">
           <SectionHeader icon={Search} id="sec-search" title="Find a food" hint="Search by name or brand, scan a barcode, or snap a photo." />
 
           <div className="space-y-3">
@@ -530,7 +530,7 @@ export default function FoodLogModal({
                   aria-controls="food-options"
                   aria-activedescendant={showList && options[active] ? `food-option-${active}` : undefined}
                   autoComplete="off"
-                  className="h-12 rounded-xl bg-background pr-11 pl-11 text-base md:text-base"
+                  className="h-11 rounded-xl bg-background pr-11 pl-11 text-base md:text-base"
                 />
                 <span className="absolute top-1/2 right-2 -translate-y-1/2">
                   {searching ? (
@@ -545,7 +545,7 @@ export default function FoodLogModal({
               <Button
                 variant="outline"
                 onClick={() => { setScanning((s) => !s); setScanned(null); setPicked(null); setError(null); setNotFound(false); }}
-                className="h-12 rounded-xl bg-background px-4"
+                className="h-11 rounded-xl bg-background px-4"
                 aria-label="Scan a barcode"
                 aria-pressed={scanning}
               >
@@ -708,9 +708,9 @@ export default function FoodLogModal({
         </section>
 
         {/* 3 · Typing a food in by hand. Dashed, so it reads as separate from searching. */}
-        <section aria-labelledby="sec-manual" className="rounded-2xl border-2 border-dashed p-4 sm:p-5">
+        <section aria-labelledby="sec-manual" className="rounded-2xl border-2 border-dashed p-3.5 sm:p-4">
           {manualMode ? (
-            <div className="space-y-4">
+            <div className="space-y-3">
               <SectionHeader icon={PencilLine} id="sec-manual" title="Enter a food manually" hint="Type in the name and nutrition from the label." />
               {notFound && (
                 <p className="rounded-lg bg-muted px-4 py-3 text-sm text-muted-foreground">

@@ -26,6 +26,7 @@ import {
 } from "./_lib/devices.js";
 import { consentError } from "./_lib/consent.js";
 import { OPTIONS, withCors } from "./_lib/cors.js";
+import { SLOW_DOWN, withinLimits } from "./_lib/rateLimit.js";
 
 const ACTIONS = ["connect", "sync", "disconnect", "request-invite"];
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -43,6 +44,8 @@ async function handlePOST(request: Request) {
   const db = admin();
   const member = await memberFrom(request, db);
   if (!member) return json({ error: "Your session has expired. Sign in again and retry." }, 401);
+  // "Sync now" calls the provider each time, so taps are limited: 10 a minute, 60 an hour.
+  if (!(await withinLimits(db, `devices:${member.id}`, [[10, 60], [60, 3600]]))) return json({ error: SLOW_DOWN }, 429);
 
   if (body.action === "connect") return connect(request, db, member, provider);
   if (body.action === "sync") return sync(db, member, provider);

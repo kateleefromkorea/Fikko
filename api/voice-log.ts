@@ -11,7 +11,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { admin, json, memberFrom, supabaseReady } from "./_lib/devices.js";
-import { DAILY_AI_LIMIT, clampOffset, limitMessage, recordUse, usedToday } from "./_lib/aiUsage.js";
+import { blockedReply, checkAllowance, clampOffset, recordUse } from "./_lib/aiUsage.js";
 import { recordCosts } from "./_lib/aiCost.js";
 import { consentError } from "./_lib/consent.js";
 import { MEALS, clampNum, resolveFood, type ClaudeFood, type ProposedFood } from "./_lib/foodResolve.js";
@@ -134,7 +134,8 @@ async function handlePOST(request: Request) {
   const meds = asList(body.meds).map((m) => ({ id: String(m.id), name: String(m.name ?? "").slice(0, 60) }));
   const custom = asList(body.customHabits).map((h) => ({ id: String(h.id), name: String(h.name ?? "").slice(0, 60), unit: String(h.unit ?? "").slice(0, 20) }));
 
-  if ((await usedToday(db, member.id, tzOffset)) >= DAILY_AI_LIMIT) return json({ error: limitMessage() }, 429);
+  const { blocked: limited } = await checkAllowance(db, member.id, tzOffset);
+  if (limited) return blockedReply(limited);
 
   const local = new Date(Date.now() - tzOffset * 60_000);
   const context = [

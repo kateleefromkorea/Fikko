@@ -10,7 +10,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { admin, json, memberFrom, supabaseReady } from "./_lib/devices.js";
-import { DAILY_AI_LIMIT, clampOffset, limitMessage, recordUse, usedToday } from "./_lib/aiUsage.js";
+import { blockedReply, checkAllowance, clampOffset, recordUse } from "./_lib/aiUsage.js";
 import { recordCosts } from "./_lib/aiCost.js";
 import { consentError } from "./_lib/consent.js";
 import { MEALS, resolveFood, type ClaudeFood, type Meal, type ProposedFood } from "./_lib/foodResolve.js";
@@ -84,7 +84,8 @@ async function handlePOST(request: Request) {
   const meal: Meal = MEALS.includes(body.meal as Meal) ? (body.meal as Meal) : "snacks";
   const tzOffset = clampOffset(body.tzOffset);
 
-  if ((await usedToday(db, member.id, tzOffset)) >= DAILY_AI_LIMIT) return json({ error: limitMessage() }, 429);
+  const { blocked: limited } = await checkAllowance(db, member.id, tzOffset);
+  if (limited) return blockedReply(limited);
 
   let input: ToolInput;
   try {

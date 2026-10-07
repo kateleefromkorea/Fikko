@@ -8,7 +8,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { admin, json, memberFrom, supabaseReady } from "./_lib/devices.js";
-import { DAILY_AI_LIMIT, clampOffset, recordUse, usedToday } from "./_lib/aiUsage.js";
+import { checkAllowance, clampOffset, recordUse } from "./_lib/aiUsage.js";
 import { recordCosts } from "./_lib/aiCost.js";
 import { consentError } from "./_lib/consent.js";
 import { groupsOf, listFindings, type Finding, type Severity } from "./_lib/interactions.js";
@@ -80,7 +80,9 @@ async function handlePOST(request: Request) {
   // Without AI consent the names stay on Fikko's side; the built-in findings still apply.
   if (await consentError(db, member.id, ["health_data", "ai_processing"])) return reply("off");
   const tzOffset = clampOffset(body.tzOffset);
-  if ((await usedToday(db, member.id, tzOffset)) >= DAILY_AI_LIMIT) return reply("limit");
+  const { blocked: limited } = await checkAllowance(db, member.id, tzOffset);
+  // Too many checks in a minute reads as "try again shortly", not "used up for today".
+  if (limited) return reply(limited === "daily" ? "limit" : "unavailable");
 
   const covered = findings.map((f) => `${f.items[0]} + ${f.items[1]}`);
   const context = [

@@ -9,6 +9,7 @@
 
 import { admin, supabaseReady } from "./_lib/devices.js";
 import { OPTIONS, withCors } from "./_lib/cors.js";
+import { withinLimit } from "./_lib/rateLimit.js";
 
 const BOT = /bot|crawl|spider|slurp|preview|headless|lighthouse|monitor|facebookexternalhit|curl|wget|python|axios|node-fetch/i;
 
@@ -29,7 +30,12 @@ async function handlePOST(request: Request) {
   const day = new Date().toISOString().slice(0, 10);
   const visitor = await sha256(`${day}|${process.env.SUPABASE_SECRET_KEY}|${body.site}|${ip}|${ua}`);
 
-  await admin().rpc("track_page_view", {
+  // A real visitor views far fewer than 120 pages an hour; beyond that it's a
+  // script inflating the stats. Keyed on the same daily hash, never the IP.
+  const db = admin();
+  if (!(await withinLimit(db, `track:${visitor}`, 120, 3600))) return noContent();
+
+  await db.rpc("track_page_view", {
     p_site: body.site,
     p_path: cleanPath(body.path),
     p_referrer: referrerHost(body.ref, body.host),

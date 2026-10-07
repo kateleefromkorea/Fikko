@@ -16,10 +16,14 @@
 // comes in X-Fikko-Session rather than Authorization, because Vercel's CDN won't
 // cache requests that carry an Authorization header. Cached answers are served
 // without the check, which is fine: they cost nothing and are public data.
+//
+// Lookups that do reach the server are rate limited per member (see
+// SEARCH_LIMITS), so one account can't use up the USDA key's hourly quota.
 
 import { admin, supabaseReady } from "./_lib/devices.js";
 import { lookupBarcode, normalizeQuery, searchBranded, searchRegional, searchUsda } from "./_lib/foods.js";
 import { OPTIONS, withCors } from "./_lib/cors.js";
+import { SLOW_DOWN, withinLimits } from "./_lib/rateLimit.js";
 
 export type { FoodSearchHit } from "./_lib/foods.js";
 
@@ -36,14 +40,20 @@ const cached = (seconds: number) => ({
 });
 
 const MAX_QUERY_LENGTH = 60;
+/** Uncached lookups per member: 40 a minute, 400 an hour. Far more than logging a day's meals needs. */
+const SEARCH_LIMITS: [number, number][] = [[40, 60], [400, 3600]];
 
 // ── Endpoint ───────────────────────────────────────────────────────────────
 
-async function signedIn(request: Request) {
+/** null when the lookup may go ahead, otherwise the reply to send. */
+async function refuse(request: Request, signInMessage: string) {
   const token = request.headers.get("x-fikko-session");
-  if (!token || !supabaseReady()) return false;
-  const { data, error } = await admin().auth.getUser(token);
-  return !error && !!data.user;
+  if (!token || !supabaseReady()) return json({ error: signInMessage }, 401);
+  const db = admin();
+  const { data, error } = await db.auth.getUser(token);
+  if (error || !data.user) return json({ error: signInMessage }, 401);
+  if (!(await withinLimits(db, `food:${data.user.id}`, SEARCH_LIMITS))) return json({ error: SLOW_DOWN }, 429);
+  return null;
 }
 
 async function handleGET(request: Request) {
@@ -52,7 +62,8 @@ async function handleGET(request: Request) {
 
   if (barcode != null) {
     if (!/^\d{8,14}$/.test(barcode)) return json({ error: "That doesn't look like a barcode." }, 400);
-    if (!(await signedIn(request))) return json({ error: "Sign in to look up foods." }, 401);
+    const refused = await refuse(request, "Sign in to look up foods.");
+    if (refused) return refused;
     try {
       const food = await lookupBarcode(barcode);
       // Unknown products get added to Open Food Facts over time, so re-check those sooner.
@@ -65,7 +76,8 @@ async function handleGET(request: Request) {
   const query = normalizeQuery(params.get("q") ?? "");
   if (!query) return json({ error: "Enter a food to search for." }, 400);
   if (query.length > MAX_QUERY_LENGTH) return json({ error: "That search is too long." }, 400);
-  if (!(await signedIn(request))) return json({ error: "Sign in to search foods." }, 401);
+  const refused = await refuse(request, "Sign in to search foods.");
+  if (refused) return refused;
 
   const [generic, branded, regional] = await Promise.allSettled([searchUsda(query), searchBranded(query), searchRegional(query)]);
   // The regional databases are an extra: if the table isn't there yet, search carries on without them.

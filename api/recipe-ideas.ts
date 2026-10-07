@@ -10,7 +10,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { admin, json, memberFrom, supabaseReady } from "./_lib/devices.js";
-import { DAILY_AI_LIMIT, clampOffset, limitMessage, recordUse, usedToday } from "./_lib/aiUsage.js";
+import { blockedReply, checkAllowance, clampOffset, recordUse } from "./_lib/aiUsage.js";
 import { recordCosts } from "./_lib/aiCost.js";
 import { consentError } from "./_lib/consent.js";
 import { OPTIONS, withCors } from "./_lib/cors.js";
@@ -169,7 +169,8 @@ async function handlePOST(request: Request) {
   const allergies = oneOf(body.allergies, ALLERGY_CHOICES);
   const tzOffset = clampOffset(body.tzOffset);
 
-  if ((await usedToday(db, member.id, tzOffset)) >= DAILY_AI_LIMIT) return json({ error: limitMessage() }, 429);
+  const { blocked: limited } = await checkAllowance(db, member.id, tzOffset);
+  if (limited) return blockedReply(limited);
 
   const prompt = [
     `Ingredients I have: ${ingredients.join(", ")}`,

@@ -11,7 +11,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { admin, json, memberFrom, supabaseReady } from "./_lib/devices.js";
-import { DAILY_AI_LIMIT, clampOffset, limitMessage, recordUse, usedToday } from "./_lib/aiUsage.js";
+import { DAILY_AI_LIMIT, blockedReply, checkAllowance, clampOffset, recordUse } from "./_lib/aiUsage.js";
 import { recordCosts, type CallUsage } from "./_lib/aiCost.js";
 import { consentError } from "./_lib/consent.js";
 import { OPTIONS, withCors } from "./_lib/cors.js";
@@ -273,8 +273,8 @@ async function handlePOST(request: Request) {
   if (message.length > MAX_MESSAGE_LENGTH) return json({ error: `Please keep messages under ${MAX_MESSAGE_LENGTH.toLocaleString()} characters.` }, 400);
   const tzOffset = clampOffset(body.tzOffset);
 
-  const count = await usedToday(db, member.id, tzOffset);
-  if (count >= DAILY_AI_LIMIT) return json({ error: limitMessage() }, 429);
+  const { used: count, blocked: limited } = await checkAllowance(db, member.id, tzOffset);
+  if (limited) return blockedReply(limited);
 
   const [context, historyRes] = await Promise.all([
     memberContext(db, member.id, tzOffset),

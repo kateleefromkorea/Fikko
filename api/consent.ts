@@ -10,6 +10,7 @@
 import { admin, json, memberFrom, supabaseReady } from "./_lib/devices.js";
 import { CONSENT_KEYS, POLICY_VERSION, REGIONS, countryOf, currentConsents, regionFor, type ConsentKey, type Region } from "./_lib/consent.js";
 import { OPTIONS, withCors } from "./_lib/cors.js";
+import { SLOW_DOWN, withinLimit } from "./_lib/rateLimit.js";
 
 const REQUIRED: ConsentKey[] = ["terms", "personal_info", "health_data", "overseas_transfer"];
 
@@ -27,6 +28,8 @@ async function handlePOST(request: Request) {
   const db = admin();
   const member = await memberFrom(request, db);
   if (!member) return json({ error: "Sign in again to continue." }, 401);
+  // Each save adds rows to the consent record, so a script can't flood it.
+  if (!(await withinLimit(db, `consent:${member.id}`, 20, 60))) return json({ error: SLOW_DOWN }, 429);
 
   const body = (await request.json().catch(() => ({}))) as { region?: unknown; choices?: unknown };
   const region: Region = (REGIONS as readonly unknown[]).includes(body.region) ? (body.region as Region) : "OTHER";

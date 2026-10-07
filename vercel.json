@@ -57,6 +57,15 @@
     {
       "path": "/api/delete-account",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/email",
+      "schedule": "0 * * * *"
     }
-  ]
+  ],
+  "functions": {
+    "api/email.ts": {
+      "maxDuration": 300
+    }
+  }
 }

@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { cn } from "@/lib/utils";
 import { potById, seedById, STAGES, type Health } from "../../lib/fikko";
 
@@ -8,6 +9,10 @@ interface Props {
   health?: Health;
   potId?: string;
   companionId?: string;
+  /** Backdrop behind the plant (SCENES in lib/fikko). */
+  sceneId?: string;
+  /** Every habit done today: a sun shines on the plant. */
+  sunny?: boolean;
   /** Sways gently while growing. Off for small previews. */
   animate?: boolean;
   className?: string;
@@ -19,7 +24,8 @@ const WILT = { leaf: "#A88B4A", leafLight: "#BFA060", flower: "#C9A27A", stem: "
 const DEAD = { leaf: "#8A8F8E", leafLight: "#9DA2A1", flower: "#8A8F8E", stem: "#7A7F7E" };
 
 /** A member's plant, drawn from its seed, stage and health. */
-export default function FikkoPlant({ seedId, stage, health = "growing", potId = "clay", companionId = "none", animate, className, box }: Props) {
+export default function FikkoPlant({ seedId, stage, health = "growing", potId = "clay", companionId = "none", sceneId = "plain", sunny, animate, className, box }: Props) {
+  const clip = useId();
   const seed = seedById(seedId) ?? seedById("sprout")!;
   const pot = potById(potId);
   const colours =
@@ -96,6 +102,23 @@ export default function FikkoPlant({ seedId, stage, health = "growing", potId = 
 
   return (
     <svg viewBox="0 0 200 220" role="img" aria-label={`${seed.name}, ${STAGES[stage].name.toLowerCase()} stage`} className={box ? undefined : cn("block h-auto w-full", className)} {...box}>
+      {sceneId !== "plain" && (
+        <>
+          <defs>
+            <clipPath id={clip}><rect width="200" height="220" rx="18" /></clipPath>
+          </defs>
+          <g clipPath={`url(#${clip})`}><Scene id={sceneId} /></g>
+        </>
+      )}
+      {sunny && alive && (
+        <g transform="translate(40 40)" className={cn(animate && "fikko-sway")}>
+          <circle r="22" fill="#F2B630" opacity="0.18" />
+          <circle r="12" fill="#F6C445" />
+          {Array.from({ length: 8 }, (_, i) => (
+            <path key={i} d="M0 -17v-6" stroke="#F2B630" strokeWidth="2.5" strokeLinecap="round" transform={`rotate(${i * 45})`} />
+          ))}
+        </g>
+      )}
       <ellipse cx="100" cy="212" rx="56" ry="5" fill="#001F27" opacity="0.08" />
       <g className={cn(animate && health === "growing" && "fikko-sway")}>
         {stage === 0 ? (
@@ -152,4 +175,63 @@ export default function FikkoPlant({ seedId, stage, health = "growing", potId = 
       )}
     </svg>
   );
+}
+
+/** A scene's backdrop, filling the plant's 200 × 220 box. */
+function Scene({ id }: { id: string }) {
+  switch (id) {
+    case "windowsill":
+      return (
+        <>
+          <rect width="200" height="220" fill="#F3EEE4" />
+          <rect x="34" y="18" width="132" height="118" rx="6" fill="#DCEFFB" stroke="#FFFFFF" strokeWidth="8" />
+          <path d="M100 18v118M34 77h132" stroke="#FFFFFF" strokeWidth="6" />
+          <ellipse cx="66" cy="50" rx="16" ry="6" fill="#FFFFFF" opacity="0.8" />
+          <rect y="200" width="200" height="20" fill="#E3D5BC" />
+        </>
+      );
+    case "garden":
+      return (
+        <>
+          <rect width="200" height="220" fill="#E2F2FB" />
+          <ellipse cx="150" cy="44" rx="22" ry="8" fill="#FFFFFF" />
+          <ellipse cx="60" cy="70" rx="16" ry="6" fill="#FFFFFF" opacity="0.8" />
+          <path d="M0 170 Q50 140 100 165 T200 150 V220 H0Z" fill="#BFE5C8" />
+          <path d="M0 195 Q60 175 120 192 T200 185 V220 H0Z" fill="#9CD3A9" />
+        </>
+      );
+    case "rain":
+      return (
+        <>
+          <rect width="200" height="220" fill="#DDE6EE" />
+          <g fill="#B8C7D4">
+            <ellipse cx="62" cy="42" rx="30" ry="14" />
+            <ellipse cx="88" cy="34" rx="22" ry="16" />
+            <ellipse cx="150" cy="58" rx="24" ry="11" />
+          </g>
+          <g stroke="#7FA6C9" strokeWidth="2" strokeLinecap="round" opacity="0.7">
+            {[[40, 70], [70, 90], [100, 64], [130, 96], [160, 78], [52, 118], [148, 120], [24, 104], [180, 108]].map(([x, y]) => (
+              <path key={`${x}-${y}`} d={`M${x} ${y}l-3 9`} />
+            ))}
+          </g>
+          <rect y="200" width="200" height="20" fill="#C6D3DD" />
+        </>
+      );
+    case "night":
+      return (
+        <>
+          <rect width="200" height="220" fill="#1B2A4A" />
+          <circle cx="150" cy="44" r="16" fill="#F4E9C8" />
+          <circle cx="158" cy="38" r="14" fill="#1B2A4A" />
+          <g fill="#FFFFFF">
+            {[[30, 30, 1.6], [62, 58, 1.2], [96, 24, 1.8], [118, 72, 1.1], [176, 92, 1.4], [40, 96, 1.2], [80, 110, 1], [170, 140, 1.2]].map(([x, y, r]) => (
+              <circle key={`${x}-${y}`} cx={x} cy={y} r={r} opacity="0.85" />
+            ))}
+          </g>
+          <rect y="200" width="200" height="20" fill="#24365C" />
+        </>
+      );
+    default:
+      return null;
+  }
 }

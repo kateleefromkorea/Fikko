@@ -394,7 +394,8 @@ export default function FoodLogModal({
         // Escape closes the options list first, and the window only once it's gone.
         onEscapeKeyDown={(e) => { if (showList) { e.preventDefault(); setListOpen(false); } }}
       >
-        <DialogHeader className="gap-4">
+        {/* A very light grey band across the top, so the meal's totals read as a header. */}
+        <DialogHeader className="-mx-6 -mt-6 gap-4 border-b bg-[#F4F5F6] px-6 pt-6 pb-5 sm:-mx-8 sm:-mt-8 sm:px-8 sm:pt-8 sm:pb-6">
           <DialogTitle className="text-2xl font-semibold">{mealLabel}</DialogTitle>
           <DialogDescription className="sr-only">
             {Math.round(total)} kcal logged

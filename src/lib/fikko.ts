@@ -67,6 +67,22 @@ export const COMPANIONS: Companion[] = [
   { id: "snail", name: "Garden snail", tier: "free", earned: true },
 ];
 
+export interface Scene extends Unlockable { blurb: string }
+
+/** Backdrops drawn behind the plant (FikkoPlant). */
+export const SCENES: Scene[] = [
+  { id: "plain", name: "Plain", tier: "free", blurb: "Just your plant" },
+  { id: "windowsill", name: "Windowsill", tier: "free", blurb: "Sun through the window" },
+  { id: "garden", name: "Garden", tier: "free", blurb: "Grass and blue sky" },
+  { id: "rain", name: "Rainy day", tier: "premium", blurb: "A cosy shower" },
+  { id: "night", name: "Night sky", tier: "max", blurb: "Moon and stars" },
+];
+
+/** Every this many complete days in a row earns a rain cloud. */
+export const RAIN_CLOUD_EVERY = 7;
+/** Rain clouds a member can hold at once. */
+export const MAX_RAIN_CLOUDS = 3;
+
 /** The free extras a member picks one of at each harvest (matches harvest_fikko in migration 026). */
 export const HARVEST_REWARDS = ["mint", "stripe", "bee", "snail"] as const;
 
@@ -97,6 +113,7 @@ export function lockedReason(item: Unlockable): string {
 
 export const seedById = (id: string | null) => SEEDS.find((s) => s.id === id) ?? null;
 export const potById = (id: string) => POTS.find((p) => p.id === id) ?? POTS[0];
+export const sceneById = (id: string | null | undefined) => SCENES.find((sc) => sc.id === id) ?? SCENES[0];
 
 /** Complete days needed to reach each stage. */
 export const STAGES = [
@@ -131,6 +148,14 @@ export interface Growth {
   stageProgress: number;
   /** Consecutive complete days, counting back from today (or yesterday while today is unfinished). */
   streak: number;
+  /** Rain clouds held now, each ready to cover one day with nothing logged. */
+  rainClouds: number;
+  /** Rain clouds that have already covered a missed day for this plant. */
+  rainCloudsUsed: number;
+  /** Complete days in a row still needed for the next rain cloud. */
+  toNextRainCloud: number;
+  /** Every habit done today: the plant shines. */
+  sunny: boolean;
 }
 
 export function stageFor(completeDays: number): number {
@@ -142,7 +167,10 @@ export function stageFor(completeDays: number): number {
 /**
  * The plant's state from the habit log. A complete day is one where every
  * habit counted that day was done; an idle day is one with nothing logged at
- * all. Once a run of idle days since planting goes past DIE_AFTER the plant
+ * all. Every RAIN_CLOUD_EVERY complete days in a row earn a rain cloud (up to
+ * MAX_RAIN_CLOUDS), and a held cloud is used up on the next idle day so that
+ * day doesn't count towards withering or break the streak. Clouds are worked
+ * out from the log like everything else, so nothing extra is stored. Once a run of idle days since planting goes past DIE_AFTER the plant
  * stays dead, even if the member logs again, until they replant.
  */
 export function computeGrowth(data: HabitData, plantedOn: string, waterTarget?: number, today = todayKey()): Growth {
@@ -152,18 +180,29 @@ export function computeGrowth(data: HabitData, plantedOn: string, waterTarget?: 
   let streak = 0;
   let idleRun = 0;
   let died = false;
+  let clouds = 0;
+  let cloudsUsed = 0;
+  let sunny = false;
 
   for (let date = start; date <= today; date = shiftDateKey(date, 1)) {
     const isToday = date === today;
     const { done, total } = completion(data, date, waterTarget);
     const complete = total > 0 && done === total;
     if (complete) completeDays++;
-    // Today unfinished doesn't break the streak or count as idle yet.
-    if (complete) streak++;
-    else if (!isToday) streak = 0;
+    if (isToday) sunny = complete;
+    const logged = loggedOn(data, date);
+    // A held rain cloud covers a day with nothing logged.
+    const covered = !logged && !isToday && clouds > 0;
+    if (covered) { clouds--; cloudsUsed++; }
 
-    if (loggedOn(data, date)) idleRun = 0;
-    else if (!isToday) {
+    // Today unfinished doesn't break the streak or count as idle yet.
+    if (complete) {
+      streak++;
+      if (streak % RAIN_CLOUD_EVERY === 0) clouds = Math.min(clouds + 1, MAX_RAIN_CLOUDS);
+    } else if (!isToday && !covered) streak = 0;
+
+    if (logged) idleRun = 0;
+    else if (!isToday && !covered) {
       idleRun++;
       // A plant that has bloomed can wither but never dies.
       if (idleRun > DIE_AFTER && completeDays < BLOOM_DAYS) died = true;
@@ -181,5 +220,9 @@ export function computeGrowth(data: HabitData, plantedOn: string, waterTarget?: 
     toNextStage: next ? next.from - completeDays : null,
     stageProgress: next ? (completeDays - from) / (next.from - from) : 1,
     streak,
+    rainClouds: clouds,
+    rainCloudsUsed: cloudsUsed,
+    toNextRainCloud: RAIN_CLOUD_EVERY - (streak % RAIN_CLOUD_EVERY),
+    sunny,
   };
 }

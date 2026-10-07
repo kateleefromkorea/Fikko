@@ -49,6 +49,8 @@ export interface ProfileRow {
   fikko_planted_on: string | null;
   fikko_pot: string;
   fikko_companion: string;
+  /** The backdrop behind the plant (SCENES in lib/fikko, migration 027). */
+  fikko_scene: string;
 }
 
 const EMPTY_PROFILE: ProfileRow = {
@@ -82,6 +84,7 @@ const EMPTY_PROFILE: ProfileRow = {
   fikko_planted_on: null,
   fikko_pot: "clay",
   fikko_companion: "none",
+  fikko_scene: "plain",
 };
 
 /**
@@ -129,13 +132,15 @@ export function useProfile(userId: string | null) {
     if (!userId) return;
     // goals (migration 021) and the My Fikko columns (migration 025) are saved on
     // their own, so a database without those columns yet still saves everything else.
-    const { goals, fikko_seed, fikko_planted_on, fikko_pot, fikko_companion, ...rest } = patch;
+    const { goals, fikko_seed, fikko_planted_on, fikko_pot, fikko_companion, fikko_scene, ...rest } = patch;
     const fikko = Object.fromEntries(
       Object.entries({ fikko_seed, fikko_planted_on, fikko_pot, fikko_companion }).filter(([, v]) => v !== undefined),
     );
     if (Object.keys(rest).length) await supabase.from("profiles").update(rest).eq("user_id", userId);
     if (goals !== undefined) await supabase.from("profiles").update({ goals }).eq("user_id", userId);
     if (Object.keys(fikko).length) await supabase.from("profiles").update(fikko).eq("user_id", userId);
+    // The scene (migration 027) on its own too, so it can't hold up the rest of My Fikko.
+    if (fikko_scene !== undefined) await supabase.from("profiles").update({ fikko_scene }).eq("user_id", userId);
   }
 
   return { profile, updateProfile, loading };

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ArrowRight, CalendarCheck, Crown, Flame, Lock, Share2, Sprout, Star, TreeDeciduous, TriangleAlert, type LucideIcon } from "lucide-react";
+import { ArrowRight, CalendarCheck, CloudRain, Crown, Sun, Flame, Lock, Share2, Sprout, Star, TreeDeciduous, TriangleAlert, type LucideIcon } from "lucide-react";
 import PageHeader from "./PageHeader";
 import { SectionLabel, softCardCls } from "./HabitCard";
 import FikkoPlant from "./fikko/FikkoPlant";
@@ -12,13 +12,14 @@ import type { HabitData } from "../types";
 import { completion } from "../lib/completion";
 import { todayKey } from "../lib/dates";
 import {
-  BLOOM_DAYS, COMPANIONS, DIE_AFTER, GARDENER_SEEDS, POTS, PREMIUM_EVERY, STAGES, WITHER_AFTER,
+  BLOOM_DAYS, COMPANIONS, DIE_AFTER, GARDENER_SEEDS, MAX_RAIN_CLOUDS, POTS, PREMIUM_EVERY, RAIN_CLOUD_EVERY, SCENES, STAGES, WITHER_AFTER,
   computeGrowth, lockedReason, owns, seedById, unlockedItems, type Growth, type Plan,
 } from "../lib/fikko";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Props {
   userId: string;
@@ -139,7 +140,7 @@ export default function MyFikkoView({ userId, data, profile, onUpdateProfile, pl
         </div>
       </div>
 
-      <Customise profile={profile} plan={plan} unlocked={unlocked} stage={growth.health === "dead" ? 4 : Math.max(growth.stage, 2)} onUpdateProfile={onUpdateProfile} />
+      <Customise profile={profile} plan={plan} unlocked={unlocked} stage={growth.health === "dead" ? 4 : Math.max(growth.stage, 2)} growth={growth} onUpdateProfile={onUpdateProfile} />
 
       <Garden garden={garden} />
 
@@ -254,6 +255,8 @@ function PlantHero({ growth, profile, seedName }: { growth: Growth; profile: Pro
         health={growth.health}
         potId={profile.fikko_pot}
         companionId={profile.fikko_companion}
+        sceneId={profile.fikko_scene}
+        sunny={growth.sunny}
         animate
         className={cn("my-2 max-w-72", growth.health !== "growing" && "saturate-75")}
       />
@@ -381,23 +384,28 @@ function PlantSeedCard({
   );
 }
 
-/** Pots and companions, each previewed on the member's own plant. */
+type Item = (typeof POTS)[number] | (typeof COMPANIONS)[number] | (typeof SCENES)[number];
+
+/**
+ * Everything the member can dress their plant in, as tabs: pots, companions,
+ * scenes and boosters. Their plant stays beside the tabs, wearing whatever is
+ * picked, and each tab counts how many of its items they own.
+ */
 function Customise({
-  profile, plan, unlocked, stage, onUpdateProfile,
+  profile, plan, unlocked, stage, growth, onUpdateProfile,
 }: {
   profile: ProfileRow;
   plan: Plan;
   unlocked: string[];
   stage: number;
+  growth: Growth;
   onUpdateProfile: (patch: Partial<ProfileRow>) => Promise<void>;
 }) {
   const seedId = profile.fikko_seed ?? "sprout";
-  const option = (
-    item: (typeof POTS)[number] | (typeof COMPANIONS)[number],
-    selected: boolean,
-    onPick: () => void,
-    preview: React.ReactNode,
-  ) => {
+  const look = { seedId, stage, potId: profile.fikko_pot, companionId: profile.fikko_companion, sceneId: profile.fikko_scene };
+  const owned = (items: Item[]) => items.filter((i) => owns(i, plan, unlocked)).length;
+
+  const option = (item: Item, selected: boolean, onPick: () => void, preview: React.ReactNode) => {
     const { id: key, name, tier, earned } = item;
     const locked = !owns(item, plan, unlocked);
     return (
@@ -409,15 +417,16 @@ function Customise({
         aria-disabled={locked}
         aria-label={locked ? `${name}, locked: ${lockedReason(item)}` : name}
         className={cn(
-          "relative flex flex-col items-center rounded-xl border bg-card p-3 pt-2 text-center transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-          locked ? "cursor-not-allowed" : "hover:bg-muted/60",
-          selected && "border-primary bg-fikko-tint ring-1 ring-primary hover:bg-fikko-tint",
+          "relative flex flex-col items-center rounded-xl border bg-card p-3 pt-2 text-center transition-[background-color,transform] outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+          locked ? "cursor-not-allowed" : "hover:-translate-y-0.5 hover:bg-muted/60",
+          selected && "border-[#1A9C8C] bg-[#DDF5F1] ring-1 ring-[#1A9C8C] hover:bg-[#DDF5F1]",
         )}
       >
-        <TierBadge tier={tier} earned={earned} className="absolute top-2 right-2" />
-        <div className={cn("w-full max-w-24", locked && "opacity-45 grayscale-[40%]")}>{preview}</div>
+        <TierBadge tier={tier} earned={earned} className="absolute top-2 right-2 z-10" />
+        {/* Locked items show as a soft silhouette of what's to come. */}
+        <div className={cn("w-full max-w-24", locked && "opacity-40 brightness-75 grayscale")}>{preview}</div>
         <span className="mt-1 text-sm font-medium">{name}</span>
-        <span className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+        <span className={cn("mt-0.5 flex items-center gap-1 text-xs", selected ? "font-medium text-[#0A6E63]" : "text-muted-foreground")}>
           {locked && <Lock className="size-3" aria-hidden="true" />}
           {locked ? lockedReason(item) : selected ? "In use" : "Owned"}
         </span>
@@ -425,38 +434,124 @@ function Customise({
     );
   };
 
+  const grid = "grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4";
+  const tabs = [
+    { value: "pots", label: "Pots", count: `${owned(POTS)}/${POTS.length}` },
+    { value: "companions", label: "Companions", count: `${owned(COMPANIONS)}/${COMPANIONS.length}` },
+    { value: "scenes", label: "Scenes", count: `${owned(SCENES)}/${SCENES.length}` },
+    { value: "boosters", label: "Boosters", count: growth.rainClouds > 0 ? String(growth.rainClouds) : null },
+  ];
+
   return (
     <section className="space-y-4">
       <SectionLabel>Customise</SectionLabel>
       <Card className={softCardCls}>
-        <CardContent className="space-y-8">
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold">Pots</h3>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <CardContent className="grid gap-6 md:grid-cols-[minmax(0,15rem)_minmax(0,1fr)]">
+          {/* The member's plant, wearing their picks. Stays in view on wide screens. */}
+          <div className="flex flex-col items-center self-start rounded-2xl bg-foreground/[0.03] p-4 md:sticky md:top-32">
+            <FikkoPlant {...look} sunny={growth.sunny} animate className="max-w-52" />
+            <p className="mt-2 text-sm font-medium">Your Fikko</p>
+            <p className="text-xs text-muted-foreground">Tap anything to try it on</p>
+          </div>
+
+          <Tabs defaultValue="pots" className="min-w-0 gap-4">
+            <TabsList className="h-auto w-full flex-wrap justify-start">
+              {tabs.map((t) => (
+                <TabsTrigger key={t.value} value={t.value} className="flex-none gap-1.5 px-3">
+                  {t.label}
+                  {t.count && <span className="rounded-full bg-foreground/[0.07] px-1.5 text-[11px] font-medium tabular-nums">{t.count}</span>}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+
+            <TabsContent value="pots" className={grid}>
               {POTS.map((p) =>
                 option(p, profile.fikko_pot === p.id, () => void onUpdateProfile({ fikko_pot: p.id }),
-                  <FikkoPlant seedId={seedId} stage={stage} potId={p.id} />),
+                  <FikkoPlant {...look} potId={p.id} sceneId="plain" />),
               )}
-            </div>
-          </div>
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold">Companions</h3>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            </TabsContent>
+            <TabsContent value="companions" className={grid}>
               {COMPANIONS.map((c) =>
                 option(c, profile.fikko_companion === c.id, () => void onUpdateProfile({ fikko_companion: c.id }),
-                  <FikkoPlant seedId={seedId} stage={stage} potId={profile.fikko_pot} companionId={c.id} />),
+                  <FikkoPlant {...look} companionId={c.id} sceneId="plain" />),
               )}
-            </div>
-          </div>
-          <p className="rounded-lg pair-soft p-3 text-sm">
-            Gardener items are free on every plan: pick one each time you harvest a plant.
-            {plan === "free"
-              ? " Premium adds Cherry Blossom and Lavender seeds, the teal pot and a ladybug. Max adds the Golden Lotus, the gold pot and a butterfly."
-              : plan === "premium" ? " Max adds the Golden Lotus seed, the gold pot and a butterfly." : ""}
-          </p>
+            </TabsContent>
+            <TabsContent value="scenes" className={grid}>
+              {SCENES.map((sc) =>
+                option(sc, profile.fikko_scene === sc.id, () => void onUpdateProfile({ fikko_scene: sc.id }),
+                  <FikkoPlant {...look} sceneId={sc.id} />),
+              )}
+            </TabsContent>
+            <TabsContent value="boosters">
+              <Boosters growth={growth} />
+            </TabsContent>
+
+            <p className="rounded-lg pair-soft p-3 text-sm">
+              Gardener items are free on every plan: pick one each time you harvest a plant.
+              {plan === "free"
+                ? " Premium adds Cherry Blossom and Lavender seeds, the teal pot, a ladybug and the rainy day scene. Max adds the Golden Lotus, the gold pot, a butterfly and the night sky."
+                : plan === "premium" ? " Max adds the Golden Lotus seed, the gold pot, a butterfly and the night sky." : ""}
+            </p>
+          </Tabs>
         </CardContent>
       </Card>
     </section>
+  );
+}
+
+/** Helpers earned by keeping at it. They protect and celebrate the plant, never speed it up. */
+function Boosters({ growth }: { growth: Growth }) {
+  const slots = Array.from({ length: MAX_RAIN_CLOUDS }, (_, i) => i < growth.rainClouds);
+  return (
+    <div className="grid gap-3 lg:grid-cols-2">
+      <div className="rounded-xl border bg-card p-4">
+        <div className="flex items-start gap-3">
+          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[#E2EFFC] text-[#1F6AB0]" aria-hidden="true">
+            <CloudRain className="size-5" />
+          </span>
+          <div className="min-w-0">
+            <p className="font-semibold">Rain cloud</p>
+            <p className="text-sm text-muted-foreground">
+              Covers a day with nothing logged, so your plant doesn&apos;t wilt and your streak carries on. Used up automatically.
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 flex items-center gap-2" aria-label={`${growth.rainClouds} of ${MAX_RAIN_CLOUDS} rain clouds held`}>
+          {slots.map((held, i) => (
+            <span
+              key={i}
+              className={cn("grid size-9 place-items-center rounded-full", held ? "bg-[#E2EFFC] text-[#1F6AB0]" : "border border-dashed text-muted-foreground/50")}
+              aria-hidden="true"
+            >
+              <CloudRain className="size-4" />
+            </span>
+          ))}
+          <span className="ml-1 text-sm font-medium tabular-nums">{growth.rainClouds}/{MAX_RAIN_CLOUDS}</span>
+        </div>
+        <p className="mt-3 text-sm text-muted-foreground">
+          {growth.rainClouds >= MAX_RAIN_CLOUDS
+            ? "You're holding as many as you can."
+            : `${growth.toNextRainCloud} more complete ${growth.toNextRainCloud === 1 ? "day" : "days"} in a row for the next one.`}
+          {growth.rainCloudsUsed > 0 && ` ${growth.rainCloudsUsed} ${growth.rainCloudsUsed === 1 ? "has" : "have"} already covered a missed day.`}
+        </p>
+      </div>
+
+      <div className="rounded-xl border bg-card p-4">
+        <div className="flex items-start gap-3">
+          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[#FBF1D6] text-[#8A6414]" aria-hidden="true">
+            <Sun className="size-5" />
+          </span>
+          <div className="min-w-0">
+            <p className="font-semibold">Sunshine</p>
+            <p className="text-sm text-muted-foreground">The sun comes out over your plant on every day you complete all your habits.</p>
+          </div>
+        </div>
+        <p className={cn("mt-4 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium", growth.sunny ? "bg-[#FBF1D6] text-[#8A6414]" : "bg-foreground/[0.05] text-muted-foreground")}>
+          <Sun className="size-3.5" aria-hidden="true" />
+          {growth.sunny ? "Shining today" : "Finish today's habits to make it shine"}
+        </p>
+      </div>
+    </div>
   );
 }
 
@@ -464,13 +559,14 @@ function HowItWorks() {
   const rules = [
     { title: "Grow", body: "Each day you complete every habit, your Fikko gets one day of growth." },
     { title: "Wither", body: `After more than ${WITHER_AFTER} days with nothing logged, it starts to droop. Log a day to revive it.` },
+    { title: "Rain clouds", body: `Every ${RAIN_CLOUD_EVERY} complete days in a row earn a rain cloud, which covers a missed day for you. Hold up to ${MAX_RAIN_CLOUDS}.` },
     { title: "Wilt away", body: `After more than ${DIE_AFTER} days, it dies and you plant a new seed. Unlocked items are kept.` },
     { title: "Harvest", body: `At ${BLOOM_DAYS} complete days it blooms. Move it to your garden for a free reward and a real tree.` },
   ];
   return (
     <section className="space-y-4">
       <SectionLabel>How growing works</SectionLabel>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {rules.map((r) => (
           <div key={r.title} className="rounded-xl bg-foreground/[0.035] p-4">
             <p className="text-sm font-semibold">{r.title}</p>

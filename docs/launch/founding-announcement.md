@@ -1,6 +1,6 @@
 # Founding-member announcement copy
 
-Draft for approval, 7 October 2026. Nothing here is published yet. Every claim matches the
+Draft for approval, 7 October 2026, updated with your answers (signed by the Fikko Team, no waitlist, one 🌱 emoji, hashtags on Instagram only). Nothing here is published yet. Every claim matches the
 Terms (`/terms.html#founding-members`) and how the app works today:
 
 - Soft launch on **11 November 2026**, free for everyone, web app plus home-screen install, English.
@@ -36,7 +36,7 @@ When all 100 are taken, swap to:
 
 ---
 
-## 2. Launch email (to your waitlist, friends and family)
+## 2. Launch email (to friends, family and anyone who's asked about Fikko)
 
 **Subject line, pick one:**
 1. Fikko is live, and the first 100 get a free year
@@ -69,7 +69,7 @@ When all 100 are taken, swap to:
 > email.
 >
 > Thank you for being early,
-> [Your name]
+> The Fikko Team
 > Fikko · PipePiper, Seoul
 
 ---
@@ -90,6 +90,8 @@ For review only; this is the text the app sends today (`api/email.ts`). Tell me 
 > costs if you'd like to keep it.
 >
 > Questions or ideas? Just reply to this email. Founding members shape what we build next.
+>
+> The Fikko Team
 >
 > [Open Fikko]
 
@@ -143,13 +145,13 @@ For review only; this is the text the app sends today (`api/email.ts`). Tell me 
 > [37] founding places left. Sign up, finish setup, and Fikko Premium is free for your first year
 > once paid plans arrive. No card needed. www.fikko.io
 
-### LinkedIn (founder post, from your own profile)
+### LinkedIn (Fikko company page)
 
 > Today we launched Fikko.
 >
-> [Why you started Fikko, in your own words, two or three sentences. For example, if it's true for
-> you: tracking health across several apps and never seeing how it all connected, so you built one
-> calm daily check-in that does.]
+> [Why we started Fikko, in our own words, two or three sentences. For example, if it's true for
+> the team: tracking health across several apps and never seeing how it all connected, so we built
+> one calm daily check-in that does.]
 >
 > What Fikko does today:
 > • Logs water, meals, activity, sleep, mood and medications in one place
@@ -160,10 +162,10 @@ For review only; this is the text the app sends today (`api/email.ts`). Tell me 
 > We're launching free for everyone. The first 100 people to sign up and finish setup become
 > founding members, with Premium free for a full year once paid plans arrive.
 >
-> If you try it, I'd love your honest feedback, especially what's missing.
+> If you try it, we'd love your honest feedback, especially what's missing.
 > www.fikko.io
 >
-> Built by a small team at PipePiper in Seoul, for people in Australia, Singapore and beyond.
+> The Fikko Team · PipePiper, Seoul
 
 ### Reddit (only where self-promotion is allowed)
 
@@ -171,10 +173,10 @@ Most subreddits ban promotional posts. Read each one's rules first; look for a w
 "share your project" thread (r/SideProject, r/InternetIsBeautiful and similar). Lead with
 what you built and ask for feedback rather than selling.
 
-**Title:** I built a habit tracker that fits water, meals, sleep and mood into one daily check-in. Looking for honest feedback.
+**Title:** We built a habit tracker that fits water, meals, sleep and mood into one daily check-in. Looking for honest feedback.
 
 **Body:**
-> Hi all. I've been building Fikko for [how long] and it went live this week.
+> Hi all. We've been building Fikko for [how long] and it went live this week.
 >
 > The idea: one check-in a day instead of five apps. You log water, meals, activity, sleep, mood
 > and supplements, or just say it out loud and it fills them in. There's an AI coach that answers
@@ -203,9 +205,11 @@ Post these as places fill. The live number is on www.fikko.io in the pricing sec
 
 ---
 
-## Decisions for you
+## Decisions (answered 7 October)
 
-1. **Who signs the emails?** I've used [Your name]. The Terms name Seok Hwan Lee as owner of PipePiper.
-2. **Is there a waitlist?** If not, section 2 goes to friends, family and anyone who's asked about Fikko.
-3. **Emoji:** I've kept to one (🌱, the Fikko sprout). Remove it if you'd rather not use any.
-4. **Hashtags:** five on Instagram, none elsewhere. Adjust for your audience.
+1. **Sign-off:** The Fikko Team, on every email and post.
+2. **No waitlist:** the launch email goes to friends, family and anyone who's asked about Fikko.
+3. **Emoji:** one, the 🌱 sprout.
+4. **Hashtags:** five on Instagram, none elsewhere.
+
+Still to fill in: the [bracketed] parts, such as why we started Fikko and how long we've been building it.

@@ -50,6 +50,7 @@ async function foundingWelcome(request: Request) {
     "Fikko is free for everyone while we launch. When paid plans arrive, you'll get Fikko Premium free for 12 months, starting the day they launch. Nothing to do now, and we'll never charge you without your agreement.",
     "About a month before your free year ends, we'll email you to say when it ends and what Premium costs if you'd like to keep it.",
     "Questions or ideas? Just reply to this email. Founding members shape what we build next.",
+    "The Fikko Team",
   ];
   try {
     await sendEmail({

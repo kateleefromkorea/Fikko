@@ -90,18 +90,6 @@ const lateLogging: Rule = ({ data, today, hour, calorieTarget }) => {
   };
 };
 
-/** First week: show off the quickest way to log. */
-const scanTip: Rule = ({ data, today }) => {
-  const daysLogged = data.food.filter((e) => e.value > 0 && e.date <= today).length;
-  if (daysLogged >= 7) return null;
-  return {
-    id: "nutrition.scan-tip", section: "nutrition", kind: "tip", priority: 40,
-    headline: "Packaged food? Scan it",
-    body: "Point your camera at the barcode and the calories fill themselves in.",
-    cta: { label: "Log a meal", cardId: "habit-food" },
-  };
-};
-
 // ── Movement ───────────────────────────────────────────────────────────────
 
 /** Active days followed by better-rated sleep. */
@@ -149,7 +137,7 @@ const unloggedSteps: Rule = ({ data, biometrics, today }) => {
   };
 };
 
-const RULES: Rule[] = [weekdayDip, lateLogging, scanTip, activeSleep, movementStreak, unloggedSteps];
+const RULES: Rule[] = [weekdayDip, lateLogging, activeSleep, movementStreak, unloggedSteps];
 
 /** The insights to show: dismissed ones left out, highest priority first, at most MAX_INSIGHTS. */
 export function pickInsights(ctx: InsightContext, dismissed: Set<string>): Insight[] {

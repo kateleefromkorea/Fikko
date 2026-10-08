@@ -3,7 +3,7 @@ import { Loader2 } from "lucide-react";
 import { useAuth } from "../../auth/AuthProvider";
 import { usePlan } from "../../hooks/usePlan";
 import {
-  PRICES, fetchSubscription, openBillingPortal, openCheckout, type Interval, type PaidPlan, type SubscriptionRow,
+  PRICES, YEARLY_OFF, fetchSubscription, openBillingPortal, openCheckout, type Interval, type PaidPlan, type SubscriptionRow,
 } from "../../lib/paddle";
 import { PLAN_LABEL } from "../../lib/fikko";
 import { friendlyError } from "../../lib/errors";
@@ -24,7 +24,7 @@ export default function PlanCard({ className }: { className?: string }) {
   const { plan, enforced } = usePlan();
   const [sub, setSub] = useState<SubscriptionRow | null>(null);
   const [loaded, setLoaded] = useState(false);
-  const [interval, setInterval_] = useState<Interval>("year");
+  const [interval, setInterval_] = useState<Interval>("month");
   const [busy, setBusy] = useState<string | null>(null);
   const [waiting, setWaiting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -94,7 +94,7 @@ export default function PlanCard({ className }: { className?: string }) {
         ) : loaded && (
           <>
             <div role="radiogroup" aria-label="Billing" className="inline-flex gap-1 rounded-lg bg-muted p-1">
-              {(["year", "month"] as Interval[]).map((i) => (
+              {(["month", "year"] as Interval[]).map((i) => (
                 <button
                   key={i}
                   type="button"
@@ -103,7 +103,7 @@ export default function PlanCard({ className }: { className?: string }) {
                   onClick={() => setInterval_(i)}
                   className={cn("rounded-md px-3 py-1 text-sm text-muted-foreground", interval === i && "bg-background font-medium text-foreground shadow-sm")}
                 >
-                  {i === "year" ? "Yearly" : "Monthly"}
+                  {i === "year" ? <>Yearly <span className="font-medium text-primary-ink">Save {Math.min(...Object.values(YEARLY_OFF))}%</span></> : "Monthly"}
                 </button>
               ))}
             </div>
@@ -112,7 +112,7 @@ export default function PlanCard({ className }: { className?: string }) {
                 <div key={id} className="flex flex-col gap-3 rounded-xl border p-4">
                   <div>
                     <p className="font-medium">{PLAN_LABEL[id]}</p>
-                    <p className="text-sm tabular-nums">{PRICES[id][interval]} <span className="text-muted-foreground">/ {interval}</span></p>
+                    <p className="text-sm tabular-nums">{PRICES[id][interval]} <span className="text-muted-foreground">/ {interval}</span>{interval === "year" && <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary-ink">{YEARLY_OFF[id]}% off</span>}</p>
                     <p className="mt-2 text-sm text-muted-foreground">{blurb}</p>
                   </div>
                   <Button onClick={() => buy(id)} disabled={busy !== null || waiting} className="mt-auto h-9 px-4">

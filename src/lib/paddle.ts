@@ -26,6 +26,10 @@ export const PRICES: Record<PaidPlan, Record<Interval, string>> = {
   max: { month: "$21.99", year: "$211.08" },
 };
 
+/** What a year costs against twelve months, as a whole percent (20% for both plans today). */
+const yearlyOff = (monthly: number, yearly: number) => Math.round((1 - yearly / (monthly * 12)) * 100);
+export const YEARLY_OFF: Record<PaidPlan, number> = { premium: yearlyOff(12.99, 124.68), max: yearlyOff(21.99, 211.08) };
+
 interface PaddleJs {
   Environment: { set(env: "sandbox" | "production"): void };
   Initialize(opts: { token: string; eventCallback?: (e: { name?: string }) => void }): void;

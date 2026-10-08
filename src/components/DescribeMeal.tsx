@@ -148,7 +148,7 @@ export default function DescribeMeal({ meal, mealLabel, onAddMany, onSnap, onSca
           <Sparkles className="mt-0.5 size-4 shrink-0 text-[#0A6E63]" aria-hidden="true" />
           <div className="min-w-0">
             <p className="text-sm font-semibold">Here&apos;s what I got</p>
-            <p className="text-xs text-muted-foreground">Change the portions, or say who you shared with.</p>
+            <p className="text-xs text-muted-foreground">Change the portions, or say who you shared with (&ldquo;With 1&rdquo; is you and one other).</p>
           </div>
         </div>
 
@@ -156,16 +156,16 @@ export default function DescribeMeal({ meal, mealLabel, onAddMany, onSnap, onSca
           {foods.map((f, i) => (
             <li key={`${f.name}-${i}`} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2.5">
               <div className="min-w-0 flex-1 basis-40">
-                <p className="truncate text-sm font-medium">
-                  {f.name}
-                  {f.estimated && <Badge variant="secondary" className="ml-1.5 align-middle">estimate</Badge>}
+                <p className="flex min-w-0 items-center gap-1.5 text-sm font-medium">
+                  <span className="truncate">{f.name}</span>
+                  {f.estimated && <Badge variant="secondary" className="shrink-0">estimate</Badge>}
                 </p>
                 <p className="text-xs text-muted-foreground tabular-nums">
                   {portionText(f.portion)}
                   {f.portion.sharedBy > 1 && `, your share ${Math.round(100 / f.portion.sharedBy)}%`} · {kcal(f)} kcal
                 </p>
               </div>
-              <div className="flex min-w-0 flex-1 items-center gap-2 sm:flex-none">
+              <div className="flex min-w-0 basis-full items-center gap-2 sm:basis-auto">
                 <div className="flex shrink-0 items-center rounded-lg border" role="group" aria-label={`How many ${f.portion.unit}s of ${f.name}`}>
                   <Button
                     variant="ghost" size="icon-sm"
@@ -188,13 +188,13 @@ export default function DescribeMeal({ meal, mealLabel, onAddMany, onSnap, onSca
                   value={f.portion.sharedBy}
                   onChange={(e) => change(i, { sharedBy: Number(e.target.value) })}
                   aria-label={`Who shared ${f.name}`}
-                  className="h-8 min-w-0 flex-1 rounded-lg border bg-card px-2 text-sm sm:flex-none"
+                  className="h-8 shrink-0 rounded-lg border bg-card px-2 text-sm"
                 >
                   {SHARE_OPTIONS.map((n) => (
-                    <option key={n} value={n}>{n === 1 ? "Just me" : `Shared by ${n}`}</option>
+                    <option key={n} value={n}>{n === 1 ? "Just me" : `With ${n - 1}`}</option>
                   ))}
                 </select>
-                <Button variant="ghost" size="icon-sm" onClick={() => remove(i)} aria-label={`Don't log ${f.name}`} className="text-muted-foreground">
+                <Button variant="ghost" size="icon-sm" onClick={() => remove(i)} aria-label={`Don't log ${f.name}`} className="ml-auto text-muted-foreground sm:ml-0">
                   <X />
                 </Button>
               </div>

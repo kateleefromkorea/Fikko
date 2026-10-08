@@ -467,7 +467,7 @@ export default function FoodLogModal({
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="max-h-[94vh] gap-3 overflow-y-auto p-5 sm:max-w-2xl sm:p-6"
+        className="max-h-[94vh] gap-3 overflow-y-auto p-5 sm:max-w-2xl sm:p-6 [&>*]:min-w-0"
         // Escape closes the options list first, and the window only once it's gone.
         onEscapeKeyDown={(e) => { if (showList) { e.preventDefault(); setListOpen(false); } }}
       >

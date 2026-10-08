@@ -334,7 +334,10 @@ export default function RecipesView({ userId, profileName, diets, allergies }: {
         onReport={() => open && setReporting(open)}
       />
 
-      <AddRecipeDialog open={adding} onOpenChange={setAdding} sharingAs={displayName(profileName)} onCreate={create} />
+      <AddRecipeDialog open={adding} onOpenChange={setAdding} sharingAs={displayName(profileName)} onCreate={async (input, photo) => {
+          await create(input, photo);
+          setNotice("Thanks for sharing! Other members will see your recipe once we've checked it.");
+        }} />
 
       <Dialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
         <DialogContent>

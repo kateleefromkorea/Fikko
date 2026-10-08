@@ -1,7 +1,8 @@
 // The admin site at /admin: visitor stats for the app and the marketing site,
 // plus launch metrics (admin_launch_metrics in migration 029), sign-ups, AI
 // spend (admin_ai_costs in migration 024) and Fitbit beta
-// invites (admin_wearable_beta in migration 028). Everything comes from one database call (admin_stats in
+// invites (admin_wearable_beta in migration 028), and recipe review at
+// /admin#recipes (RecipeReview.tsx, migration 033). Visitor stats come from admin_stats (in
 // migration 016), which refuses anyone not listed in the admins table or
 // who hasn't entered a code from their authenticator app (migration 017).
 
@@ -15,6 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { C, ax, ttStyle } from "../components/dashboard/ui";
 import AdminMfa from "./AdminMfa";
+import RecipeReview from "./RecipeReview";
 import { FOUNDING_PLACES, fetchPlacesLeft } from "../lib/founding";
 
 interface Stats {
@@ -38,6 +40,8 @@ type Site = (typeof SITES)[number]["id"];
 const shortDay = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "short" });
 const sum = (rows: Stats["daily"], k: "views" | "visitors" | "signups") => rows.reduce((n, r) => n + Number(r[k]), 0);
 
+const currentPage = () => (window.location.hash === "#recipes" ? "recipes" : "stats");
+
 export default function AdminView() {
   const [status, setStatus] = useState<"checking" | "needs_mfa" | "ok" | "error">("checking");
 
@@ -50,6 +54,14 @@ export default function AdminView() {
     });
 
   useEffect(() => { void check(); }, []);
+
+  // Pages are picked by the address (#recipes), so each one can be bookmarked.
+  const [page, setPage] = useState(currentPage);
+  useEffect(() => {
+    const onHash = () => setPage(currentPage());
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
 
   if (status === "checking") return <div className="min-h-screen bg-background" />;
   if (status === "error") {
@@ -66,7 +78,13 @@ export default function AdminView() {
       </Shell>
     );
   }
-  return <StatsView />;
+  return page === "recipes" ? (
+    <Shell nav>
+      <RecipeReview />
+    </Shell>
+  ) : (
+    <StatsView />
+  );
 }
 
 function StatsView() {
@@ -87,7 +105,7 @@ function StatsView() {
   }, [days, site]);
 
   return (
-    <Shell>
+    <Shell nav>
       <div className="flex flex-wrap items-center gap-3">
         <Tabs value={site} onValueChange={(v) => setSite(v as Site)}>
           <TabsList>
@@ -168,7 +186,18 @@ function StatsView() {
   );
 }
 
-function Shell({ children }: { children: ReactNode }) {
+/** `nav` shows the page links; they're left off until the admin has passed two-factor. */
+function Shell({ children, nav }: { children: ReactNode; nav?: boolean }) {
+  const page = currentPage();
+  const link = (href: string, label: string, active: boolean) => (
+    <a
+      href={href}
+      aria-current={active ? "page" : undefined}
+      className={`rounded-md px-3 py-1.5 text-sm ${active ? "bg-primary/8 font-medium text-primary" : "text-muted-foreground hover:text-foreground"}`}
+    >
+      {label}
+    </a>
+  );
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-white">
@@ -177,6 +206,12 @@ function Shell({ children }: { children: ReactNode }) {
             <ArrowLeft className="size-4" aria-hidden="true" /> App
           </a>
           <span className="text-lg font-bold tracking-wide">FIKKO admin</span>
+          {nav && (
+            <nav aria-label="Admin" className="ml-auto flex gap-1">
+              {link("#", "Stats", page === "stats")}
+              {link("#recipes", "Recipe review", page === "recipes")}
+            </nav>
+          )}
         </div>
       </header>
       <main className="mx-auto max-w-5xl space-y-6 px-4 py-8 sm:px-6">{children}</main>

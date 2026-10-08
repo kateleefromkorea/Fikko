@@ -28,6 +28,16 @@ export default function RecipeTile({
           ) : (
             <RecipeArt art={recipe.art} className={cn("w-full", shapeFor(recipe.key))} />
           )}
+          {recipe.review && recipe.review !== "approved" && (
+            <span
+              className={cn(
+                "absolute top-2.5 left-2.5 rounded-full px-2.5 py-1 text-xs font-medium shadow-sm",
+                recipe.review === "pending" ? "bg-white/95 text-foreground" : "bg-destructive text-white",
+              )}
+            >
+              {recipe.review === "pending" ? "Waiting for review" : "Not approved"}
+            </span>
+          )}
           {featured && (
             <span className="absolute bottom-2.5 left-2.5 inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground shadow-sm">
               <Crown className="size-3" aria-hidden="true" />Featured

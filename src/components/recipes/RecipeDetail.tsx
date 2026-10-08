@@ -128,6 +128,16 @@ export default function RecipeDetail({
                     <span className="inline-flex items-center gap-1">· <Heart className="size-3.5" aria-hidden="true" />Saved by {r.saves} {r.saves === 1 ? "member" : "members"}</span>
                   )}
                 </p>
+                {own && r.review === "pending" && (
+                  <p className="rounded-xl bg-muted px-4 py-3 text-sm">
+                    Waiting for review. Only you can see this recipe until we&apos;ve checked it, then it&apos;s shared with other members.
+                  </p>
+                )}
+                {own && r.review === "rejected" && (
+                  <p className="rounded-xl bg-destructive/8 px-4 py-3 text-sm text-destructive">
+                    This recipe wasn&apos;t approved, so only you can see it.{r.reviewNote ? ` ${r.reviewNote}` : ""} You can delete it and share an updated version.
+                  </p>
+                )}
                 {featured && (
                   <p className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground">
                     <Crown className="size-3.5" aria-hidden="true" />Featured recipe of the week

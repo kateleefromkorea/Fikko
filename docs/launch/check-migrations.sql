@@ -1,4 +1,4 @@
--- Migration check: is everything from schema.sql and migrations 002–032 in this database?
+-- Migration check: is everything from schema.sql and migrations 002–033 in this database?
 -- Generated 2026-10-07 from the migration files (405 objects).
 -- Read-only. Returns one row per missing object, plus any public table
 -- without row-level security. One row saying "All good" means nothing is missing.
@@ -408,7 +408,16 @@ with expected(file, kind, sch, tbl, name) as (values
   ('032_rate_limits.sql', 'column', 'public', 'rate_limits', 'key'),
   ('032_rate_limits.sql', 'column', 'public', 'rate_limits', 'window_start'),
   ('032_rate_limits.sql', 'column', 'public', 'rate_limits', 'hits'),
-  ('032_rate_limits.sql', 'function', 'public', null, 'rate_limit')
+  ('032_rate_limits.sql', 'function', 'public', null, 'rate_limit'),
+  ('033_recipe_review.sql', 'column', 'public', 'recipes', 'review_status'),
+  ('033_recipe_review.sql', 'column', 'public', 'recipes', 'review_note'),
+  ('033_recipe_review.sql', 'column', 'public', 'recipes', 'reviewed_at'),
+  ('033_recipe_review.sql', 'index', 'public', null, 'recipes_review_idx'),
+  ('033_recipe_review.sql', 'function', 'public', null, 'recipes_review_on_insert'),
+  ('033_recipe_review.sql', 'trigger', 'public', 'recipes', 'recipes_review_on_insert'),
+  ('033_recipe_review.sql', 'function', 'public', null, 'admin_recipe_queue'),
+  ('033_recipe_review.sql', 'function', 'public', null, 'admin_recipe_json'),
+  ('033_recipe_review.sql', 'function', 'public', null, 'admin_recipe_decide')
 ),
 missing as (
   select e.file, e.kind, coalesce(e.tbl || '.', '') || e.name as object

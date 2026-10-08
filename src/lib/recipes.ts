@@ -76,11 +76,20 @@ export interface Recipe {
   userId?: string;
   authorName?: string;
   createdAt?: string;
+  /**
+   * Member recipes: new ones wait for an admin before other members see them
+   * (migration 033). Only the author ever sees a pending or rejected recipe.
+   */
+  review?: ReviewStatus;
+  /** Why it wasn't approved, when the admin said. */
+  reviewNote?: string | null;
   /** AI recipes: what the member had, what to buy, and substitutions. */
   have?: string[];
   buy?: string[];
   swaps?: Swap[];
 }
+
+export type ReviewStatus = "pending" | "approved" | "rejected";
 
 export interface Swap { insteadOf: string; use: string }
 
@@ -102,7 +111,7 @@ export const fromCatalog = (c: CatalogRecipe): Recipe => ({
 export const LIMITS = { title: 80, description: 300, ingredients: 40, steps: 30 };
 
 const BUCKET = "recipe-photos";
-const COLUMNS = "id, user_id, author_name, title, description, tags, ingredients, steps, minutes, servings, calories, photo_path, save_count, contains, created_at";
+const COLUMNS = "id, user_id, author_name, title, description, tags, ingredients, steps, minutes, servings, calories, photo_path, save_count, contains, created_at, review_status, review_note";
 // Signed photo links last long enough for a browsing session; a reload renews them.
 const PHOTO_LINK_SECONDS = 60 * 60 * 6;
 // Member recipes shown at once. Plenty for now; add paging when it's outgrown.
@@ -124,6 +133,8 @@ interface RecipeRow {
   save_count: number;
   contains: Allergen[] | null;
   created_at: string;
+  review_status: ReviewStatus;
+  review_note: string | null;
 }
 
 function toRecipe(r: RecipeRow, photoUrl: string | null = null): Recipe {
@@ -145,6 +156,8 @@ function toRecipe(r: RecipeRow, photoUrl: string | null = null): Recipe {
     userId: r.user_id,
     authorName: r.author_name,
     createdAt: r.created_at,
+    review: r.review_status,
+    reviewNote: r.review_note,
   };
 }
 

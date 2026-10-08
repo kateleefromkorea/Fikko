@@ -109,7 +109,7 @@ function AddRecipeForm({ onOpenChange, sharingAs, onCreate, busyRef }: Props & {
     <>
       <DialogHeader>
         <DialogTitle className="text-xl font-semibold">Share a recipe</DialogTitle>
-        <DialogDescription>Sharing as {sharingAs} · visible to everyone signed in to Fikko</DialogDescription>
+        <DialogDescription>Sharing as {sharingAs} · other members see it once we&apos;ve checked it</DialogDescription>
       </DialogHeader>
 
       <form id="add-recipe" onSubmit={submit} className="space-y-5">

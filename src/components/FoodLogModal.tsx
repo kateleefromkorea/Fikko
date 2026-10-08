@@ -1,5 +1,5 @@
-import { Suspense, lazy, useCallback, useEffect, useState, type KeyboardEvent } from "react";
-import { BookmarkPlus, ChevronDown, History, ListChecks, Loader2, PencilLine, Plus, Repeat, ScanBarcode, Search, X, type LucideIcon } from "lucide-react";
+import { Suspense, lazy, useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { BookmarkPlus, ChevronDown, History, ListChecks, Loader2, PencilLine, Plus, Repeat, Search, Sparkles, X, type LucideIcon } from "lucide-react";
 import { cachedSearch, lookupBarcode, searchFoods, type FoodResult } from "../lib/usdaFoodSearch";
 import { hideRecentFood, mealItemsOn, recentFoods, unhideRecentFood } from "../lib/foodHistory";
 import { shiftDateKey } from "../lib/dates";
@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import PhotoLog from "./PhotoLog";
+import DescribeMeal from "./DescribeMeal";
 import FikkoAvatar from "./FikkoAvatar";
 import { cn } from "@/lib/utils";
 import { friendlyError } from "../lib/errors";
@@ -272,6 +273,17 @@ export default function FoodLogModal({
       e.preventDefault();
       if (showList && options[active]) pick(options[active]);
     }
+  }
+
+  // The describe panel's Snap button opens the photo log's camera.
+  const openPhoto = useRef<(() => void) | null>(null);
+
+  function toggleScan() {
+    setScanning((s) => !s);
+    setScanned(null);
+    setPicked(null);
+    setError(null);
+    setNotFound(false);
   }
 
   function clearSearch() {
@@ -574,14 +586,40 @@ export default function FoodLogModal({
 
         {/* 2 · Finding a food: search, scan, photo, and one-tap repeats. */}
         <section aria-labelledby="sec-search" className="space-y-3 rounded-2xl border bg-card p-3.5 shadow-xs sm:p-4">
-          <SectionHeader icon={Search} id="sec-search" title="Add food" hint="Snap your plate, or search by name or brand." />
+          <SectionHeader icon={Sparkles} id="sec-search" title="Add food" hint="Say it, type it or snap it. Fikko works out the foods and portions." />
 
           <div className="space-y-3">
-            {/* A photo first: it handles whole dishes and shared plates better than a database search. */}
-            <PhotoLog meal={meal} onAddMany={onAddMany} />
+            {/* Describing comes first: it handles whole dishes and shared plates far better than a database search. */}
+            <DescribeMeal
+              meal={meal}
+              mealLabel={mealLabel}
+              onAddMany={onAddMany}
+              onSnap={() => openPhoto.current?.()}
+              onScan={toggleScan}
+              scanning={scanning}
+              showMacros={showMacros}
+            />
+            <PhotoLog meal={meal} onAddMany={onAddMany} openRef={openPhoto} />
 
+            {scanning && (
+              <Suspense fallback={<p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" /> Starting camera…</p>}>
+                <BarcodeScanner onCode={onCode} onCancel={() => setScanning(false)} />
+              </Suspense>
+            )}
+            {lookingUp && <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" /> Looking up that product…</p>}
+            {scanned && (
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium text-muted-foreground">Scanned product</p>
+                <ul className="rounded-lg border bg-card">{resultRow(scanned)}</ul>
+              </div>
+            )}
+          </div>
+
+          {/* Search, for when you know exactly what it was. */}
+          <div className="space-y-3 border-t pt-3">
+            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Or search foods</p>
             <div className="flex gap-2">
-              <div className="relative flex-1">
+              <div className="relative min-w-0 flex-1">
                 <Search className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
                 <Input
                   value={query}
@@ -597,7 +635,7 @@ export default function FoodLogModal({
                   aria-controls="food-options"
                   aria-activedescendant={showList && options[active] ? `food-option-${active}` : undefined}
                   autoComplete="off"
-                  className="h-11 rounded-xl bg-background pr-11 pl-11 text-base md:text-base"
+                  className="h-10 rounded-xl bg-background pr-11 pl-11 text-base md:text-sm"
                 />
                 <span className="absolute top-1/2 right-2 -translate-y-1/2">
                   {searching ? (
@@ -609,16 +647,6 @@ export default function FoodLogModal({
                   )}
                 </span>
               </div>
-              <Button
-                variant="outline"
-                onClick={() => { setScanning((s) => !s); setScanned(null); setPicked(null); setError(null); setNotFound(false); }}
-                className="h-11 rounded-xl bg-background px-4"
-                aria-label="Scan a barcode"
-                aria-pressed={scanning}
-              >
-                <ScanBarcode />
-                <span className="hidden sm:inline">Scan</span>
-              </Button>
             </div>
 
             {showList && (options.length > 0 || searching || nothingFound || q.length < MIN_SEARCH) && (
@@ -686,19 +714,6 @@ export default function FoodLogModal({
               <div className="space-y-1.5">
                 <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">How much?</p>
                 <ul className="rounded-xl border border-primary/30 bg-card">{resultRow(picked)}</ul>
-              </div>
-            )}
-
-            {scanning && (
-              <Suspense fallback={<p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" /> Starting camera…</p>}>
-                <BarcodeScanner onCode={onCode} onCancel={() => setScanning(false)} />
-              </Suspense>
-            )}
-            {lookingUp && <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" /> Looking up that product…</p>}
-            {scanned && (
-              <div className="space-y-1.5">
-                <p className="text-xs font-medium text-muted-foreground">Scanned product</p>
-                <ul className="rounded-lg border bg-card">{resultRow(scanned)}</ul>
               </div>
             )}
 

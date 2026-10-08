@@ -15,13 +15,18 @@ type Stage = "idle" | "thinking" | "review";
 interface Props {
   meal: MealKey;
   onAddMany: (foods: NewFood[]) => void;
+  /**
+   * For a "Snap it" button elsewhere (the food window's describe panel): set to
+   * a function that opens the camera, and this hides its own button.
+   */
+  openRef?: { current: (() => void) | null };
 }
 
 /**
  * "Log from a photo": snap or pick a picture of the meal, check what Fikko saw
  * (and fix any grams), then add it. The photo is shrunk here and never stored.
  */
-export default function PhotoLog({ meal, onAddMany }: Props) {
+export default function PhotoLog({ meal, onAddMany, openRef }: Props) {
   const [stage, setStage] = useState<Stage>("idle");
   const [preview, setPreview] = useState<string | null>(null);
   const [foods, setFoods] = useState<ProposedFood[]>([]);
@@ -30,6 +35,12 @@ export default function PhotoLog({ meal, onAddMany }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
   const input = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!openRef) return;
+    openRef.current = () => input.current?.click();
+    return () => { openRef.current = null; };
+  }, [openRef]);
 
   // Free the preview image when it's replaced or the modal closes.
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
@@ -94,7 +105,10 @@ export default function PhotoLog({ meal, onAddMany }: Props) {
     <div className="space-y-3">
       <input ref={input} type="file" accept="image/*" onChange={onFile} className="sr-only" tabIndex={-1} aria-hidden="true" />
 
-      {stage === "idle" && (
+      {stage === "idle" && openRef && added && (
+        <p role="status" className="flex items-center gap-1.5 text-sm text-primary-ink"><Check className="size-4" aria-hidden="true" /> Added to your meal.</p>
+      )}
+      {stage === "idle" && !openRef && (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <Button variant="outline" onClick={() => input.current?.click()} className="h-9 gap-2 px-4">
             <Camera />

@@ -1,4 +1,4 @@
-const CACHE_NAME = "fikko-shell-v4";
+const CACHE_NAME = "fikko-shell-v5";
 const SHELL_URLS = ["/", "/manifest.json", "/icon-192.png", "/icon-512.png"];
 
 self.addEventListener("install", (event) => {
@@ -17,6 +17,9 @@ self.addEventListener("activate", (event) => {
 // content; falls back to the cached shell only when offline.
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+  // Leave other sites (Cloudflare Turnstile, Google sign-in) to the browser: fetched
+  // from here they fall under connect-src, and a failure would get the cached page back.
+  if (new URL(event.request.url).origin !== self.location.origin) return;
   event.respondWith(
     fetch(event.request).catch(() => caches.match(event.request).then((res) => res || caches.match("/"))),
   );

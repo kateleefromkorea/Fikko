@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Download, EllipsisVertical, Share, SquarePlus, X } from "lucide-react";
 import { canPromptInstall, installPlatform, isInstalled, onInstallChange, promptInstall } from "../lib/install";
+import FikkoAvatar from "./FikkoAvatar";
 import { Button } from "@/components/ui/button";
 
 const DISMISS_KEY = "fikko-install-dismissed-at";
@@ -40,13 +41,15 @@ export default function InstallCard() {
 
   return (
     <aside aria-labelledby="install-title" className="relative flex gap-4 rounded-2xl border bg-card p-4 pr-11 shadow-xs sm:p-5 sm:pr-12">
-      <img src="/icon-192.png" alt="" className="size-12 shrink-0 rounded-xl shadow-sm" />
+      <FikkoAvatar className="size-12" />
       <div className="min-w-0 flex-1 space-y-2">
         <div>
           <h2 id="install-title" className="font-semibold">Add Fikko to your home screen</h2>
           <p className="text-sm text-muted-foreground">It opens full screen like an app, one tap away when it&apos;s time to check in.</p>
         </div>
 
+        {/* The button and the guide link sit side by side with room between, and stack on a narrow card. */}
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-3 pt-1">
         {canPrompt ? (
           <Button onClick={() => void promptInstall()} className="h-9">
             <Download />
@@ -70,6 +73,7 @@ export default function InstallCard() {
         <a href="/install.html" target="_blank" rel="noreferrer" className="inline-block text-sm text-primary underline-offset-4 hover:underline">
           Step-by-step guide
         </a>
+        </div>
       </div>
       <Button variant="ghost" size="icon-sm" onClick={dismiss} aria-label="Not now" className="absolute top-2 right-2 text-muted-foreground">
         <X />

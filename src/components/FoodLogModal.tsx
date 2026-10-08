@@ -8,6 +8,7 @@ import type { NewFood } from "../hooks/useFoodLog";
 import type { FoodLogItem, MacrosPer100g, MealKey } from "../types";
 import { formatMacros, macrosFor, sumMacros } from "../lib/macros";
 import { DB_LIMITS, clamp } from "../lib/limits";
+import { SOURCE_COUNTRY } from "../lib/foodRegion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -65,8 +66,17 @@ const MIN_SEARCH = 2;
 /** Pause after the last keystroke before asking the databases, so each word costs one lookup. */
 const SEARCH_DELAY_MS = 300;
 const LOCAL_OPTIONS = 4;
-/** Recent foods shown before "Show more". */
+/** Recent foods shown before "Show more", and at most once expanded. */
 const RECENT_SHOWN = 3;
+const RECENT_MAX = 8;
+/** Foods looked back over for the amount last eaten. */
+const HISTORY_SIZE = 40;
+/** Quick amounts, as multiples of the food's usual portion. */
+const PORTIONS: [string, number][] = [["½", 0.5], ["1", 1], ["2", 2]];
+
+/** A result's name as it's logged: with its brand, unless the name already says it. */
+const loggedName = (r: FoodResult) =>
+  r.brand && !r.name.toLowerCase().includes(r.brand.toLowerCase()) ? `${r.name} (${r.brand})` : r.name;
 
 /** How well a name matches what's typed: whole-name start, then a word start, then anywhere. 0 is no match. */
 function matchRank(name: string, query: string) {
@@ -148,7 +158,8 @@ export default function FoodLogModal({
   const [pendingBarcode, setPendingBarcode] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
   // Repeats.
-  const [recent, setRecent] = useState<FoodLogItem[]>([]);
+  // Foods eaten in the last 30 days, at their last amounts; the first few are the Recent list.
+  const [history, setHistory] = useState<FoodLogItem[]>([]);
   const [showAllRecent, setShowAllRecent] = useState(false);
   const [yesterday, setYesterday] = useState<FoodLogItem[]>([]);
   const [namingMeal, setNamingMeal] = useState(false);
@@ -158,9 +169,9 @@ export default function FoodLogModal({
   useEffect(() => {
     if (!userId) return;
     let live = true;
-    void Promise.all([recentFoods(userId, meal), mealItemsOn(userId, shiftDateKey(date, -1), meal)]).then(([r, y]) => {
+    void Promise.all([recentFoods(userId, meal, HISTORY_SIZE), mealItemsOn(userId, shiftDateKey(date, -1), meal)]).then(([r, y]) => {
       if (!live) return;
-      setRecent(r);
+      setHistory(r);
       setYesterday(y);
     });
     return () => { live = false; };
@@ -169,15 +180,18 @@ export default function FoodLogModal({
   // Off the Recent list only; the days it was logged keep it.
   function removeRecent(food: FoodLogItem) {
     if (!userId) return;
-    const before = recent;
-    setRecent((list) => list.filter((r) => r.name.toLowerCase() !== food.name.toLowerCase()));
+    const before = history;
+    setHistory((list) => list.filter((r) => r.name.toLowerCase() !== food.name.toLowerCase()));
     hideRecentFood(userId, food.name).catch((err) => {
       // Didn't save: put it back so the list matches what's stored.
-      setRecent(before);
+      setHistory(before);
       setError(friendlyError(err, "We couldn't remove that from Recent."));
     });
   }
 
+  const recent = history.slice(0, RECENT_MAX);
+  // The amount last eaten of each food, so picking it again starts there.
+  const lastGrams = new Map(history.map((h) => [h.name.toLowerCase(), h.grams]));
   const total = items.reduce((sum, i) => sum + i.calories, 0);
   const mealMacros = sumMacros(items);
   const macrosKnown = items.length === 0 || mealMacros.missing < items.length;
@@ -294,13 +308,16 @@ export default function FoodLogModal({
     }
   }, [savedFoods]);
 
-  const defaultGrams = (r: FoodResult) => r.servingGrams ?? 100;
+  // Where an amount starts: what the member had last time, else the product's serving, else 100 g.
+  const remembered = (r: FoodResult) => lastGrams.get(loggedName(r).toLowerCase());
+  const defaultGrams = (r: FoodResult) => remembered(r) ?? r.servingGrams ?? 100;
+  const portionLabel = (r: FoodResult) => (remembered(r) != null ? "last time" : r.servingGrams ? "serving" : null);
 
   function addResult(result: FoodResult) {
     if (userId) void unhideRecentFood(userId, result.name);
     const grams = clamp(parseFloat(gramsByResult[result.id] ?? "") || defaultGrams(result), DB_LIMITS.foodGrams);
     onAdd({
-      name: result.brand && !result.name.toLowerCase().includes(result.brand.toLowerCase()) ? `${result.name} (${result.brand})` : result.name,
+      name: loggedName(result),
       grams,
       caloriesPer100g: result.caloriesPer100g,
       proteinPer100g: result.proteinPer100g,
@@ -360,8 +377,10 @@ export default function FoodLogModal({
    * One row of a food you can add, from search, a scan or the recent list. A
    * render function rather than a component, so typing grams keeps focus.
    */
-  const resultRow = (result: FoodResult, amountLabel = "serving", onRemove?: () => void) => {
+  const resultRow = (result: FoodResult, onRemove?: () => void) => {
     const grams = parseFloat(gramsByResult[result.id] ?? "") || defaultGrams(result);
+    const base = defaultGrams(result);
+    const label = portionLabel(result);
     return (
       <li key={result.id} className="flex flex-wrap items-center gap-x-2 gap-y-2 px-4 py-3.5">
         <div className="min-w-0 flex-1 basis-48">
@@ -372,15 +391,34 @@ export default function FoodLogModal({
           <p className="truncate text-xs text-muted-foreground">
             {result.brand ? `${result.brand} · ` : ""}
             {Math.round(result.caloriesPer100g)} kcal / 100g
-            {result.servingGrams ? ` · ${amountLabel} ${result.servingGrams} g` : ""}
+            {label ? ` · ${label} ${Math.round(base)} g` : ""}
             {showMacros && (() => { const m = macrosFor({ ...result, grams: 100 }); return m ? ` · ${formatMacros(m)}` : ""; })()}
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        {/* Wraps under the name, and onto a second line itself, on a narrow phone. */}
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          {/* Quick amounts: half, one or two of the usual portion. */}
+          <div className="flex rounded-lg bg-muted p-0.5" role="group" aria-label={`Portions of ${result.name}`}>
+            {PORTIONS.map(([text, times]) => {
+              const g = Math.round(base * times);
+              return (
+                <button
+                  key={text}
+                  type="button"
+                  onClick={() => setGramsByResult((p) => ({ ...p, [result.id]: String(g) }))}
+                  aria-pressed={Math.round(grams) === g}
+                  aria-label={`${text} ${label ?? "portion"}, ${g} g`}
+                  className="h-8 min-w-8 rounded-md px-2 text-sm text-muted-foreground transition-colors hover:text-foreground aria-pressed:bg-card aria-pressed:font-semibold aria-pressed:text-[#0A6E63] aria-pressed:shadow-sm"
+                >
+                  {text}
+                </button>
+              );
+            })}
+          </div>
           <Input
             type="number"
             min="1"
-            placeholder={String(defaultGrams(result))}
+            placeholder={String(Math.round(base))}
             value={gramsByResult[result.id] ?? ""}
             onChange={(e) => setGramsByResult((p) => ({ ...p, [result.id]: e.target.value }))}
             onKeyDown={(e) => { if (e.key === "Enter") addResult(result); }}
@@ -536,9 +574,12 @@ export default function FoodLogModal({
 
         {/* 2 · Finding a food: search, scan, photo, and one-tap repeats. */}
         <section aria-labelledby="sec-search" className="space-y-3 rounded-2xl border bg-card p-3.5 shadow-xs sm:p-4">
-          <SectionHeader icon={Search} id="sec-search" title="Find a food" hint="Search by name or brand, scan a barcode, or snap a photo." />
+          <SectionHeader icon={Search} id="sec-search" title="Add food" hint="Snap your plate, or search by name or brand." />
 
           <div className="space-y-3">
+            {/* A photo first: it handles whole dishes and shared plates better than a database search. */}
+            <PhotoLog meal={meal} onAddMany={onAddMany} />
+
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <Search className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
@@ -609,8 +650,9 @@ export default function FoodLogModal({
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-[15px] text-foreground/85"><Highlight text={food.name} query={q} /></p>
                             <p className="truncate text-xs text-muted-foreground">
+                              {food.origin && SOURCE_COUNTRY[food.origin] ? `${SOURCE_COUNTRY[food.origin]} · ` : ""}
                               {food.brand ? `${food.brand} · ` : ""}{Math.round(food.caloriesPer100g)} kcal / 100 g
-                              {food.servingGrams ? ` · ${food.id.startsWith("recent-") ? "last time" : "serving"} ${food.servingGrams} g` : ""}
+                              {portionLabel(food) ? ` · ${portionLabel(food)} ${Math.round(defaultGrams(food))} g` : ""}
                             </p>
                           </div>
                           {food.saved && <Badge variant="secondary">Saved</Badge>}
@@ -646,8 +688,6 @@ export default function FoodLogModal({
                 <ul className="rounded-xl border border-primary/30 bg-card">{resultRow(picked)}</ul>
               </div>
             )}
-
-            <PhotoLog meal={meal} onAddMany={onAddMany} />
 
             {scanning && (
               <Suspense fallback={<p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" /> Starting camera…</p>}>
@@ -712,7 +752,7 @@ export default function FoodLogModal({
                   </p>
                   <ul className="divide-y rounded-lg border bg-card">
                     {recentToShow.map((r) => (
-                      resultRow({ id: `recent-${r.id}`, name: r.name, caloriesPer100g: r.caloriesPer100g, proteinPer100g: r.proteinPer100g, carbsPer100g: r.carbsPer100g, fatPer100g: r.fatPer100g, servingGrams: r.grams }, "last time", () => removeRecent(r))
+                      resultRow({ id: `recent-${r.id}`, name: r.name, caloriesPer100g: r.caloriesPer100g, proteinPer100g: r.proteinPer100g, carbsPer100g: r.carbsPer100g, fatPer100g: r.fatPer100g, servingGrams: r.grams }, () => removeRecent(r))
                     ))}
                   </ul>
                   {(recentHidden > 0 || (showAllRecent && recentNotLogged.length > RECENT_SHOWN)) && (

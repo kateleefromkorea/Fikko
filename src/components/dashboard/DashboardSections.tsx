@@ -1,6 +1,6 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import {
-  BedDouble, CalendarDays, Dumbbell, Flame, GlassWater, Lightbulb, Moon, SmilePlus, TrendingUp, Utensils,
+  BedDouble, CalendarDays, ChevronLeft, ChevronRight, Dumbbell, Flame, GlassWater, Lightbulb, Moon, SmilePlus, TrendingUp, Utensils,
 } from "lucide-react";
 import ProgressRing from "../ProgressRing";
 import { CustomHabitIcon, EmptyState, HabitBar, HabitIcon } from "../HabitCard";
@@ -30,61 +30,107 @@ function StatRow({ children, narrow }: { children: ReactNode; narrow?: boolean }
 
 // ── Consistency ────────────────────────────────────────────────────────────
 
-const HEATMAP_WEEKS = 16;
+/** How a day looks on the calendar: the share of that day's habits done. */
+const LEVELS = [
+  { label: "Nothing", cls: "bg-foreground/[0.06] text-muted-foreground" },
+  { label: "Some", cls: "bg-primary/25 text-foreground" },
+  { label: "Most", cls: "bg-primary/55 text-foreground" },
+  { label: "All done", cls: "bg-primary text-primary-foreground" },
+] as const;
 
-/** Sixteen weeks of days, Monday at the top, shaded by how much got done. */
+function level(done: number, total: number) {
+  if (!total || done === 0) return 0;
+  if (done >= total) return 3;
+  return done / total >= 0.5 ? 2 : 1;
+}
+
+const keyOf = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+/**
+ * A regular month calendar, Monday first, each day shaded by how much of
+ * that day's routine got done. Arrows move between months.
+ */
 function ConsistencyCalendar({ data, waterTarget }: { data: DashCtx["data"]; waterTarget: number }) {
-  const today = new Date(dateKey(0) + "T00:00:00");
-  const weekday = (today.getDay() + 6) % 7; // Monday = 0
-  const firstDaysAgo = weekday + (HEATMAP_WEEKS - 1) * 7;
-  const cells = Array.from({ length: HEATMAP_WEEKS * 7 }, (_, i) => {
-    const daysAgo = firstDaysAgo - i;
-    if (daysAgo < 0) return null;
-    const date = dateKey(daysAgo);
-    const { done, total } = completion(data, date, waterTarget);
-    return { date, done, total, logged: loggedOn(data, date) };
-  });
+  const today = dateKey(0);
+  const now = new Date(today + "T00:00:00");
+  const [offset, setOffset] = useState(0); // months back from this one
+  const first = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+  const daysInMonth = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
+  const lead = (first.getDay() + 6) % 7; // blank squares before the 1st
 
-  const shade = (done: number, total: number) => {
-    const f = total ? done / total : 0;
-    if (f === 0) return "bg-foreground/[0.06]";
-    if (f <= 0.25) return "bg-primary/20";
-    if (f <= 0.5) return "bg-primary/40";
-    if (f <= 0.75) return "bg-primary/65";
-    return "bg-primary";
-  };
+  const days = Array.from({ length: daysInMonth }, (_, i) => {
+    const date = keyOf(new Date(first.getFullYear(), first.getMonth(), i + 1));
+    const future = date > today;
+    const { done, total } = future ? { done: 0, total: 0 } : completion(data, date, waterTarget);
+    return { date, day: i + 1, done, total, future };
+  });
+  const past = days.filter((d) => !d.future);
+  const allDone = past.filter((d) => level(d.done, d.total) === 3).length;
+  const logged = past.filter((d) => d.done > 0).length;
+  const monthName = first.toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
   return (
     <div>
-      <div className="flex gap-2">
-        <div className="grid grid-rows-7 gap-[3px] text-[10px] leading-none text-muted-foreground" aria-hidden="true">
-          {["Mon", "", "Wed", "", "Fri", "", "Sun"].map((d, i) => <span key={i} className="flex items-center">{d}</span>)}
-        </div>
-        <div
-          className="grid flex-1 grid-flow-col grid-rows-7 gap-[3px]"
-          style={{ gridTemplateColumns: `repeat(${HEATMAP_WEEKS}, minmax(0, 1fr))` }}
-          role="img"
-          aria-label={`Habits completed each day for the last ${HEATMAP_WEEKS} weeks`}
+      <div className="flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => setOffset((o) => o + 1)}
+          disabled={offset >= 11}
+          aria-label="Previous month"
+          className="grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-muted disabled:opacity-30"
         >
-          {cells.map((c, i) =>
-            c ? (
-              <span
-                key={c.date}
-                title={`${new Date(c.date + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}: ${c.done} of ${c.total} habits`}
-                className={cn("aspect-square rounded-[3px]", shade(c.done, c.total), c.date === dateKey(0) && "ring-1 ring-foreground/40")}
-              />
-            ) : (
-              <span key={`future-${i}`} className="aspect-square" />
-            ),
-          )}
-        </div>
+          <ChevronLeft className="size-4" />
+        </button>
+        <p className="text-sm font-medium" aria-live="polite">{monthName}</p>
+        <button
+          type="button"
+          onClick={() => setOffset((o) => o - 1)}
+          disabled={offset === 0}
+          aria-label="Next month"
+          className="grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-muted disabled:opacity-30"
+        >
+          <ChevronRight className="size-4" />
+        </button>
       </div>
-      <div className="mt-4 flex items-center justify-end gap-1.5 text-xs text-muted-foreground">
-        Less
-        {["bg-foreground/[0.06]", "bg-primary/20", "bg-primary/40", "bg-primary/65", "bg-primary"].map((c) => (
-          <span key={c} className={cn("size-3 rounded-[3px]", c)} aria-hidden="true" />
+
+      <div className="mt-3 grid grid-cols-7 gap-1 text-center text-[11px] text-muted-foreground" aria-hidden="true">
+        {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => <span key={d}>{d}</span>)}
+      </div>
+      <div className="mt-1 grid grid-cols-7 gap-1">
+        {Array.from({ length: lead }, (_, i) => <span key={`lead-${i}`} />)}
+        {days.map((d) => {
+          const lv = LEVELS[level(d.done, d.total)];
+          const label = new Date(d.date + "T00:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+          return (
+            <span
+              key={d.date}
+              title={d.future ? label : `${label}: ${d.done} of ${d.total} habits done`}
+              aria-label={d.future ? label : `${label}: ${d.done} of ${d.total} habits done`}
+              className={cn(
+                "grid aspect-square place-items-center rounded-md text-xs tabular-nums",
+                d.future ? "text-muted-foreground/50" : lv.cls,
+                d.date === today && "ring-2 ring-foreground/70 ring-offset-1 ring-offset-card font-semibold",
+              )}
+            >
+              {d.day}
+            </span>
+          );
+        })}
+      </div>
+
+      <p className="mt-4 text-sm text-muted-foreground">
+        {logged === 0
+          ? "Nothing logged this month yet."
+          : <><span className="font-medium text-foreground">{allDone} {allDone === 1 ? "day" : "days"}</span> with every habit done, and something logged on {logged} of {past.length} days.</>}
+      </p>
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
+        {LEVELS.map((l) => (
+          <span key={l.label} className="flex items-center gap-1.5">
+            <span className={cn("size-3 rounded-[3px]", l.cls)} aria-hidden="true" />
+            {l.label}
+          </span>
         ))}
-        More
       </div>
     </div>
   );
@@ -108,7 +154,7 @@ export function ConsistencySection({ ctx }: { ctx: DashCtx }) {
         >
           <BarTrend data={series} color={C.primary} name="Completed" format={(v) => `${v}%`} domain={[0, 100]} width={40} />
         </ChartCard>
-        <ChartCard title="Consistency calendar" sub={`The last ${HEATMAP_WEEKS} weeks`} className="lg:col-span-2">
+        <ChartCard title="Consistency calendar" sub="Each day shaded by how many of your habits you did" className="lg:col-span-2">
           <ConsistencyCalendar data={data} waterTarget={ctx.waterTarget} />
         </ChartCard>
       </div>

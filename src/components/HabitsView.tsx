@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import {
-  Activity, Annoyed, Flame, Apple, BedDouble, Brain, CalendarDays, Check, ChevronLeft, ChevronRight, Coffee, Droplet, Dumbbell,
+  Activity, Annoyed, Flame, Repeat, Apple, BedDouble, Brain, CalendarDays, Check, ChevronLeft, ChevronRight, Coffee, Droplet, Dumbbell,
   BatteryLow, CloudRain, Frown, Laugh, Leaf, Meh, Moon, SunMedium, Zap, Pill, Plus, Smartphone, Smile, SmilePlus, Sparkles, Sun, Sunrise, Sunset, Thermometer,
   Loader2, Mic, ShieldCheck, Trash2, Utensils, Volume2, Watch, Wine, X, type LucideIcon,
 } from "lucide-react";
@@ -8,9 +8,10 @@ import { DB_LIMITS, clamp } from "../lib/limits";
 import { activityMinutes, completion, EXERCISE_TARGET_MIN, type CoreHabit } from "../lib/completion";
 import { workoutsOf } from "../lib/workouts";
 import { currentStreak, loggedOn } from "../lib/dashboardStats";
-import type { HabitData, BiometricData, HabitEntry, CustomHabit, MealKey, TimeOfDay } from "../types";
+import type { HabitData, BiometricData, HabitEntry, CustomHabit, FoodLogItem, MealKey, TimeOfDay } from "../types";
 import type { useMedications } from "../hooks/useMedications";
-import { mealTotals, useFoodLog } from "../hooks/useFoodLog";
+import { mealTotals, useFoodLog, type NewFood } from "../hooks/useFoodLog";
+import { mealShortcuts, type MealShortcuts } from "../lib/foodHistory";
 import type { HabitUpdate } from "../hooks/useHabitData";
 import { useCustomFoods } from "../hooks/useCustomFoods";
 import FoodLogModal from "./FoodLogModal";
@@ -421,6 +422,59 @@ export const MEALS: { key: MealKey; label: string; icon: LucideIcon; color: stri
   { key: "snacks",    label: "Snacks",    icon: Apple,   color: "#9CCBF2" },
 ];
 
+/**
+ * One-tap repeats on an empty meal: the meal as it was the day before, and up
+ * to two foods usually eaten at it, each at the amount last logged.
+ */
+function MealShortcutChips({ label, shortcuts, onAdd }: {
+  label: string;
+  shortcuts?: MealShortcuts;
+  onAdd: (foods: NewFood[]) => void;
+}) {
+  if (!shortcuts) return null;
+  const asFood = (i: FoodLogItem): NewFood => ({
+    name: i.name, grams: i.grams, caloriesPer100g: i.caloriesPer100g,
+    proteinPer100g: i.proteinPer100g ?? null, carbsPer100g: i.carbsPer100g ?? null, fatPer100g: i.fatPer100g ?? null,
+  });
+  const { yesterday } = shortcuts;
+  // A usual that's the whole of yesterday's meal would only repeat the first chip.
+  const usual = shortcuts.usual.filter((u) => !(yesterday.length === 1 && yesterday[0].name.toLowerCase() === u.name.toLowerCase()));
+  if (!yesterday.length && !usual.length) return null;
+  const chip = "inline-flex h-7 max-w-full items-center gap-1 rounded-full border bg-card px-2.5 text-xs font-medium text-foreground/80 transition-colors hover:border-[#1A9C8C] hover:bg-[#DDF5F1] hover:text-[#0A6E63]";
+  const kcal = (items: FoodLogItem[]) => Math.round(items.reduce((s, i) => s + i.calories, 0));
+  return (
+    <ul className="-mt-1 flex flex-wrap gap-1.5" aria-label={`Quick add to ${label.toLowerCase()}`}>
+      {yesterday.length > 0 && (
+        <li className="max-w-full">
+          <button
+            type="button"
+            onClick={() => onAdd(yesterday.map(asFood))}
+            title={yesterday.map((i) => i.name).join(", ")}
+            aria-label={`Log the same ${label.toLowerCase()} as yesterday: ${yesterday.map((i) => i.name).join(", ")}, ${kcal(yesterday)} kcal`}
+            className={chip}
+          >
+            <Repeat className="size-3 shrink-0" aria-hidden="true" />
+            <span className="truncate">Same as yesterday</span>
+          </button>
+        </li>
+      )}
+      {usual.map((u) => (
+        <li key={u.id} className="max-w-full">
+          <button
+            type="button"
+            onClick={() => onAdd([asFood(u)])}
+            aria-label={`Log ${u.name}, ${Math.round(u.grams)} g, ${Math.round(u.calories)} kcal`}
+            className={chip}
+          >
+            <Plus className="size-3 shrink-0" aria-hidden="true" />
+            <span className="truncate">{u.name}</span>
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog, biometrics }: Props & { foodLog: FoodLog }) {
   const entry = getEntry(data.food, activeDate);
   const saved: MealCalories = parseNote<MealCalories>(entry?.note) ?? { breakfast: 0, lunch: 0, dinner: 0, snacks: 0 };
@@ -431,6 +485,14 @@ function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog, biome
   const customFoods = useCustomFoods(userId);
   const savedMeals = useSavedMeals(userId);
   const [openMeal, setOpenMeal] = useState<MealKey | null>(null);
+  // One-tap repeats for empty meals: the same as the day before, or what's usually eaten then.
+  const [shortcuts, setShortcuts] = useState<Record<MealKey, MealShortcuts> | null>(null);
+  useEffect(() => {
+    if (!userId) return;
+    let live = true;
+    mealShortcuts(userId, activeDate).then((s) => { if (live) setShortcuts(s); }).catch(() => { if (live) setShortcuts(null); });
+    return () => { live = false; };
+  }, [userId, activeDate]);
 
   const target = Math.round(goals.calories);
   const eaten = meals.breakfast + meals.lunch + meals.dinner + meals.snacks;
@@ -515,6 +577,13 @@ function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog, biome
                   {Math.round(val)}
                   <span className="ml-1 text-xs font-normal text-muted-foreground">kcal</span>
                 </p>
+                {itemCount === 0 && foodLog.ready && (
+                  <MealShortcutChips
+                    label={label}
+                    shortcuts={shortcuts?.[key]}
+                    onAdd={(foods) => void foodLog.addItems(key, foods)}
+                  />
+                )}
                 {itemCount > 0 && (
                   <ul className="-mt-1 space-y-0.5 text-xs text-muted-foreground" aria-label={`${label} items`}>
                     {mealItems.slice(0, 4).map((item) => (

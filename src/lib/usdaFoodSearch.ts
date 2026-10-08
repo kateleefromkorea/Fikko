@@ -1,5 +1,6 @@
 import type { MacrosPer100g } from "../types";
 import { supabase } from "./supabase";
+import { homeSources } from "./foodRegion";
 
 export interface FoodResult extends MacrosPer100g {
   id: string;
@@ -9,6 +10,8 @@ export interface FoodResult extends MacrosPer100g {
   saved?: boolean; // true for the user's own saved foods, not database results
   /** Grams in one serving, for packaged products that list it. */
   servingGrams?: number;
+  /** The regional database a food came from ("afcd"), when it wasn't USDA. */
+  origin?: string;
   /** "generic" (USDA whole foods) or "branded" (Open Food Facts products). */
   source?: "generic" | "branded";
   barcode?: string;
@@ -17,6 +20,8 @@ export interface FoodResult extends MacrosPer100g {
 /** How many of each kind a search shows, before "show more". */
 const GENERIC_RESULTS = 6;
 const BRANDED_RESULTS = 6;
+/** Score added to foods from the member's own country, roughly a "starts with" match. */
+const LOCAL_BOOST = 40;
 
 // Searches go through our own /api/food-search function, which also adds
 // branded products from Open Food Facts after the generic matches. It holds the USDA
@@ -70,10 +75,12 @@ export async function searchFoods(query: string): Promise<FoodResult[]> {
 
   const foods = data.foods ?? [];
   // Generic foods are re-ranked so the plainest match wins; branded products keep
-  // Open Food Facts' own relevance order and follow the generic ones.
+  // Open Food Facts' own relevance order and follow the generic ones. Foods from
+  // the member's own country's database get a lift over USDA's.
+  const local = homeSources();
   const generic = foods
     .filter((f) => f.source !== "branded")
-    .map((result) => ({ result, score: relevanceScore(result.name, q) }))
+    .map((result) => ({ result, score: relevanceScore(result.name, q) + (result.origin && local.has(result.origin) ? LOCAL_BOOST : 0) }))
     .sort((a, b) => b.score - a.score)
     .slice(0, GENERIC_RESULTS)
     .map((r) => r.result);

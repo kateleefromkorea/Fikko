@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import type { FoodLogItem, MealKey } from "../types";
+import { shiftDateKey } from "./dates";
 
 // What a member has eaten before, for one-tap repeats in the meal log.
 
@@ -69,4 +70,56 @@ export async function hideRecentFood(userId: string, name: string) {
 /** Puts a food back on the Recent list, once it's logged again. */
 export async function unhideRecentFood(userId: string, name: string) {
   await supabase.from("hidden_recent_foods").delete().eq("user_id", userId).eq("name", name.toLowerCase().slice(0, 200));
+}
+
+/** One-tap repeats for a meal on the Calories card. */
+export interface MealShortcuts {
+  /** What was logged for this meal the day before. */
+  yesterday: FoodLogItem[];
+  /** Foods eaten at this meal on at least USUAL_DAYS different days lately, most often first, each at its last amount. */
+  usual: FoodLogItem[];
+}
+
+/** Days a food has to have been eaten at a meal before it's offered as a usual. */
+const USUAL_DAYS = 2;
+const USUAL_SHOWN = 2;
+
+/**
+ * Shortcuts for every meal, from the 30 days before `date`, in one query: the
+ * meal as it was the day before, and the foods usually eaten at it. Foods the
+ * member removed from Recent are left out.
+ */
+export async function mealShortcuts(userId: string, date: string): Promise<Record<MealKey, MealShortcuts>> {
+  const day = (offset: number) => shiftDateKey(date, offset);
+  const before = day(-1);
+  const [{ data }, hidden] = await Promise.all([
+    supabase.from("food_log_items").select(`${COLUMNS}, date`)
+      .eq("user_id", userId).gte("date", day(-30)).lte("date", before)
+      .order("date", { ascending: false }).limit(500),
+    hiddenRecent(userId),
+  ]);
+
+  const meals: MealKey[] = ["breakfast", "lunch", "dinner", "snacks"];
+  const out = Object.fromEntries(meals.map((m): [MealKey, MealShortcuts] => [m, { yesterday: [], usual: [] }])) as Record<MealKey, MealShortcuts>;
+  // Per meal and food: the days it was eaten, and its latest entry (rows come newest first).
+  const seen = new Map<string, { item: FoodLogItem; days: Set<string>; order: number }>();
+  (data ?? []).forEach((r, i) => {
+    const item = toItem(r);
+    const date = String(r.date);
+    if (date === before && out[item.meal]) out[item.meal].yesterday.push(item);
+    const name = item.name.toLowerCase();
+    if (hidden.has(name)) return;
+    const key = `${item.meal}|${name}`;
+    const entry = seen.get(key) ?? { item, days: new Set<string>(), order: i };
+    entry.days.add(date);
+    seen.set(key, entry);
+  });
+  for (const m of meals) {
+    out[m].usual = [...seen.entries()]
+      .filter(([key, e]) => key.startsWith(`${m}|`) && e.days.size >= USUAL_DAYS)
+      .sort(([, a], [, b]) => b.days.size - a.days.size || a.order - b.order)
+      .slice(0, USUAL_SHOWN)
+      .map(([, e]) => e.item);
+  }
+  return out;
 }

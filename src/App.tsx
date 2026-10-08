@@ -36,7 +36,7 @@ import { todayKey } from "./lib/dates";
 import { dietsOf, tracksMacros } from "./lib/preferences";
 import { hasDraft } from "./onboarding/draft";
 import { trackView } from "./lib/track";
-import { CURRENT_PLAN } from "./lib/fikko";
+import { usePlan } from "./hooks/usePlan";
 
 // Loaded on demand. The Dashboard carries the charting library (most of the
 // app's JavaScript) and onboarding only runs once per user, so neither should
@@ -77,6 +77,7 @@ const NAV: { id: Tab; label: string; icon: LucideIcon; soon?: boolean; ai?: bool
 export default function App() {
   const { session, loading, signOut, recovering } = useAuth();
   const credits = useAiCredits();
+  const { seedPlan } = usePlan();
   const userId = session?.user.id ?? null;
   // Returning from a device's sign-in lands on /?device=<provider>&result=<outcome>:
   // open Profile to show how it went.
@@ -205,8 +206,8 @@ export default function App() {
                   {label}
                   {ai && credits.left != null && (
                     <span
-                      title={`${credits.left} of ${credits.limit} AI credits left today`}
-                      aria-label={`${credits.left} AI credits left today`}
+                      title={`${credits.left} of ${credits.limit} AI credits left ${credits.period === "week" ? "this week" : "today"}`}
+                      aria-label={`${credits.left} AI credits left ${credits.period === "week" ? "this week" : "today"}`}
                       className={cn(
                         "ml-0.5 rounded-full px-1.5 text-[11px] leading-5 font-semibold tabular-nums",
                         credits.left === 0
@@ -330,7 +331,7 @@ export default function App() {
               data={data}
               profile={profile}
               onUpdateProfile={updateProfile}
-              plan={CURRENT_PLAN}
+              plan={seedPlan}
               onOpenHabits={() => setTab("habits")}
             />
           </Suspense>

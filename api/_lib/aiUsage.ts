@@ -3,6 +3,7 @@
 // 014); the allowance resets at the member's local midnight.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { FAIR_USE_DAILY_AI, PLAN_LIMITS, planOf, type PlanState } from "./plans.js";
 import { SLOW_DOWN, withinLimit } from "./rateLimit.js";
 
 export const DAILY_AI_LIMIT = 20;
@@ -38,26 +39,47 @@ const ROLLING_AI_LIMIT = DAILY_AI_LIMIT * 2;
 /** AI calls a minute. Stops bursts of parallel requests slipping past the daily count. */
 const AI_PER_MINUTE = 6;
 
+/** Free's allowance is per rolling 7 days, so there is no midnight to game. */
+const WEEK_MS = 7 * 86_400_000;
+
+export type Blocked = "daily" | "weekly" | "fast";
+
 /**
- * Whether the member may make another AI call now. `blocked` is "daily" when
- * they've used their allowance and "fast" when they're sending too quickly;
- * `used` is today's count.
+ * What a member may spend on AI. While plans aren't enforced everyone gets
+ * DAILY_AI_LIMIT a day. Once they are: Free gets `aiPerWeek` a week, Premium
+ * and Max get their `coachPerDay` a day. That allowance is shared by every AI
+ * feature (coach, voice, photo, recipes), and FAIR_USE_DAILY_AI caps any 24 hours.
+ */
+export function allowanceFor({ plan, enforced }: PlanState) {
+  if (!enforced) return { limit: DAILY_AI_LIMIT, period: "day" as const, rolling: ROLLING_AI_LIMIT };
+  const l = PLAN_LIMITS[plan];
+  if (l.aiPerWeek != null) return { limit: l.aiPerWeek, period: "week" as const, rolling: FAIR_USE_DAILY_AI };
+  return { limit: l.coachPerDay ?? l.aiPerDay, period: "day" as const, rolling: l.aiPerDay };
+}
+
+/**
+ * Whether the member may make another AI call now. `blocked` is "daily" or
+ * "weekly" when they've used their allowance and "fast" when they're sending
+ * too quickly; `used` is their count for the period and `limit` the allowance.
  */
 export async function checkAllowance(db: SupabaseClient, userId: string, tzOffset: number) {
+  const state = await planOf(db, userId);
+  const { limit, period, rolling: rollingLimit } = allowanceFor(state);
+  const since = (ms: number) => new Date(Date.now() - ms).toISOString();
+  const count = (iso: string) => db.from("coach_usage").select("id", { count: "exact", head: true })
+    .eq("user_id", userId).gte("created_at", iso).then(({ count: n }) => n ?? 0);
   const [used, rolling, calm] = await Promise.all([
-    usedToday(db, userId, tzOffset),
-    db.from("coach_usage").select("id", { count: "exact", head: true })
-      .eq("user_id", userId).gte("created_at", new Date(Date.now() - 86_400_000).toISOString())
-      .then(({ count }) => count ?? 0),
+    period === "week" ? count(since(WEEK_MS)) : usedToday(db, userId, tzOffset),
+    count(since(86_400_000)),
     withinLimit(db, `ai:${userId}`, AI_PER_MINUTE, 60),
   ]);
-  const blocked = used >= DAILY_AI_LIMIT || rolling >= ROLLING_AI_LIMIT ? "daily" as const : !calm ? "fast" as const : null;
-  return { used, blocked };
+  const blocked: Blocked | null = used >= limit || rolling >= rollingLimit ? (period === "week" ? "weekly" : "daily") : !calm ? "fast" : null;
+  return { used, limit, plan: state.plan, enforced: state.enforced, blocked };
 }
 
 /** The reply for a blocked AI call. */
-export const blockedReply = (blocked: "daily" | "fast") =>
-  new Response(JSON.stringify({ error: blocked === "fast" ? SLOW_DOWN : limitMessage() }), {
+export const blockedReply = (blocked: Blocked, limit = DAILY_AI_LIMIT) =>
+  new Response(JSON.stringify({ error: blocked === "fast" ? SLOW_DOWN : limitMessage(blocked, limit) }), {
     status: 429,
     headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
   });
@@ -66,5 +88,7 @@ export async function recordUse(db: SupabaseClient, userId: string) {
   await db.from("coach_usage").insert({ user_id: userId });
 }
 
-export const limitMessage = () =>
-  `You've used today's ${DAILY_AI_LIMIT} AI messages (coach and voice check-ins together). They reset at midnight.`;
+export const limitMessage = (blocked: "daily" | "weekly" = "daily", limit = DAILY_AI_LIMIT) =>
+  blocked === "weekly"
+    ? `You've used this week's ${limit} AI messages on the Free plan (coach, voice and photo check-ins together). Premium gives you ${PLAN_LIMITS.premium.coachPerDay} a day.`
+    : `You've used today's ${limit} AI messages (coach and voice check-ins together). They reset at midnight.`;

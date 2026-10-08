@@ -32,7 +32,7 @@ export default function RecipeGenerator({
   onSave: (idea: Recipe) => Promise<void>;
   className?: string;
 }) {
-  const { left } = useAiCredits();
+  const { left, period } = useAiCredits();
   const [items, setItems] = useState<string[]>([]);
   const [draft, setDraft] = useState("");
   const [pantry, setPantry] = useState(true);
@@ -177,7 +177,7 @@ export default function RecipeGenerator({
               {busy ? "Thinking up recipes…" : ideas.length ? "Try again" : "Get recipe ideas"}
             </Button>
             <p className="text-xs text-muted-foreground">
-              Uses 1 AI credit{left != null && ` · ${left} left today`}
+              Uses 1 AI credit{left != null && ` · ${left} left ${period === "week" ? "this week" : "today"}`}
             </p>
           </div>
           {outOfCredits && <p className="text-sm text-muted-foreground">You&apos;ve used today&apos;s AI credits. They reset at midnight.</p>}

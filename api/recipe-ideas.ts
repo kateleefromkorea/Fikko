@@ -169,8 +169,8 @@ async function handlePOST(request: Request) {
   const allergies = oneOf(body.allergies, ALLERGY_CHOICES);
   const tzOffset = clampOffset(body.tzOffset);
 
-  const { blocked: limited } = await checkAllowance(db, member.id, tzOffset);
-  if (limited) return blockedReply(limited);
+  const { blocked: limited, limit: allowed } = await checkAllowance(db, member.id, tzOffset);
+  if (limited) return blockedReply(limited, allowed);
 
   const prompt = [
     `Ingredients I have: ${ingredients.join(", ")}`,

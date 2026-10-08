@@ -3,7 +3,7 @@ import { ArrowUp, Loader2, Trash2 } from "lucide-react";
 import FikkoAvatar from "./FikkoAvatar";
 import PageHeader from "./PageHeader";
 import {
-  COACH_DAILY_LIMIT, clearCoachChat, fetchCoachMessages, fetchUsedToday, sendCoachMessage, type CoachMessage,
+  clearCoachChat, fetchCoachMessages, fetchUsedToday, sendCoachMessage, type CoachMessage,
 } from "../lib/coach";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { friendlyError } from "../lib/errors";
+import { usePlan } from "../hooks/usePlan";
 
 const STARTERS = [
   "How did my week go?",
@@ -67,6 +68,8 @@ export default function CoachView({ profileName }: { profileName: string }) {
   const [messages, setMessages] = useState<CoachMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [used, setUsed] = useState(0);
+  const { ai } = usePlan();
+  const when = ai.period === "week" ? "this week" : "today";
   const [draft, setDraft] = useState("");
   const [streaming, setStreaming] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -75,18 +78,18 @@ export default function CoachView({ profileName }: { profileName: string }) {
 
   useEffect(() => {
     let live = true;
-    Promise.all([fetchCoachMessages(), fetchUsedToday()])
+    Promise.all([fetchCoachMessages(), fetchUsedToday(ai.period)])
       .then(([m, u]) => { if (live) { setMessages(m); setUsed(u); } })
       .catch((e: Error) => { if (live) setError(friendlyError(e, "We couldn't load your chat. Please try again.")); })
       .finally(() => { if (live) setLoading(false); });
     return () => { live = false; };
-  }, []);
+  }, [ai.period]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
   }, [messages.length, streaming]);
 
-  const left = Math.max(0, COACH_DAILY_LIMIT - used);
+  const left = Math.max(0, ai.limit - used);
   const busy = streaming !== null;
 
   async function send(text: string) {
@@ -142,7 +145,7 @@ export default function CoachView({ profileName }: { profileName: string }) {
         title="Ask Fikko about your week."
         subtitle={loading
           ? "Fikko reads your last four weeks of logs."
-          : `Fikko reads your last four weeks of logs. ${left === 0 ? "No questions left today; back at midnight." : `${left} ${left === 1 ? "question" : "questions"} left today.`}`}
+          : `Fikko reads your last four weeks of logs. ${left === 0 ? `No questions left ${when}.` : `${left} ${left === 1 ? "question" : "questions"} left ${when}.`}`}
         action={messages.length > 0 && (
           <Button variant="ghost" onClick={() => setConfirmClear(true)} disabled={busy} className="h-9 text-muted-foreground">
             <Trash2 />
@@ -209,7 +212,7 @@ export default function CoachView({ profileName }: { profileName: string }) {
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={onKeyDown}
-              placeholder={left === 0 ? "You've used today's messages. Back at midnight." : "Ask Fikko…"}
+              placeholder={left === 0 ? (ai.period === "week" ? "You've used this week's messages." : "You've used today's messages. Back at midnight.") : "Ask Fikko…"}
               aria-label="Message Fikko"
               maxLength={2000}
               rows={1}
@@ -222,7 +225,7 @@ export default function CoachView({ profileName }: { profileName: string }) {
           </div>
           <p className="mt-2 flex flex-wrap justify-between gap-x-4 gap-y-1 text-xs text-muted-foreground">
             <span>Fikko is an AI. It can make mistakes and isn't medical advice.</span>
-            {!loading && <span className="tabular-nums">{left} of {COACH_DAILY_LIMIT} AI messages left today</span>}
+            {!loading && <span className="tabular-nums">{left} of {ai.limit} AI messages left {when}</span>}
           </p>
         </form>
       </Card>

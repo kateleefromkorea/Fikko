@@ -45,7 +45,8 @@ export default function DescribeMeal({ meal, mealLabel, onAddMany, onUndo, onSna
   const [addedIds, setAddedIds] = useState<string[]>([]);
   const recognizer = useRef<SpeechRecognitionLike | null>(null);
   const canListen = speechRecognition() != null;
-  const { left, limit } = useAiCredits();
+  const { left, limit, period } = useAiCredits();
+  const when = period === "week" ? "this week" : "today";
   const outOfCredits = left === 0;
 
   useEffect(() => () => recognizer.current?.abort(), []);
@@ -352,10 +353,10 @@ export default function DescribeMeal({ meal, mealLabel, onAddMany, onUndo, onSna
         {left != null && (
           <span
             className={cn("inline-flex shrink-0 items-center gap-1 rounded-full bg-white/80 px-2.5 py-0.5 text-xs font-medium tabular-nums", outOfCredits ? "text-destructive" : "text-[#0A6E63]")}
-            aria-label={`${left} of ${limit} AI credits left today`}
+            aria-label={`${left} of ${limit} AI credits left ${when}`}
           >
             <Sparkles className="size-3" aria-hidden="true" />
-            {left} of {limit} left today
+            {left} of {limit} left {when}
           </span>
         )}
       </div>

@@ -84,8 +84,8 @@ async function handlePOST(request: Request) {
   const meal: Meal = MEALS.includes(body.meal as Meal) ? (body.meal as Meal) : "snacks";
   const tzOffset = clampOffset(body.tzOffset);
 
-  const { blocked: limited } = await checkAllowance(db, member.id, tzOffset);
-  if (limited) return blockedReply(limited);
+  const { blocked: limited, limit: allowed } = await checkAllowance(db, member.id, tzOffset);
+  if (limited) return blockedReply(limited, allowed);
 
   let input: ToolInput;
   try {

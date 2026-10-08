@@ -9,6 +9,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { admin, json, memberFrom, supabaseReady } from "./_lib/devices.js";
 import { checkAllowance, clampOffset, recordUse } from "./_lib/aiUsage.js";
+import { PLAN_LIMITS, planOf } from "./_lib/plans.js";
 import { recordCosts } from "./_lib/aiCost.js";
 import { consentError } from "./_lib/consent.js";
 import { groupsOf, listFindings, type Finding, type Severity } from "./_lib/interactions.js";
@@ -53,7 +54,7 @@ const TOOL: Anthropic.Tool = {
 };
 
 /** How the AI part of the check went, so the app can say so plainly. */
-type AiStatus = "not-needed" | "used" | "limit" | "unavailable" | "off";
+type AiStatus = "not-needed" | "used" | "limit" | "unavailable" | "off" | "plan";
 
 async function handlePOST(request: Request) {
   if (!supabaseReady()) return json({ error: "The interaction check isn't configured on the server." }, 503);
@@ -80,9 +81,12 @@ async function handlePOST(request: Request) {
   // Without AI consent the names stay on Fikko's side; the built-in findings still apply.
   if (await consentError(db, member.id, ["health_data", "ai_processing"])) return reply("off");
   const tzOffset = clampOffset(body.tzOffset);
+  // The AI review for items the built-in list doesn't know is a Max feature once plans are enforced.
+  const { plan, enforced } = await planOf(db, member.id);
+  if (enforced && !PLAN_LIMITS[plan].interactionAi) return reply("plan");
   const { blocked: limited } = await checkAllowance(db, member.id, tzOffset);
   // Too many checks in a minute reads as "try again shortly", not "used up for today".
-  if (limited) return reply(limited === "daily" ? "limit" : "unavailable");
+  if (limited) return reply(limited === "fast" ? "unavailable" : "limit");
 
   const covered = findings.map((f) => `${f.items[0]} + ${f.items[1]}`);
   const context = [

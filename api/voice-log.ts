@@ -235,8 +235,8 @@ async function handlePOST(request: Request) {
   const meds = asList(body.meds).map((m) => ({ id: String(m.id), name: String(m.name ?? "").slice(0, 60) }));
   const custom = asList(body.customHabits).map((h) => ({ id: String(h.id), name: String(h.name ?? "").slice(0, 60), unit: String(h.unit ?? "").slice(0, 20) }));
 
-  const { blocked: limited } = await checkAllowance(db, member.id, tzOffset);
-  if (limited) return blockedReply(limited);
+  const { blocked: limited, limit: allowed } = await checkAllowance(db, member.id, tzOffset);
+  if (limited) return blockedReply(limited, allowed);
 
   if (body.mode === "meal") {
     const meal = (MEALS as readonly string[]).includes(String(body.meal)) ? (body.meal as Meal) : "snacks";

@@ -14,6 +14,8 @@ import { mealTotals, useFoodLog, type NewFood } from "../hooks/useFoodLog";
 import { mealShortcuts, type MealShortcuts } from "../lib/foodHistory";
 import type { HabitUpdate } from "../hooks/useHabitData";
 import { useCustomFoods } from "../hooks/useCustomFoods";
+import { usePlan } from "../hooks/usePlan";
+import UpgradeNote from "./UpgradeNote";
 import FoodLogModal from "./FoodLogModal";
 import VoiceCheckIn from "./VoiceCheckIn";
 import Celebration from "./Celebration";
@@ -1308,7 +1310,11 @@ function CustomHabitsSection({ data, onChange, activeDate }: Props) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [logInput, setLogInput] = useState<Record<string, string>>({});
 
+  const { limits } = usePlan();
+  const atLimit = limits.customHabits != null && data.custom.length >= limits.customHabits;
+
   const openWith = (preset?: typeof EMPTY_FORM) => {
+    if (atLimit) return;
     setForm(preset ?? EMPTY_FORM);
     setAdding(true);
   };
@@ -1377,12 +1383,19 @@ function CustomHabitsSection({ data, onChange, activeDate }: Props) {
           ))}
           <button
             onClick={() => openWith()}
+            disabled={atLimit}
             className="flex min-h-48 flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:bg-white/60 hover:text-primary-ink"
           >
             <Plus className="size-5" aria-hidden="true" />
             New habit
           </button>
         </div>
+      )}
+      {atLimit && (
+        <UpgradeNote
+          title={`The Free plan has ${limits.customHabits} custom habits`}
+          body="Premium lets you track as many of your own habits as you like."
+        />
       )}
 
       <Dialog open={adding} onOpenChange={(open) => { setAdding(open); if (!open) setForm(EMPTY_FORM); }}>

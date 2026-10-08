@@ -16,7 +16,7 @@ export interface InteractionFinding {
 export interface InteractionResult {
   findings: InteractionFinding[];
   /** Whether Claude reviewed the items the built-in list doesn't know, and if not, why. */
-  ai: "not-needed" | "used" | "limit" | "unavailable" | "off";
+  ai: "not-needed" | "used" | "limit" | "unavailable" | "off" | "plan";
   unrecognised: string[];
 }
 

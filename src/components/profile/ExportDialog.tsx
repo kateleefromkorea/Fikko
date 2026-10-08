@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { friendlyError } from "../../lib/errors";
+import { usePlan } from "../../hooks/usePlan";
 
 const PERIODS: { key: Period | "all"; label: string; pick?: string }[] = [
   { key: "day", label: "Day", pick: "Which day?" },
@@ -23,12 +24,15 @@ const FORMATS: { key: ExportFormat; label: string; description: string; icon: Lu
   { key: "json", label: "JSON file", description: "For moving to another app", icon: FileJson },
 ];
 
+const isCsv = (f: ExportFormat) => f === "daily" || f === "food";
+
 interface Props {
   userId: string;
   onClose: () => void;
 }
 
 export default function ExportDialog({ userId, onClose }: Props) {
+  const { limits } = usePlan();
   const [period, setPeriod] = useState<Period | "all">("month");
   const [day, setDay] = useState(todayKey());
   const [format, setFormat] = useState<ExportFormat>("pdf");
@@ -109,15 +113,16 @@ export default function ExportDialog({ userId, onClose }: Props) {
                 role="radio"
                 aria-checked={format === key}
                 onClick={() => setFormat(key)}
+                disabled={isCsv(key) && !limits.csvExport}
                 className={cn(
-                  "flex items-start gap-2.5 rounded-lg border px-3 py-2.5 text-left transition-colors hover:bg-muted",
+                  "flex items-start gap-2.5 rounded-lg border px-3 py-2.5 text-left transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60",
                   format === key && "border-primary bg-primary/5 hover:bg-primary/10",
                 )}
               >
                 <Icon className={cn("mt-0.5 size-4 shrink-0 text-muted-foreground", format === key && "text-primary-ink")} />
                 <span>
                   <span className={cn("block text-sm font-medium", format === key && "text-primary-ink")}>{label}</span>
-                  <span className="block text-xs text-muted-foreground">{description}</span>
+                  <span className="block text-xs text-muted-foreground">{isCsv(key) && !limits.csvExport ? "With Max" : description}</span>
                 </span>
               </button>
             ))}

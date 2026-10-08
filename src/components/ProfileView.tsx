@@ -7,7 +7,9 @@ import ChangePassword from "./profile/ChangePassword";
 import DeleteAccountDialog from "./profile/DeleteAccountDialog";
 import ExportDialog from "./profile/ExportDialog";
 import ResetDataDialog from "./profile/ResetDataDialog";
+import PlanCard from "./profile/PlanCard";
 import PrivacyCard from "./profile/PrivacyCard";
+import { paddleEnabled } from "../lib/paddle";
 import RemindersCard from "./profile/RemindersCard";
 import { FoundingBadge } from "./FoundingMember";
 import { ageFromDob, computeBaseline, LIMITS, inRange } from "../lib/metabolics";
@@ -432,6 +434,8 @@ export default function ProfileView({ email, profile, onUpdateProfile, userId, o
               )}
             </CardContent>
           </Card>
+
+          {paddleEnabled && <PlanCard className={cardCls} />}
 
           <PreferencesCard profile={profile} onUpdateProfile={onUpdateProfile} />
 

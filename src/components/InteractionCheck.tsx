@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, CheckCircle2, Clock, Copy, Loader2, ShieldAlert, Sparkles } from "lucide-react";
 import { checkInteractions, type InteractionResult, type Severity } from "../lib/interactions";
-import { COACH_DAILY_LIMIT } from "../lib/coach";
+import { usePlan } from "../hooks/usePlan";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -19,6 +19,7 @@ const SEVERITY: Record<Severity, { label: string; icon: typeof AlertTriangle; cl
  * lists what to watch for. Runs as soon as it opens.
  */
 export default function InteractionCheck({ names, onClose }: { names: string[]; onClose: () => void }) {
+  const { ai } = usePlan();
   const [result, setResult] = useState<InteractionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -86,7 +87,7 @@ export default function InteractionCheck({ names, onClose }: { names: string[]; 
               <p className="text-xs text-muted-foreground">
                 {listNames(result.unrecognised)} {result.unrecognised.length === 1 ? "isn't" : "aren't"} on Fikko's
                 built-in list, so our AI reviewed {result.unrecognised.length === 1 ? "it" : "them"}. This used 1 of your
-                {" "}{COACH_DAILY_LIMIT} daily AI credits.
+                {" "}{ai.limit} {ai.period === "week" ? "weekly" : "daily"} AI credits.
               </p>
             )}
             {result.ai === "limit" && (
@@ -94,6 +95,12 @@ export default function InteractionCheck({ names, onClose }: { names: string[]; 
                 {listNames(result.unrecognised)} {result.unrecognised.length === 1 ? "isn't" : "aren't"} on Fikko's
                 built-in list, and you've used today's AI credits, so {result.unrecognised.length === 1 ? "it wasn't" : "they weren't"} checked.
                 Try again tomorrow.
+              </p>
+            )}
+            {result.ai === "plan" && (
+              <p className="text-xs text-muted-foreground">
+                {listNames(result.unrecognised)} {result.unrecognised.length === 1 ? "isn't" : "aren't"} on Fikko's
+                built-in list. The AI review for items not on the list is part of Max, so {result.unrecognised.length === 1 ? "it wasn't" : "they weren't"} checked.
               </p>
             )}
             {result.ai === "off" && (

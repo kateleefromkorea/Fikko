@@ -5,7 +5,7 @@ import { notifyAiUsed } from "./aiCredits";
 // see and clear their own); sending goes through /api/coach, which holds the
 // Anthropic key, applies the daily limit and saves both sides of the chat.
 
-/** AI messages a member gets per local day, shared with voice check-ins. Keep in step with api/_lib/aiUsage.ts. */
+/** AI messages a member gets per local day before plans are enforced (see usePlan for the rest). Keep in step with api/_lib/aiUsage.ts. */
 export const COACH_DAILY_LIMIT = 20;
 
 export interface CoachMessage {
@@ -29,12 +29,13 @@ export async function fetchCoachMessages(): Promise<CoachMessage[]> {
 const ERROR_MARKER = "\u0000coach-error:";
 
 /**
- * Messages the member has sent since their local midnight. Read from the
+ * Messages the member has sent since their local midnight (or in the last 7 days for Free). Read from the
  * usage log rather than the chat, so clearing the chat doesn't reset it.
  */
-export async function fetchUsedToday(): Promise<number> {
-  const midnight = new Date();
-  midnight.setHours(0, 0, 0, 0);
+export async function fetchUsedToday(period: "day" | "week" = "day"): Promise<number> {
+  // Free's allowance is per rolling 7 days; the others reset at local midnight.
+  const midnight = period === "week" ? new Date(Date.now() - 7 * 86_400_000) : new Date();
+  if (period === "day") midnight.setHours(0, 0, 0, 0);
   const { count } = await supabase
     .from("coach_usage")
     .select("id", { count: "exact", head: true })

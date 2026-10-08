@@ -19,6 +19,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import UpgradeNote from "./UpgradeNote";
+import { usePlan } from "../hooks/usePlan";
 import { C, ChartCard, InsightRow, Section, TrendArea, VitalCard, ax, fmt, ttStyle } from "./dashboard/ui";
 import WeeklyReportCard from "./dashboard/WeeklyReport";
 import DashboardSummary from "./dashboard/DashboardSummary";
@@ -102,7 +104,7 @@ function groupByMonth(entries: (HabitEntry | BiometricEntry)[], agg: "avg" | "su
 
 // ── Shared UI ──────────────────────────────────────────────────────────────
 
-function PeriodToggle({ period, onChange }: { period: Period; onChange: (p: Period) => void }) {
+function PeriodToggle({ period, onChange, historyDays }: { period: Period; onChange: (p: Period) => void; historyDays: number | null }) {
   return (
     <Tabs value={period} onValueChange={(v) => onChange(v as Period)}>
       {/* Sits on the summary's gradient, so it gets a white track and a solid
@@ -112,6 +114,8 @@ function PeriodToggle({ period, onChange }: { period: Period; onChange: (p: Peri
           <TabsTrigger
             key={p}
             value={p}
+            disabled={historyDays != null && PERIOD_DAYS[p] > historyDays}
+            title={historyDays != null && PERIOD_DAYS[p] > historyDays ? `Your plan shows the last ${historyDays} days. See plans to look back further.` : undefined}
             // A period switch with no tab panels, so nothing for aria-controls to point at.
             aria-controls={undefined}
             className="px-4 capitalize data-active:bg-primary! data-active:text-primary-foreground! data-active:shadow-sm"
@@ -206,6 +210,8 @@ export default function Dashboard({ data: logged, biometrics, profile }: Props) 
   // Activity here is the day's total: logged workouts plus wearable minutes.
   const data = useMemo(() => withDeviceActivity(logged), [logged]);
   const [period, setPeriod] = useState<Period>("week");
+  const { limits } = usePlan();
+  const bio = limits.wearableBiometrics;
 
   const days = PERIOD_DAYS[period];
 
@@ -319,7 +325,7 @@ export default function Dashboard({ data: logged, biometrics, profile }: Props) 
       {/* ── Summary: also the page header, like the Today card on Habits ── */}
       <DashboardSummary
         ctx={ctx}
-        toggle={<PeriodToggle period={period} onChange={setPeriod} />}
+        toggle={<PeriodToggle period={period} onChange={setPeriod} historyDays={limits.historyDays} />}
         note={hasWearableData ? "Wearable data included." : undefined}
         report={<WeeklyReportCard data={data} biometrics={biometrics} profile={profile} />}
       />
@@ -339,7 +345,7 @@ export default function Dashboard({ data: logged, biometrics, profile }: Props) 
 
       {hasWearableData && (<>
       {/* ── Today's overview ── */}
-      <Section title="Today's overview" sub="Snapshot from your latest device sync">
+      {bio && (<Section title="Today's overview" sub="Snapshot from your latest device sync">
         <div className="grid gap-6 lg:grid-cols-3">
           <ChartCard title="Health radar" sub="Across 7 dimensions">
             <ResponsiveContainer width="100%" height={220}>
@@ -389,10 +395,10 @@ export default function Dashboard({ data: logged, biometrics, profile }: Props) 
             </ul>
           </ChartCard>
         </div>
-      </Section>
+      </Section>)}
 
       {/* ── Vitals ── */}
-      <Section title="Vitals" sub="Heart, oxygen and respiratory data from your wearable">
+      {bio && (<Section title="Vitals" sub="Heart, oxygen and respiratory data from your wearable">
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
           <VitalCard label="Resting heart rate" value={String(hrNow)} unit="bpm"
             sub={`avg ${Math.round(avg(hrSlice))} this ${period}`} trend={trend(hrSlice)} good="down" />
@@ -414,7 +420,7 @@ export default function Dashboard({ data: logged, biometrics, profile }: Props) 
             <TrendArea data={chartData(hrvSlice)} color={C.teal} id="gHRV" unit=" ms" name="HRV" width={28} />
           </ChartCard>
         </div>
-      </Section>
+      </Section>)}
 
       {/* ── Activity ── */}
       <Section title="Activity" sub="Steps, calories, VO₂ max and stand hours">
@@ -446,9 +452,15 @@ export default function Dashboard({ data: logged, biometrics, profile }: Props) 
           </ChartCard>
         </div>
       </Section>
+      {!bio && (
+        <UpgradeNote
+          title="Vitals, sleep stages and recovery are part of Premium"
+          body="Your steps and activity stay free. Premium adds heart rate, HRV, sleep stages, recovery and the rest of your wearable data."
+        />
+      )}
 
       {/* ── Sleep ── */}
-      <Section title="Sleep" sub="Stages and quality from your wearable">
+      {bio && (<Section title="Sleep" sub="Stages and quality from your wearable">
         <div className="grid gap-6 lg:grid-cols-3">
           <ChartCard title="Last night's stages" sub={`${sleepTotal.toFixed(1)}h total`}>
             <div className="flex items-center gap-4">
@@ -478,10 +490,10 @@ export default function Dashboard({ data: logged, biometrics, profile }: Props) 
             <TrendArea data={chartData(deepSlice)} color={C.primary} id="gDeep" height={140} domain={[0, 2.5]} unit="h" name="Deep" width={20} />
           </ChartCard>
         </div>
-      </Section>
+      </Section>)}
 
       {/* ── Recovery & Body ── */}
-      <Section title="Recovery and body" sub="Trends over time">
+      {bio && (<Section title="Recovery and body" sub="Trends over time">
         <div className="grid gap-6 lg:grid-cols-3">
           <ChartCard title="Recovery score" sub="0–100, higher is better">
             <ResponsiveContainer width="100%" height={140}>
@@ -509,7 +521,7 @@ export default function Dashboard({ data: logged, biometrics, profile }: Props) 
             <TrendArea data={chartData(weightSlice)} color={C.meds} id="gW8" height={140} unit=" kg" name="Weight" />
           </ChartCard>
         </div>
-      </Section>
+      </Section>)}
 
       </>)}
     </div>

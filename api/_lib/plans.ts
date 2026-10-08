@@ -1,6 +1,9 @@
 // What each plan includes, in one place, so the server enforces exactly what
-// the pricing page promises. Not wired in yet: until payments are live every
-// member gets the current shared allowance (DAILY_AI_LIMIT in aiUsage.ts).
+// the pricing page promises. Limits apply only once enforcement is switched on
+// (plan_settings.enforced, migration 035); until then every member keeps the
+// current shared allowance (DAILY_AI_LIMIT in aiUsage.ts).
+
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type Plan = "free" | "premium" | "max";
 
@@ -42,3 +45,17 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     historyDays: null, wearableBiometrics: true, interactionAi: true, csvExport: true,
   },
 };
+
+export interface PlanState {
+  plan: Plan;
+  /** False until paid plans open; limits are not applied while it is. */
+  enforced: boolean;
+}
+
+/** The member's plan and whether limits are on. Fails open (not enforced) if migration 035 hasn't run. */
+export async function planOf(db: SupabaseClient, userId: string): Promise<PlanState> {
+  const { data, error } = await db.rpc("plan_state", { p_user: userId });
+  const plan = (data as { plan?: unknown } | null)?.plan;
+  if (error || (plan !== "free" && plan !== "premium" && plan !== "max")) return { plan: "max", enforced: false };
+  return { plan, enforced: (data as { enforced?: unknown }).enforced === true };
+}

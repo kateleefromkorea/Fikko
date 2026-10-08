@@ -30,13 +30,17 @@ export async function mealItemsOn(userId: string, date: string, meal: MealKey): 
  */
 export async function recentFoods(userId: string, meal: MealKey, limit = 8): Promise<FoodLogItem[]> {
   const since = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
-  const { data } = await supabase.from("food_log_items").select(`${COLUMNS}, date`)
-    .eq("user_id", userId).gte("date", since)
-    .order("date", { ascending: false }).limit(300);
+  const [{ data }, hidden] = await Promise.all([
+    supabase.from("food_log_items").select(`${COLUMNS}, date`)
+      .eq("user_id", userId).gte("date", since)
+      .order("date", { ascending: false }).limit(300),
+    hiddenRecent(userId),
+  ]);
   const byName = new Map<string, { item: FoodLogItem; atMeal: number; last: number }>();
   (data ?? []).forEach((r, i) => {
     const item = toItem(r);
     const key = item.name.toLowerCase();
+    if (hidden.has(key)) return;
     const seen = byName.get(key);
     if (!seen) byName.set(key, { item, atMeal: item.meal === meal ? 1 : 0, last: i });
     else if (item.meal === meal) seen.atMeal++;
@@ -45,4 +49,24 @@ export async function recentFoods(userId: string, meal: MealKey, limit = 8): Pro
     .sort((a, b) => (b.atMeal > 0 ? 1 : 0) - (a.atMeal > 0 ? 1 : 0) || a.last - b.last)
     .slice(0, limit)
     .map((x) => x.item);
+}
+
+// Foods a member has removed from their Recent list. Only the list changes:
+// past log entries stay, so old days keep their totals.
+
+async function hiddenRecent(userId: string): Promise<Set<string>> {
+  const { data } = await supabase.from("hidden_recent_foods").select("name").eq("user_id", userId);
+  return new Set((data ?? []).map((r) => String(r.name)));
+}
+
+/** Takes a food off the Recent list. */
+export async function hideRecentFood(userId: string, name: string) {
+  const { error } = await supabase.from("hidden_recent_foods")
+    .upsert({ user_id: userId, name: name.toLowerCase().slice(0, 200) }, { onConflict: "user_id,name", ignoreDuplicates: true });
+  if (error) throw error;
+}
+
+/** Puts a food back on the Recent list, once it's logged again. */
+export async function unhideRecentFood(userId: string, name: string) {
+  await supabase.from("hidden_recent_foods").delete().eq("user_id", userId).eq("name", name.toLowerCase().slice(0, 200));
 }

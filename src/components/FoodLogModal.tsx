@@ -1,7 +1,7 @@
 import { Suspense, lazy, useCallback, useEffect, useState, type KeyboardEvent } from "react";
 import { BookmarkPlus, ChevronDown, History, ListChecks, Loader2, PencilLine, Plus, Repeat, ScanBarcode, Search, X, type LucideIcon } from "lucide-react";
 import { cachedSearch, lookupBarcode, searchFoods, type FoodResult } from "../lib/usdaFoodSearch";
-import { mealItemsOn, recentFoods } from "../lib/foodHistory";
+import { hideRecentFood, mealItemsOn, recentFoods, unhideRecentFood } from "../lib/foodHistory";
 import { shiftDateKey } from "../lib/dates";
 import { savedMealCalories, type SavedMeal, type SavedMealItem } from "../hooks/useSavedMeals";
 import type { NewFood } from "../hooks/useFoodLog";
@@ -166,6 +166,18 @@ export default function FoodLogModal({
     return () => { live = false; };
   }, [userId, meal, date]);
 
+  // Off the Recent list only; the days it was logged keep it.
+  function removeRecent(food: FoodLogItem) {
+    if (!userId) return;
+    const before = recent;
+    setRecent((list) => list.filter((r) => r.name.toLowerCase() !== food.name.toLowerCase()));
+    hideRecentFood(userId, food.name).catch((err) => {
+      // Didn't save: put it back so the list matches what's stored.
+      setRecent(before);
+      setError(friendlyError(err, "We couldn't remove that from Recent."));
+    });
+  }
+
   const total = items.reduce((sum, i) => sum + i.calories, 0);
   const mealMacros = sumMacros(items);
   const macrosKnown = items.length === 0 || mealMacros.missing < items.length;
@@ -285,6 +297,7 @@ export default function FoodLogModal({
   const defaultGrams = (r: FoodResult) => r.servingGrams ?? 100;
 
   function addResult(result: FoodResult) {
+    if (userId) void unhideRecentFood(userId, result.name);
     const grams = clamp(parseFloat(gramsByResult[result.id] ?? "") || defaultGrams(result), DB_LIMITS.foodGrams);
     onAdd({
       name: result.brand && !result.name.toLowerCase().includes(result.brand.toLowerCase()) ? `${result.name} (${result.brand})` : result.name,
@@ -317,6 +330,7 @@ export default function FoodLogModal({
     setPendingBarcode(null);
     setNotFound(false);
     setManualMode(false);
+    if (userId) void unhideRecentFood(userId, name);
     void Promise.resolve(onAdd({ name, grams, caloriesPer100g, ...macros })).then((ok) => {
       // Didn't save: put the entry back so it's one tap to try again.
       if (ok === false) {
@@ -346,7 +360,7 @@ export default function FoodLogModal({
    * One row of a food you can add, from search, a scan or the recent list. A
    * render function rather than a component, so typing grams keeps focus.
    */
-  const resultRow = (result: FoodResult, amountLabel = "serving") => {
+  const resultRow = (result: FoodResult, amountLabel = "serving", onRemove?: () => void) => {
     const grams = parseFloat(gramsByResult[result.id] ?? "") || defaultGrams(result);
     return (
       <li key={result.id} className="flex flex-wrap items-center gap-x-2 gap-y-2 px-4 py-3.5">
@@ -383,6 +397,18 @@ export default function FoodLogModal({
             <Plus />
             Add
           </Button>
+          {onRemove && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onRemove}
+              aria-label={`Remove ${result.name} from recent`}
+              title="Remove from recent"
+              className="size-9 text-muted-foreground"
+            >
+              <X />
+            </Button>
+          )}
         </div>
       </li>
     );
@@ -686,7 +712,7 @@ export default function FoodLogModal({
                   </p>
                   <ul className="divide-y rounded-lg border bg-card">
                     {recentToShow.map((r) => (
-                      resultRow({ id: `recent-${r.id}`, name: r.name, caloriesPer100g: r.caloriesPer100g, proteinPer100g: r.proteinPer100g, carbsPer100g: r.carbsPer100g, fatPer100g: r.fatPer100g, servingGrams: r.grams }, "last time")
+                      resultRow({ id: `recent-${r.id}`, name: r.name, caloriesPer100g: r.caloriesPer100g, proteinPer100g: r.proteinPer100g, carbsPer100g: r.carbsPer100g, fatPer100g: r.fatPer100g, servingGrams: r.grams }, "last time", () => removeRecent(r))
                     ))}
                   </ul>
                   {(recentHidden > 0 || (showAllRecent && recentNotLogged.length > RECENT_SHOWN)) && (

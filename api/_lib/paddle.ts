@@ -59,3 +59,41 @@ export async function cancelPaddleSubscription(subscriptionId: string, when: "ne
     return false;
   }
 }
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+type Status = "active" | "trialing" | "past_due" | "canceled";
+/** Paddle's statuses → ours. A paused subscription has no access until it resumes. */
+const STATUS: Record<string, Status> = { active: "active", trialing: "trialing", past_due: "past_due", paused: "canceled", canceled: "canceled" };
+
+export interface PaddleSubscription {
+  id?: string;
+  status?: string;
+  customer_id?: string;
+  custom_data?: { user_id?: unknown } | null;
+  items?: { price?: { id?: string } | null }[];
+  current_billing_period?: { ends_at?: string } | null;
+}
+
+/**
+ * The `subscriptions` row for a Paddle subscription, or null when it can't be
+ * matched to a member or a plan we sell. Shared by the webhook and the nightly
+ * reconcile so both write exactly the same thing.
+ */
+export function subscriptionRow(sub: PaddleSubscription) {
+  const userId = sub.custom_data?.user_id;
+  const plan = planForPrice(sub.items?.[0]?.price?.id);
+  const status = STATUS[sub.status ?? ""];
+  if (typeof userId !== "string" || !UUID.test(userId) || !plan || !status || !sub.id) return null;
+  return {
+    user_id: userId,
+    plan,
+    status,
+    source: "paddle" as const,
+    provider_customer_id: sub.customer_id ?? null,
+    provider_subscription_id: sub.id,
+    // Access runs to the end of the paid period; a canceled or paused plan ends now.
+    current_period_end: status === "canceled" ? new Date().toISOString() : sub.current_billing_period?.ends_at ?? null,
+    updated_at: new Date().toISOString(),
+  };
+}

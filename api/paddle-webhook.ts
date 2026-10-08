@@ -8,22 +8,7 @@
 // events, then put the endpoint's secret in PADDLE_WEBHOOK_SECRET.
 
 import { admin, json, supabaseReady } from "./_lib/devices.js";
-import { planForPrice, validSignature } from "./_lib/paddle.js";
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-type Status = "active" | "trialing" | "past_due" | "canceled";
-/** Paddle's statuses → ours. A paused subscription has no access until it resumes. */
-const STATUS: Record<string, Status> = { active: "active", trialing: "trialing", past_due: "past_due", paused: "canceled", canceled: "canceled" };
-
-interface PaddleSubscription {
-  id?: string;
-  status?: string;
-  customer_id?: string;
-  custom_data?: { user_id?: unknown } | null;
-  items?: { price?: { id?: string } | null }[];
-  current_billing_period?: { ends_at?: string } | null;
-}
+import { subscriptionRow, validSignature, type PaddleSubscription } from "./_lib/paddle.js";
 
 async function handlePOST(request: Request) {
   const secret = process.env.PADDLE_WEBHOOK_SECRET;
@@ -38,28 +23,13 @@ async function handlePOST(request: Request) {
   // Other events (transactions, customers) aren't needed; acknowledge so Paddle stops retrying.
   if (!event.event_type?.startsWith("subscription.") || !event.data) return json({ ok: true, ignored: true });
 
-  const sub = event.data;
-  const userId = sub.custom_data?.user_id;
-  const plan = planForPrice(sub.items?.[0]?.price?.id);
-  const status = STATUS[sub.status ?? ""];
-  if (typeof userId !== "string" || !UUID.test(userId) || !plan || !status || !sub.id) {
-    console.warn("paddle-webhook: skipped", event.event_type, sub.id);
+  const row = subscriptionRow(event.data);
+  if (!row) {
+    console.warn("paddle-webhook: skipped", event.event_type, event.data.id);
     return json({ ok: true, ignored: true });
   }
 
-  // Access runs to the end of the paid period; a canceled or paused plan ends now.
-  const ends = status === "canceled" ? new Date().toISOString() : sub.current_billing_period?.ends_at ?? null;
-
-  const { error } = await admin().from("subscriptions").upsert({
-    user_id: userId,
-    plan,
-    status,
-    source: "paddle",
-    provider_customer_id: sub.customer_id ?? null,
-    provider_subscription_id: sub.id,
-    current_period_end: ends,
-    updated_at: new Date().toISOString(),
-  }, { onConflict: "user_id" });
+  const { error } = await admin().from("subscriptions").upsert(row, { onConflict: "user_id" });
 
   // A deleted member can't hold a subscription: acknowledge instead of retrying forever.
   if (error?.code === "23503") return json({ ok: true, ignored: true });

@@ -59,6 +59,10 @@
       "schedule": "0 4 * * *"
     },
     {
+      "path": "/api/paddle-reconcile",
+      "schedule": "30 4 * * *"
+    },
+    {
       "path": "/api/email",
       "schedule": "0 * * * *"
     }

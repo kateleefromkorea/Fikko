@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Loader2, MailCheck } from "lucide-react";
 import { useAuth } from "./AuthProvider";
 import GoogleButton from "./GoogleButton";
+import TurnstileWidget, { TURNSTILE_SITE_KEY } from "./TurnstileWidget";
 import { DELETION_GRACE_DAYS } from "../lib/account";
 import TestimonialLoop from "./TestimonialLoop";
 import { SHOW_TESTIMONIALS } from "./testimonials";
@@ -38,6 +39,11 @@ export default function SignInScreen() {
   const [resent, setResent] = useState<"sent" | string | null>(null);
   // Signing in before confirming the email offers the link again too.
   const [unconfirmed, setUnconfirmed] = useState(false);
+  // Cloudflare Turnstile: tokens are single-use, so the widget is reset after every attempt.
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaReset, setCaptchaReset] = useState(0);
+  const needsCaptcha = !!TURNSTILE_SITE_KEY && !checkEmail;
+  const newCaptcha = () => { setCaptchaToken(null); setCaptchaReset((n) => n + 1); };
 
   useEffect(() => {
     if (!resendAt) return;
@@ -54,14 +60,16 @@ export default function SignInScreen() {
     if (wait > 0 || resending) return;
     setResending(true);
     setResent(null);
-    const { error } = mode === "reset" ? await sendPasswordReset(email) : await resendConfirmation(email);
+    const { error } = mode === "reset" ? await sendPasswordReset(email, captchaToken ?? undefined) : await resendConfirmation(email, captchaToken ?? undefined);
     setResending(false);
+    newCaptcha();
     setResent(error ?? "sent");
     startWait();
   }
 
   async function resendFromSignIn() {
-    const { error } = await resendConfirmation(email);
+    const { error } = await resendConfirmation(email, captchaToken ?? undefined);
+    newCaptcha();
     if (error) return setError(error);
     setMode("signup");
     setUnconfirmed(false);
@@ -77,11 +85,12 @@ export default function SignInScreen() {
     setSubmitting(true);
     const { error } =
       mode === "signin"
-        ? await signInWithPassword(email, password)
+        ? await signInWithPassword(email, password, captchaToken ?? undefined)
         : mode === "signup"
-          ? await signUpWithPassword(email, password)
-          : await sendPasswordReset(email);
+          ? await signUpWithPassword(email, password, captchaToken ?? undefined)
+          : await sendPasswordReset(email, captchaToken ?? undefined);
     setSubmitting(false);
+    newCaptcha();
     setUnconfirmed(false);
     if (error) {
       setError(error);
@@ -213,13 +222,14 @@ export default function SignInScreen() {
                     />
                   </div>
                   )}
+                  <TurnstileWidget onToken={setCaptchaToken} resetKey={captchaReset} />
                   {error && <p className="text-sm text-destructive">{error}</p>}
                   {unconfirmed && (
                     <Button type="button" variant="link" onClick={() => void resendFromSignIn()} className="h-auto p-0 text-sm">
                       Send the confirmation link again
                     </Button>
                   )}
-                  <Button type="submit" disabled={submitting} className="h-10 w-full">
+                  <Button type="submit" disabled={submitting || (needsCaptcha && !captchaToken)} className="h-10 w-full">
                     {submitting && <Loader2 className="animate-spin" />}
                     {mode === "signin" ? "Sign in" : mode === "signup" ? "Create account" : "Send reset link"}
                   </Button>

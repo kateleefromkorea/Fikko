@@ -8,14 +8,14 @@ interface AuthContextValue {
   session: Session | null;
   user: User | null;
   loading: boolean;
-  signInWithPassword: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUpWithPassword: (email: string, password: string) => Promise<{ error: string | null }>;
+  signInWithPassword: (email: string, password: string, captchaToken?: string) => Promise<{ error: string | null }>;
+  signUpWithPassword: (email: string, password: string, captchaToken?: string) => Promise<{ error: string | null }>;
   /** Emails the sign-up confirmation link again, for an account that isn't confirmed yet. */
-  resendConfirmation: (email: string) => Promise<{ error: string | null }>;
+  resendConfirmation: (email: string, captchaToken?: string) => Promise<{ error: string | null }>;
   signInWithGoogle: () => Promise<{ error: string | null }>;
   /** Signs in with the ID token from Google's own button (see GoogleButton). */
   signInWithGoogleToken: (token: string, nonce: string) => Promise<{ error: string | null }>;
-  sendPasswordReset: (email: string) => Promise<{ error: string | null }>;
+  sendPasswordReset: (email: string, captchaToken?: string) => Promise<{ error: string | null }>;
   updatePassword: (password: string) => Promise<{ error: string | null }>;
   /** True after arriving from a password-reset email, until a new password is set. */
   recovering: boolean;
@@ -58,19 +58,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  async function signInWithPassword(email: string, password: string) {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+  async function signInWithPassword(email: string, password: string, captchaToken?: string) {
+    const { error } = await supabase.auth.signInWithPassword({ email, password, options: { captchaToken } });
     return { error: error?.message ?? null };
   }
 
-  async function signUpWithPassword(email: string, password: string) {
+  async function signUpWithPassword(email: string, password: string, captchaToken?: string) {
     // The confirmation email links back here (or into the mobile app); see email-templates/.
-    const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: authRedirectUrl() } });
+    const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: authRedirectUrl(), captchaToken } });
     return { error: error?.message ?? null };
   }
 
-  async function resendConfirmation(email: string) {
-    const { error } = await supabase.auth.resend({ type: "signup", email, options: { emailRedirectTo: authRedirectUrl() } });
+  async function resendConfirmation(email: string, captchaToken?: string) {
+    const { error } = await supabase.auth.resend({ type: "signup", email, options: { emailRedirectTo: authRedirectUrl(), captchaToken } });
     return { error: error?.message ?? null };
   }
 
@@ -90,8 +90,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null };
   }
 
-  async function sendPasswordReset(email: string) {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: authRedirectUrl() });
+  async function sendPasswordReset(email: string, captchaToken?: string) {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: authRedirectUrl(), captchaToken });
     return { error: error?.message ?? null };
   }
 

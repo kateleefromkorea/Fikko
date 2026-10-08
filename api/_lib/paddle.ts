@@ -33,3 +33,29 @@ export function validSignature(header: string | null, rawBody: string, secret: s
   const b = Buffer.from(h1);
   return a.length === b.length && timingSafeEqual(a, b);
 }
+
+/**
+ * Cancels a member's Paddle subscription so it stops billing. "next_billing_period"
+ * keeps the access they've paid for until it ends; "immediately" stops it now.
+ * Returns true when the subscription is no longer going to renew (including when
+ * it was already canceled), false if Paddle couldn't be reached or refused.
+ */
+export async function cancelPaddleSubscription(subscriptionId: string, when: "next_billing_period" | "immediately") {
+  const key = process.env.PADDLE_API_KEY;
+  if (!key) return false;
+  const headers = { Authorization: `Bearer ${key}`, "Content-Type": "application/json" };
+  try {
+    const current = await fetch(`${paddleApi()}/subscriptions/${subscriptionId}`, { headers });
+    if (current.status === 404) return true; // already gone
+    const body = (await current.json().catch(() => null)) as { data?: { status?: string } } | null;
+    if (body?.data?.status === "canceled") return true;
+    const res = await fetch(`${paddleApi()}/subscriptions/${subscriptionId}/cancel`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ effective_from: when }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}

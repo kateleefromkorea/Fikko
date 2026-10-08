@@ -12,11 +12,13 @@
 // Every table references auth.users with ON DELETE CASCADE, so removing the
 // auth user removes their profile, habits, food log, medications and saved
 // foods with it. Recipe photos live in storage, which doesn't cascade, so
-// those are removed first.
+// those are removed first. A Paddle subscription is canceled first too, since
+// deleting the account would otherwise leave it billing.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { admin, decryptToken, json, memberFrom, providerFor, supabaseReady } from "./_lib/devices.js";
 import { OPTIONS, withCors } from "./_lib/cors.js";
+import { cancelPaddleSubscription } from "./_lib/paddle.js";
 
 const GRACE_DAYS = 30;
 
@@ -33,6 +35,12 @@ async function handlePOST(request: Request) {
   const scheduledFor = new Date(Date.now() + GRACE_DAYS * 24 * 60 * 60 * 1000).toISOString();
   const { error } = await db.from("profiles").update({ deletion_scheduled_for: scheduledFor }).eq("user_id", member.id);
   if (error) return json({ error: "We couldn't delete your account. Please try again." }, 500);
+
+  // Stop billing now. Paddle keeps their access to the end of the period they've paid for, but it
+  // won't renew. If this fails, the purge below cancels it again and won't delete the account until it works.
+  const { data: sub } = await db.from("subscriptions")
+    .select("provider_subscription_id").eq("user_id", member.id).eq("source", "paddle").maybeSingle();
+  if (sub?.provider_subscription_id) await cancelPaddleSubscription(sub.provider_subscription_id, "next_billing_period");
 
   // Feedback is anonymous and optional; failing to save it shouldn't block leaving.
   if (reason) await db.from("account_deletion_feedback").insert({ reason, details: details || null });
@@ -69,6 +77,14 @@ async function purgeAccount(db: SupabaseClient, userId: string) {
   // Revoke Fikko's access at any connected wearable provider before the tokens are deleted.
   const { data: conns } = await db.from("device_connections").select("provider, access_token").eq("user_id", userId);
   for (const c of conns ?? []) await providerFor(c.provider)?.revoke(await decryptToken(c.access_token));
+
+  // Never leave a subscription billing for an account that no longer exists. If Paddle can't be
+  // reached this throws, so the account is kept and the nightly job tries again.
+  const { data: sub } = await db.from("subscriptions")
+    .select("provider_subscription_id").eq("user_id", userId).eq("source", "paddle").maybeSingle();
+  if (sub?.provider_subscription_id && !(await cancelPaddleSubscription(sub.provider_subscription_id, "immediately"))) {
+    throw new Error("Couldn't cancel the Paddle subscription.");
+  }
 
   // Photos are stored under "<user id>/" in the recipe-photos bucket.
   const photos = await db.storage.from("recipe-photos").list(userId, { limit: 1000 });

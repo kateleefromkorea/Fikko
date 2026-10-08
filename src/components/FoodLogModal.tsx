@@ -38,6 +38,7 @@ interface Props {
   onAddMany: (foods: NewFood[]) => void | Promise<boolean>;
   onUpdateGrams: (itemId: string, grams: number) => void;
   onDelete: (itemId: string) => void;
+  onDeleteMany: (ids: string[]) => void | Promise<boolean>;
   onSaveFood: (name: string, caloriesPer100g: number, macros?: MacrosPer100g, barcode?: string) => void;
   onSaveMeal: (name: string, items: SavedMealItem[]) => Promise<void>;
   onDeleteMeal: (id: string) => void;
@@ -137,7 +138,7 @@ const asNewFood = (f: FoodLogItem | SavedMealItem): NewFood => ({
 });
 
 export default function FoodLogModal({
-  meal, mealLabel, date, userId, items, savedFoods, savedMeals, onAdd, onAddMany, onUpdateGrams, onDelete,
+  meal, mealLabel, date, userId, items, savedFoods, savedMeals, onAdd, onAddMany, onUpdateGrams, onDelete, onDeleteMany,
   onSaveFood, onSaveMeal, onDeleteMeal, onClose, showMacros, error: saveError,
 }: Props) {
   const [query, setQuery] = useState("");
@@ -394,8 +395,8 @@ export default function FoodLogModal({
     const base = defaultGrams(result);
     const label = portionLabel(result);
     return (
-      <li key={result.id} className="flex flex-wrap items-center gap-x-2 gap-y-2 px-4 py-3.5">
-        <div className="min-w-0 flex-1 basis-48">
+      <li key={result.id} className="space-y-2.5 px-4 py-3">
+        <div className="min-w-0">
           <div className="flex items-center gap-1.5">
             <p className="truncate text-[15px] font-medium">{result.name}</p>
             {result.saved && <Badge variant="secondary">Saved</Badge>}
@@ -407,7 +408,8 @@ export default function FoodLogModal({
             {showMacros && (() => { const m = macrosFor({ ...result, grams: 100 }); return m ? ` · ${formatMacros(m)}` : ""; })()}
           </p>
         </div>
-        {/* Wraps under the name, and onto a second line itself, on a narrow phone. */}
+        {/* The amount on its own full-width line under the name: portions and grams on
+            the left, calories and Add on the right. Wraps again on a narrow phone. */}
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           {/* Quick amounts: half, one or two of the usual portion. */}
           <div className="flex rounded-lg bg-muted p-0.5" role="group" aria-label={`Portions of ${result.name}`}>
@@ -440,7 +442,7 @@ export default function FoodLogModal({
             className="h-9 w-20"
           />
           <span className="text-sm text-muted-foreground">g</span>
-          <span className="w-16 text-right text-sm text-muted-foreground tabular-nums" aria-live="polite">
+          <span className="ml-auto text-right text-sm whitespace-nowrap text-muted-foreground tabular-nums" aria-live="polite">
             {Math.round((result.caloriesPer100g * grams) / 100)} kcal
           </span>
           <Button onClick={() => addResult(result)} className="h-9 px-4">
@@ -586,7 +588,7 @@ export default function FoodLogModal({
 
         {/* 2 · Finding a food: search, scan, photo, and one-tap repeats. */}
         <section aria-labelledby="sec-search" className="space-y-3 rounded-2xl border bg-card p-3.5 shadow-xs sm:p-4">
-          <SectionHeader icon={Sparkles} id="sec-search" title="Add food" hint="Say it, type it or snap it. Fikko works out the foods and portions." />
+          <SectionHeader icon={Sparkles} id="sec-search" title="Add food" hint="The quickest way: just tell Fikko. Or browse below." />
 
           <div className="space-y-3">
             {/* Describing comes first: it handles whole dishes and shared plates far better than a database search. */}
@@ -594,6 +596,7 @@ export default function FoodLogModal({
               meal={meal}
               mealLabel={mealLabel}
               onAddMany={onAddMany}
+              onUndo={onDeleteMany}
               onSnap={() => openPhoto.current?.()}
               onScan={toggleScan}
               scanning={scanning}
@@ -617,7 +620,7 @@ export default function FoodLogModal({
 
           {/* Search, for when you know exactly what it was. */}
           <div className="space-y-3 border-t pt-3">
-            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Or search foods</p>
+            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Or find it yourself</p>
             <div className="flex gap-2">
               <div className="relative min-w-0 flex-1">
                 <Search className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { Camera, Loader2, Mic, Minus, Plus, ScanBarcode, Sparkles, Square, X } from "lucide-react";
+import { ArrowUp, Camera, Check, Loader2, Mic, Minus, Plus, ScanBarcode, Sparkles, Square, Undo2, X } from "lucide-react";
 import type { MealKey } from "../types";
 import type { NewFood } from "../hooks/useFoodLog";
 import { describeMeal, gramsEaten, portionText, type DescribedFood } from "../lib/describeMeal";
@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 const MAX_TEXT = 500;
 const SHARE_OPTIONS = [1, 2, 3, 4];
 const STEP = 0.5;
+const EXAMPLES = ["chicken rice and an iced kopi", "2 eggs on toast", "a bowl of ramen, shared the gyoza"];
 
 type Stage = "describing" | "listening" | "thinking" | "review";
 
@@ -22,10 +23,12 @@ type Stage = "describing" | "listening" | "thinking" | "review";
  * list (portions in plates and bowls, and who shared what) and add it in one go.
  * Snap and Scan hand over to the photo log and barcode scanner below it.
  */
-export default function DescribeMeal({ meal, mealLabel, onAddMany, onSnap, onScan, scanning, showMacros }: {
+export default function DescribeMeal({ meal, mealLabel, onAddMany, onUndo, onSnap, onScan, scanning, showMacros }: {
   meal: MealKey;
   mealLabel: string;
   onAddMany: (foods: NewFood[]) => void;
+  /** Removes foods just added, by id. */
+  onUndo: (ids: string[]) => void | Promise<boolean>;
   onSnap: () => void;
   onScan: () => void;
   scanning: boolean;
@@ -37,7 +40,8 @@ export default function DescribeMeal({ meal, mealLabel, onAddMany, onSnap, onSca
   const [foods, setFoods] = useState<DescribedFood[]>([]);
   const [notUnderstood, setNotUnderstood] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [added, setAdded] = useState<string | null>(null);
+  const [added, setAdded] = useState<{ name: string; kcal: number }[] | null>(null);
+  const [addedIds, setAddedIds] = useState<string[]>([]);
   const recognizer = useRef<SpeechRecognitionLike | null>(null);
   const canListen = speechRecognition() != null;
 
@@ -106,6 +110,12 @@ export default function DescribeMeal({ meal, mealLabel, onAddMany, onSnap, onSca
     }
   }
 
+  function undo() {
+    void onUndo(addedIds);
+    setAdded(null);
+    setAddedIds([]);
+  }
+
   function onKey(e: KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -124,6 +134,7 @@ export default function DescribeMeal({ meal, mealLabel, onAddMany, onSnap, onSca
   function add() {
     const items = foods
       .map((f): NewFood => ({
+        id: crypto.randomUUID(),
         name: f.name.slice(0, DB_LIMITS.foodNameLength),
         grams: grams(f),
         caloriesPer100g: f.caloriesPer100g,
@@ -134,7 +145,8 @@ export default function DescribeMeal({ meal, mealLabel, onAddMany, onSnap, onSca
       .filter((f) => f.grams > 0);
     if (!items.length) return;
     onAddMany(items);
-    setAdded(`Added ${items.length} ${items.length === 1 ? "food" : "foods"} to ${mealLabel.toLowerCase()}.`);
+    setAddedIds(items.map((i) => i.id!));
+    setAdded(foods.filter((f) => grams(f) > 0).map((f) => ({ name: f.name, kcal: kcal(f) })));
     setFoods([]);
     setText("");
     setNotUnderstood(null);
@@ -143,7 +155,7 @@ export default function DescribeMeal({ meal, mealLabel, onAddMany, onSnap, onSca
 
   if (stage === "review") {
     return (
-      <div className="space-y-3 rounded-xl border border-[#1A9C8C]/40 bg-[#F4FBFA] p-3 sm:p-3.5">
+      <div className="space-y-3 rounded-2xl border border-[#1A9C8C]/40 bg-[#F4FBFA] p-3 shadow-sm sm:p-4">
         <div className="flex items-start gap-2">
           <Sparkles className="mt-0.5 size-4 shrink-0 text-[#0A6E63]" aria-hidden="true" />
           <div className="min-w-0">
@@ -221,56 +233,115 @@ export default function DescribeMeal({ meal, mealLabel, onAddMany, onSnap, onSca
 
   const listening = stage === "listening";
   const thinking = stage === "thinking";
+  const shown = listening && interim ? `${text}${text ? " " : ""}${interim}` : text;
+  const canSend = !!shown.trim() && !thinking && !listening;
+
+  if (thinking) {
+    return (
+      <div role="status" aria-live="polite" className="space-y-3 rounded-2xl border border-[#1A9C8C]/30 bg-gradient-to-br from-[#E9F7F5] to-[#EAF4FB] p-4">
+        <p className="flex items-center gap-2 text-sm font-semibold text-[#0A6E63]">
+          <Sparkles className="size-4 animate-pulse" aria-hidden="true" />
+          Fikko is working out the foods and portions…
+        </p>
+        <p className="text-sm text-muted-foreground">“{shown.trim()}”</p>
+        <div className="space-y-2" aria-hidden="true">
+          <div className="h-3 w-3/4 animate-pulse rounded-full bg-[#1A9C8C]/15" />
+          <div className="h-3 w-1/2 animate-pulse rounded-full bg-[#1A9C8C]/15" />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-2.5">
-      <div className={cn("rounded-xl border bg-background transition-shadow focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/30", listening && "border-[#1A9C8C] ring-3 ring-[#1A9C8C]/20")}>
+    <div className="space-y-3 rounded-2xl border border-[#1A9C8C]/30 bg-gradient-to-br from-[#E9F7F5] to-[#EAF4FB] p-3 shadow-sm sm:p-4">
+      <div className="flex items-center gap-2">
+        <span className="inline-flex items-center gap-1 rounded-full bg-[#1A9C8C] px-2 py-0.5 text-xs font-semibold text-white">
+          <Sparkles className="size-3" aria-hidden="true" />
+          AI
+        </span>
+        <p className="text-sm font-semibold text-[#0A5A51]">Tell Fikko what you ate</p>
+      </div>
+
+      <div className={cn("rounded-xl border border-[#1A9C8C]/40 bg-white shadow-xs transition-shadow focus-within:border-[#1A9C8C] focus-within:ring-4 focus-within:ring-[#1A9C8C]/20", listening && "border-[#1A9C8C] ring-4 ring-[#1A9C8C]/20")}>
         <label htmlFor="describe-meal" className="sr-only">Describe your {mealLabel.toLowerCase()}</label>
         <textarea
           id="describe-meal"
           rows={2}
-          value={listening && interim ? `${text}${text ? " " : ""}${interim}` : text}
+          value={shown}
           onChange={(e) => { setText(e.target.value.slice(0, MAX_TEXT)); setAdded(null); setError(null); }}
           onKeyDown={onKey}
-          readOnly={listening || thinking}
-          placeholder={listening ? "Listening…" : "What did you have? e.g. chicken rice and an iced kopi, shared the chicken"}
-          className="block w-full resize-none rounded-xl bg-transparent px-3.5 py-2.5 text-base outline-none placeholder:text-muted-foreground md:text-sm"
+          readOnly={listening}
+          placeholder={listening ? "Listening…" : "Tell Fikko what you ate…"}
+          className="block w-full resize-none rounded-xl bg-transparent px-3.5 pt-3 pb-1 text-base outline-none placeholder:text-muted-foreground md:text-sm"
         />
+        <div className="flex items-center justify-end gap-2 px-2 pb-2">
+          {canListen && (
+            listening ? (
+              <Button type="button" size="icon" onClick={stopListening} aria-label="Stop listening" className="size-9 animate-pulse rounded-full">
+                <Square className="fill-current" />
+              </Button>
+            ) : (
+              <Button type="button" size="icon" variant="outline" onClick={listen} aria-label="Say it" className="size-9 rounded-full border-[#1A9C8C]/40 text-[#0A6E63]">
+                <Mic />
+              </Button>
+            )
+          )}
+          <Button type="button" size="icon" onClick={() => void workOut()} disabled={!canSend} aria-label="Log it" className="size-9 rounded-full">
+            <ArrowUp />
+          </Button>
+        </div>
       </div>
 
+      {!shown.trim() && !listening && (
+        <div className="flex flex-wrap gap-1.5" aria-label="Examples">
+          {EXAMPLES.map((ex) => (
+            <button
+              key={ex}
+              type="button"
+              onClick={() => { setText(ex); setError(null); setAdded(null); document.getElementById("describe-meal")?.focus(); }}
+              className="rounded-full border border-[#1A9C8C]/30 bg-white/70 px-3 py-1 text-xs text-[#0A5A51] transition-colors hover:bg-white"
+            >
+              {ex}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center gap-2">
-        {canListen && (
-          listening ? (
-            <Button onClick={stopListening} className="h-10 gap-2 px-4">
-              <Square className="fill-current" />
-              Stop
-            </Button>
-          ) : (
-            <Button variant={text ? "outline" : "default"} onClick={listen} disabled={thinking} className="h-10 gap-2 px-4">
-              <Mic />
-              Say it
-            </Button>
-          )
-        )}
-        <Button variant="outline" onClick={onSnap} disabled={listening || thinking} className="h-10 gap-2 px-4">
+        <span className="text-xs text-muted-foreground">or</span>
+        <Button variant="outline" onClick={onSnap} disabled={listening} className="h-9 flex-1 gap-2 bg-white sm:flex-none">
           <Camera />
           Snap it
         </Button>
-        <Button variant="outline" onClick={onScan} aria-pressed={scanning} disabled={listening || thinking} className="h-10 gap-2 px-4">
+        <Button variant="outline" onClick={onScan} aria-pressed={scanning} disabled={listening} className="h-9 flex-1 gap-2 bg-white sm:flex-none">
           <ScanBarcode />
           Scan
         </Button>
-        {(text.trim() || thinking) && (
-          <Button onClick={() => void workOut()} disabled={thinking} className="h-10 gap-2 px-4 sm:ml-auto">
-            {thinking ? <Loader2 className="animate-spin" /> : <Sparkles />}
-            {thinking ? "Working it out…" : "Work it out"}
-          </Button>
-        )}
       </div>
 
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-      {added && <p role="status" className="text-sm text-[#0A6E63]">{added}</p>}
+      {added && (
+        <div role="status" className="rounded-xl border border-[#1A9C8C]/40 bg-white/80 p-3">
+          <p className="flex items-center gap-1.5 text-sm font-semibold text-[#0A6E63]">
+            <Check className="size-4" aria-hidden="true" />
+            Added to {mealLabel.toLowerCase()}
+            <Button type="button" variant="ghost" size="sm" onClick={undo} className="ml-auto h-7 gap-1 px-2 text-[#0A6E63]">
+              <Undo2 />
+              Undo
+            </Button>
+          </p>
+          <ul className="mt-1.5 flex flex-wrap gap-1.5">
+            {added.map((a, i) => (
+              <li key={`${a.name}-${i}`} className="rounded-full bg-[#E9F7F5] px-2.5 py-0.5 text-xs tabular-nums text-[#0A5A51]">
+                {a.name} · {a.kcal} kcal
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1.5 text-xs text-muted-foreground">Not right? Undo, or edit it in your meal above.</p>
+        </div>
+      )}
       {!error && !added && (
-        <p className="text-xs text-muted-foreground">Fikko works out the foods and portions for you. Uses one of your daily AI messages.</p>
+        <p className="text-xs text-muted-foreground">Fikko works out the foods and portions. Uses one of your daily AI messages.</p>
       )}
     </div>
   );

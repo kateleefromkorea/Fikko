@@ -646,6 +646,7 @@ function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog, biome
           onAddMany={(foods) => foodLog.addItems(openMeal, foods)}
           onUpdateGrams={foodLog.updateGrams}
           onDelete={foodLog.deleteItem}
+          onDeleteMany={foodLog.deleteItems}
           onSaveFood={customFoods.saveFood}
           onSaveMeal={savedMeals.saveMeal}
           onDeleteMeal={savedMeals.deleteMeal}

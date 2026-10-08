@@ -5,7 +5,7 @@ import type { HabitUpdate } from "./useHabitData";
 
 const MEAL_KEYS: MealKey[] = ["breakfast", "lunch", "dinner", "snacks"];
 
-export type NewFood = { name: string; grams: number; caloriesPer100g: number } & MacrosPer100g;
+export type NewFood = { id?: string; name: string; grams: number; caloriesPer100g: number } & MacrosPer100g;
 
 function round(n: number) {
   return Math.round(n * 10) / 10;
@@ -155,7 +155,7 @@ export function useFoodLog(
     }
     const forDate = dateRef.current;
     const newItems: FoodLogItem[] = entries.map(({ meal, ...food }) => ({
-      id: crypto.randomUUID(),
+      id: food.id ?? crypto.randomUUID(),
       meal,
       name: food.name,
       grams: food.grams,
@@ -195,6 +195,12 @@ export function useFoodLog(
     return change(itemsRef.current.filter((item) => item.id !== itemId), () => supabase.from("food_log_items").delete().eq("id", itemId));
   }
 
+  /** Removes several foods in one save, e.g. to undo an AI add. */
+  async function deleteItems(ids: string[]) {
+    if (!readyRef.current || !ids.length) return false;
+    return change(itemsRef.current.filter((item) => !ids.includes(item.id)), () => supabase.from("food_log_items").delete().in("id", ids));
+  }
+
   return {
     items,
     loading,
@@ -205,6 +211,6 @@ export function useFoodLog(
     error,
     clearError: () => setError(null),
     reload: () => setReloadKey((k) => k + 1),
-    addItem, addItems, addEntries, updateGrams, deleteItem,
+    addItem, addItems, addEntries, updateGrams, deleteItem, deleteItems,
   };
 }

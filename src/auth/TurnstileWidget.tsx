@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /** Cloudflare Turnstile site key. Unset = no bot check (keep Supabase's CAPTCHA setting off too). */
 export const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined;
@@ -36,6 +36,8 @@ export default function TurnstileWidget({ onToken, resetKey }: { onToken: (token
   const widgetId = useRef<string | undefined>(undefined);
   const cb = useRef(onToken);
   cb.current = onToken;
+  // Blocked (ad blocker, stale service worker) or errored: say so, rather than leave a grey button.
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     if (!TURNSTILE_SITE_KEY) return;
@@ -45,12 +47,12 @@ export default function TurnstileWidget({ onToken, resetKey }: { onToken: (token
         if (cancelled || !box.current || !window.turnstile) return;
         widgetId.current = window.turnstile.render(box.current, {
           sitekey: TURNSTILE_SITE_KEY,
-          callback: (t: string) => cb.current(t),
+          callback: (t: string) => { setFailed(false); cb.current(t); },
           "expired-callback": () => cb.current(null),
-          "error-callback": () => cb.current(null),
+          "error-callback": () => { setFailed(true); cb.current(null); },
         });
       })
-      .catch(() => cb.current(null));
+      .catch(() => { if (!cancelled) setFailed(true); cb.current(null); });
     return () => {
       cancelled = true;
       if (widgetId.current) window.turnstile?.remove(widgetId.current);
@@ -64,5 +66,14 @@ export default function TurnstileWidget({ onToken, resetKey }: { onToken: (token
   }, [resetKey]);
 
   if (!TURNSTILE_SITE_KEY) return null;
-  return <div ref={box} className="flex justify-center" />;
+  return (
+    <div className="space-y-2">
+      <div ref={box} className="flex justify-center" />
+      {failed && (
+        <p role="alert" className="text-sm text-destructive">
+          The security check didn&apos;t load. Refresh the page, or turn off ad blockers for Fikko, then try again.
+        </p>
+      )}
+    </div>
+  );
 }

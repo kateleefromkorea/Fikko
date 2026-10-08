@@ -17,6 +17,7 @@ import { useCustomFoods } from "../hooks/useCustomFoods";
 import FoodLogModal from "./FoodLogModal";
 import VoiceCheckIn from "./VoiceCheckIn";
 import Celebration from "./Celebration";
+import InsightCard, { useInsights } from "./InsightCard";
 import InteractionCheck from "./InteractionCheck";
 import { suggestMedications } from "../lib/medicationNames";
 import { useSavedMeals } from "../hooks/useSavedMeals";
@@ -1521,6 +1522,7 @@ export default function HabitsView({ data, onChange: saveData, biometrics, medic
   // Shared by the Calories card and voice check-ins, so both see the same meals.
   const foodLog = useFoodLog(userId, activeDate, data, onChange);
   const celebrating = useDayCompleteCelebration(data, goals.water, userId, memberActed);
+  const { insights, dismiss } = useInsights({ data, biometrics, userId, activeDate, calorieTarget: goals.calories });
   const summaryRef = useRef<HTMLElement>(null);
   const summaryGone = useScrolledPast(summaryRef);
   const [listenRequest, setListenRequest] = useState(0);
@@ -1565,6 +1567,13 @@ export default function HabitsView({ data, onChange: saveData, biometrics, medic
           <div className="lg:col-span-2"><FoodCard {...cardProps} foodLog={foodLog} /></div>
           <ActivityCard {...cardProps} />
         </div>
+        {insights.length > 0 && (
+          <div className="grid gap-3 md:grid-cols-2">
+            {insights.map((i) => (
+              <InsightCard key={i.id} insight={i} onDismiss={() => dismiss(i.id)} onAction={scrollToCard} />
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="space-y-4">

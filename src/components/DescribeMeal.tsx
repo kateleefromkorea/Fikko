@@ -7,6 +7,7 @@ import { speechRecognition, type SpeechRecognitionLike } from "../lib/voice";
 import { formatMacros, sumMacros } from "../lib/macros";
 import { DB_LIMITS, clamp } from "../lib/limits";
 import { friendlyError } from "../lib/errors";
+import { useAiCredits } from "../hooks/useAiCredits";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -44,6 +45,8 @@ export default function DescribeMeal({ meal, mealLabel, onAddMany, onUndo, onSna
   const [addedIds, setAddedIds] = useState<string[]>([]);
   const recognizer = useRef<SpeechRecognitionLike | null>(null);
   const canListen = speechRecognition() != null;
+  const { left, limit } = useAiCredits();
+  const outOfCredits = left === 0;
 
   useEffect(() => () => recognizer.current?.abort(), []);
 
@@ -234,7 +237,7 @@ export default function DescribeMeal({ meal, mealLabel, onAddMany, onUndo, onSna
   const listening = stage === "listening";
   const thinking = stage === "thinking";
   const shown = listening && interim ? `${text}${text ? " " : ""}${interim}` : text;
-  const canSend = !!shown.trim() && !thinking && !listening;
+  const canSend = !!shown.trim() && !thinking && !listening && !outOfCredits;
 
   if (thinking) {
     return (
@@ -340,9 +343,22 @@ export default function DescribeMeal({ meal, mealLabel, onAddMany, onUndo, onSna
           <p className="mt-1.5 text-xs text-muted-foreground">Not right? Undo, or edit it in your meal above.</p>
         </div>
       )}
-      {!error && !added && (
-        <p className="text-xs text-muted-foreground">Fikko works out the foods and portions. Uses one of your daily AI messages.</p>
-      )}
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+        <p className="min-w-0 flex-1 basis-48 text-xs text-muted-foreground">
+          {outOfCredits
+            ? "You've used all of today's AI credits. They reset at midnight; you can still search foods below."
+            : "Fikko works out the foods and portions. Uses one AI credit."}
+        </p>
+        {left != null && (
+          <span
+            className={cn("inline-flex shrink-0 items-center gap-1 rounded-full bg-white/80 px-2.5 py-0.5 text-xs font-medium tabular-nums", outOfCredits ? "text-destructive" : "text-[#0A6E63]")}
+            aria-label={`${left} of ${limit} AI credits left today`}
+          >
+            <Sparkles className="size-3" aria-hidden="true" />
+            {left} of {limit} left today
+          </span>
+        )}
+      </div>
     </div>
   );
 }

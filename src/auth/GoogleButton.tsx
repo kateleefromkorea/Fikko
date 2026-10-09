@@ -10,10 +10,15 @@ import { Button } from "@/components/ui/button";
 //
 // Falls back to the redirect sign-in (Google → Supabase → back here) in the
 // mobile app, where Google's web button doesn't work, when VITE_GOOGLE_CLIENT_ID
-// isn't set, or when Google's script can't load.
+// isn't set, when Google's script can't load, and in browsers without FedCM
+// (every browser on iPhone, Safari, Firefox). Without FedCM, Google's button
+// opens a pop-up that those browsers leave as a blank page, so they go the
+// full-page redirect way instead.
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
 const SCRIPT_URL = "https://accounts.google.com/gsi/client";
+/** FedCM is how Google's button signs in without a pop-up. Chrome and Edge have it. */
+const supportsFedCM = () => typeof window !== "undefined" && "IdentityCredential" in window;
 
 interface GoogleId {
   initialize: (config: {
@@ -68,7 +73,7 @@ interface Props {
 
 export default function GoogleButton({ mode, onError }: Props) {
   const { signInWithGoogle, signInWithGoogleToken } = useAuth();
-  const useGoogleButton = !!CLIENT_ID && !appAuthRedirect();
+  const useGoogleButton = !!CLIENT_ID && !appAuthRedirect() && supportsFedCM();
   const [failed, setFailed] = useState(false);
   const slot = useRef<HTMLDivElement>(null);
   // Read through a ref so a re-render doesn't redraw Google's button.

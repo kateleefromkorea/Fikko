@@ -111,12 +111,18 @@ export default function FikkoPlant({ seedId, stage, health = "growing", potId = 
         </>
       )}
       {sunny && alive && (
-        <g transform="translate(40 40)" className={cn(animate && "fikko-sway")}>
-          <circle r="22" fill="#F2B630" opacity="0.18" />
-          <circle r="12" fill="#F6C445" />
-          {Array.from({ length: 8 }, (_, i) => (
-            <path key={i} d="M0 -17v-6" stroke="#F2B630" strokeWidth="2.5" strokeLinecap="round" transform={`rotate(${i * 45})`} />
-          ))}
+        // The position is set on this outer group; the animations live on the inner ones,
+        // because a CSS transform would otherwise replace the position and send the sun off the frame.
+        <g transform="translate(40 40)">
+          <g className={cn(animate && "fikko-sun")}>
+            <circle r="22" fill="#F2B630" opacity="0.18" className={cn(animate && "fikko-sun-glow")} />
+            <circle r="12" fill="#F6C445" />
+            <g className={cn(animate && "fikko-sun-rays")}>
+              {Array.from({ length: 8 }, (_, i) => (
+                <path key={i} d="M0 -17v-6" stroke="#F2B630" strokeWidth="2.5" strokeLinecap="round" transform={`rotate(${i * 45})`} />
+              ))}
+            </g>
+          </g>
         </g>
       )}
       <ellipse cx="100" cy="212" rx="56" ry="5" fill="#001F27" opacity="0.08" />

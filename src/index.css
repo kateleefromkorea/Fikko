@@ -335,6 +335,20 @@
   transform-origin: center;
   animation: fikko-flutter 0.9s ease-in-out infinite;
 }
+/* The sunshine booster: it stays put, drifting a couple of pixels, its glow
+   breathing and its rays turning slowly. */
+@keyframes fikko-sun-bob {
+  50% { transform: translateY(-2px); }
+}
+@keyframes fikko-sun-glow {
+  50% { opacity: 0.32; transform: scale(1.12); }
+}
+@keyframes fikko-sun-rays {
+  to { transform: rotate(360deg); }
+}
+.fikko-sun { animation: fikko-sun-bob 4s ease-in-out infinite; }
+.fikko-sun-glow { transform-box: fill-box; transform-origin: center; animation: fikko-sun-glow 4s ease-in-out infinite; }
+.fikko-sun-rays { transform-origin: 0 0; animation: fikko-sun-rays 60s linear infinite; }
 @media (prefers-reduced-motion: reduce) {
-  .fikko-sway, .fikko-flutter { animation: none; }
+  .fikko-sway, .fikko-flutter, .fikko-sun, .fikko-sun-glow, .fikko-sun-rays { animation: none; }
 }

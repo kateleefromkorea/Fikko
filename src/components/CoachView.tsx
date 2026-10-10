@@ -3,8 +3,11 @@ import { ArrowUp, Loader2, Trash2 } from "lucide-react";
 import FikkoAvatar from "./FikkoAvatar";
 import PageHeader from "./PageHeader";
 import {
-  clearCoachChat, fetchCoachMessages, fetchUsedToday, sendCoachMessage, type CoachMessage,
+  CHECKINS_READ_EVENT, clearCoachChat, fetchCheckinsEnabled, fetchCoachMessages, fetchUsedToday, markCheckinsRead, saveCheckinsEnabled,
+  sendCoachMessage, type CoachMessage,
 } from "../lib/coach";
+import { useAuth } from "../auth/AuthProvider";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -46,15 +49,15 @@ function Formatted({ text }: { text: string }) {
   );
 }
 
-/** A message from Fikko: the sprout avatar, then the bubble. `named` adds "Fikko · AI" above the first of a run. */
-function FikkoMessage({ named, children }: { named: boolean; children: ReactNode }) {
+/** A message from Fikko: the sprout avatar, then the bubble. `named` adds "Fikko · AI" above the first of a run; `checkin` marks a weekly check-in. */
+function FikkoMessage({ named, checkin, children }: { named: boolean; checkin?: boolean; children: ReactNode }) {
   return (
     <div className="flex items-end gap-2.5">
       <FikkoAvatar className={cn(!named && "invisible")} />
       <div className="max-w-[85%] min-w-0">
         {named && (
           <p className="mb-1 ml-1 text-xs font-medium text-muted-foreground">
-            Fikko <span className="font-normal">· AI coach</span>
+            Fikko <span className="font-normal">· {checkin ? "Weekly check-in" : "AI coach"}</span>
           </p>
         )}
         <div className="rounded-2xl rounded-bl-md bg-muted px-4 py-3 text-sm leading-relaxed">{children}</div>
@@ -83,7 +86,13 @@ export default function CoachView({ profileName, initialDraft = "" }: {
   useEffect(() => {
     let live = true;
     Promise.all([fetchCoachMessages(), fetchUsedToday(ai.period)])
-      .then(([m, u]) => { if (live) { setMessages(m); setUsed(u); } })
+      .then(([m, u]) => {
+        if (!live) return;
+        setMessages(m);
+        setUsed(u);
+        // Seeing the chat counts as reading any check-ins, which clears the dot on the Coach tab.
+        if (m.some((x) => x.checkin)) void markCheckinsRead().then(() => window.dispatchEvent(new Event(CHECKINS_READ_EVENT)));
+      })
       .catch((e: Error) => { if (live) setError(friendlyError(e, "We couldn't load your chat. Please try again.")); })
       .finally(() => { if (live) setLoading(false); });
     return () => { live = false; };
@@ -190,7 +199,7 @@ export default function CoachView({ profileName, initialDraft = "" }: {
               </div>
             </div>
           ) : (
-            <FikkoMessage key={m.id} named={messages[i - 1]?.role !== "assistant"}>
+            <FikkoMessage key={m.id} named={m.checkin || messages[i - 1]?.role !== "assistant"} checkin={m.checkin}>
               <Formatted text={m.content} />
             </FikkoMessage>
           ))}
@@ -234,6 +243,8 @@ export default function CoachView({ profileName, initialDraft = "" }: {
         </form>
       </Card>
 
+      <CheckinsSetting />
+
       <Dialog open={confirmClear} onOpenChange={setConfirmClear}>
         <DialogContent>
           <DialogHeader>
@@ -248,6 +259,46 @@ export default function CoachView({ profileName, initialDraft = "" }: {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+/** On/off for the weekly check-in, under the chat. Hidden when the plan doesn't include it. */
+function CheckinsSetting() {
+  const { user } = useAuth();
+  const { limits } = usePlan();
+  const [enabled, setEnabled] = useState<boolean | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    void fetchCheckinsEnabled().then((on) => { if (live) setEnabled(on); });
+    return () => { live = false; };
+  }, []);
+
+  if (!limits.proactiveCoach || enabled == null || !user) return null;
+
+  const change = async (on: boolean) => {
+    setEnabled(on);
+    setError(null);
+    try {
+      await saveCheckinsEnabled(user.id, on);
+    } catch (err) {
+      setEnabled(!on);
+      setError(friendlyError(err, "That setting didn't save. Please try again."));
+    }
+  };
+
+  return (
+    <div className="mx-auto flex w-full max-w-3xl items-start justify-between gap-4 px-1">
+      <div className="space-y-0.5">
+        <label htmlFor="coach-checkins" className="text-sm font-medium">Weekly check-ins</label>
+        <p className="text-sm text-muted-foreground">
+          Each Monday morning, Fikko looks for a pattern in your last four weeks and sends a short note here with one small thing to try. It doesn&apos;t use your AI messages.
+        </p>
+        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+      </div>
+      <Switch id="coach-checkins" checked={enabled} onCheckedChange={(on) => void change(on)} className="mt-1 shrink-0" />
     </div>
   );
 }

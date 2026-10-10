@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 
 const PLANS: { id: PaidPlan; blurb: string }[] = [
   { id: "premium", blurb: "Unlimited habits, 20 AI messages a day, 30 days of history and your wearable's vitals." },
-  { id: "max", blurb: "Everything in Premium, plus 50 AI messages a day, all your history, CSV export and the AI interaction check." },
+  { id: "max", blurb: "Everything in Premium, plus 50 AI messages a day, weekly coach check-ins, monthly and lifetime reports, all your history, CSV export and the AI interaction check." },
 ];
 
 const dateLabel = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });

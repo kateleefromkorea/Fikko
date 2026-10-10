@@ -30,7 +30,7 @@ function change(now: number | null, before: number | null, digits = 1, higherIsB
 function glanceRows(s: Summary, p: Summary | null, goals: Report["goals"]) {
   const pct = (x: number | null) => (x == null ? null : x * 100);
   const rows: [string, string, string, ReturnType<typeof change>][] = [
-    ["Days logged", `${s.daysLogged} of ${s.days}`, p ? `${p.daysLogged} of ${p.days}` : "", change(s.daysLogged / s.days * 100, p ? p.daysLogged / p.days * 100 : null, 0)],
+    ["Days logged", `${s.daysLogged} of ${s.days}`, p ? `${p.daysLogged} of ${p.days}` : "", change(s.daysLogged, p?.daysLogged ?? null, 0)],
     ["Water, glasses a day", fmt(s.water), p ? fmt(p.water) : "", change(s.water, p?.water ?? null)],
     [`Days at your water goal (${goals.water})`, String(s.waterGoalDays), p ? String(p.waterGoalDays) : "", change(s.waterGoalDays, p?.waterGoalDays ?? null, 0)],
     ["Activity, total minutes", fmt(s.activityTotal, 0), p ? fmt(p.activityTotal, 0) : "", change(s.activityTotal, p?.activityTotal ?? null, 0)],
@@ -50,6 +50,11 @@ function glanceRows(s: Summary, p: Summary | null, goals: Report["goals"]) {
   const empty = (v: string) => v === "" || v === "–" || v === "0";
   return rows.filter(([label, now, before]) => label === "Days logged" || !empty(now) || !empty(before));
 }
+
+/** Column headings line up with their column: right-aligned over numbers. */
+const alignHeads = (cell: { section: string; column: { index: number }; cell: { styles: { halign?: string } } }) => {
+  if (cell.section === "head" && cell.column.index > 0) cell.cell.styles.halign = "right";
+};
 
 export function buildReportPdf(report: Report, generatedAt: Date): jsPDF {
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
@@ -90,7 +95,8 @@ export function buildReportPdf(report: Report, generatedAt: Date): jsPDF {
     const h = 70, w = W - 2 * M, top = y + 14;
     room(h + 40);
     doc.setFont("helvetica", "bold").setFontSize(10).setTextColor(60).text(title, M, y);
-    doc.setFont("helvetica", "normal").setFontSize(8).setTextColor(MUTED).text(unit, W - M, y, { align: "right" });
+    doc.setFont("helvetica", "normal").setFontSize(8).setTextColor(MUTED)
+      .text(goal != null && goal <= max ? `${unit} · dashed line: goal of ${goal}` : unit, W - M, y, { align: "right" });
     doc.setDrawColor(225).setLineWidth(0.5).line(M, top + h, M + w, top + h);
     const slot = w / values.length, bar = Math.max(2, Math.min(18, slot * 0.65));
     values.forEach((v, i) => {
@@ -101,13 +107,13 @@ export function buildReportPdf(report: Report, generatedAt: Date): jsPDF {
     if (goal != null && goal <= max) {
       const gy = top + h - (goal / max) * h;
       doc.setDrawColor(...INK).setLineWidth(0.6).setLineDashPattern([3, 3], 0).line(M, gy, M + w, gy).setLineDashPattern([], 0);
-      doc.setFontSize(7.5).setTextColor(...INK).text(`goal ${goal}`, M + w, gy - 3, { align: "right" });
     }
     // Labels: every one for months, about weekly for days.
     doc.setFontSize(7.5).setTextColor(MUTED);
     const every = values.length > 14 ? 7 : 1;
     report.series.forEach((s, i) => {
-      if (i % every === 0 || i === values.length - 1) doc.text(s.label, M + i * slot + slot / 2, top + h + 10, { align: "center" });
+      const last = i === values.length - 1 && i % every >= 3;
+      if (i % every === 0 || last) doc.text(s.label, M + i * slot + slot / 2, top + h + 10, { align: "center" });
     });
     y = top + h + 28;
   };
@@ -140,6 +146,7 @@ export function buildReportPdf(report: Report, generatedAt: Date): jsPDF {
     columnStyles: { 0: { cellWidth: 210 }, 1: { halign: "right" }, 2: { halign: "right", textColor: MUTED }, 3: { halign: "right", fontStyle: "bold" } },
     alternateRowStyles: { fillColor: [250, 250, 250] },
     didParseCell: (cell) => {
+      alignHeads(cell);
       if (cell.section !== "body" || cell.column.index !== 3) return;
       const good = rows[cell.row.index]?.[3].good;
       if (good != null) cell.cell.styles.textColor = good ? GREEN : [180, 83, 9];
@@ -176,8 +183,9 @@ export function buildReportPdf(report: Report, generatedAt: Date): jsPDF {
       head: [["Month", "Days logged", "Water", "Active days", "Sleep (h)", "Mood", "Calories"]],
       body: report.months.map((m) => [m.label, `${m.daysLogged}/${m.days}`, fmt(m.water), String(m.activeDays), fmt(m.sleepHours), fmt(m.mood), fmt(m.calories, 0)]),
       theme: "plain",
+      didParseCell: alignHeads,
       styles: { fontSize: 9.5, cellPadding: 5, textColor: 40, halign: "right" },
-      headStyles: { fontStyle: "bold", textColor: INK, fillColor: [238, 246, 242], halign: "right" },
+      headStyles: { fontStyle: "bold", textColor: INK, fillColor: [238, 246, 242] },
       columnStyles: { 0: { halign: "left" } },
       alternateRowStyles: { fillColor: [250, 250, 250] },
     });
@@ -193,6 +201,7 @@ export function buildReportPdf(report: Report, generatedAt: Date): jsPDF {
       head: [["Average", "Weekdays", "Weekends"]],
       body: report.split.map((r) => [r.label, r.weekday, r.weekend]),
       theme: "plain",
+      didParseCell: alignHeads,
       styles: { fontSize: 10, cellPadding: 5, textColor: 40 },
       headStyles: { fontStyle: "bold", textColor: INK, fillColor: [238, 246, 242] },
       columnStyles: { 0: { cellWidth: 210 }, 1: { halign: "right" }, 2: { halign: "right" } },
@@ -214,6 +223,7 @@ export function buildReportPdf(report: Report, generatedAt: Date): jsPDF {
         head: [["Foods you logged most", "Times"]],
         body: report.topFoods.map((f) => [f.name, String(f.times)]),
         theme: "plain",
+      didParseCell: alignHeads,
         styles: { fontSize: 10, cellPadding: 4, textColor: 40 },
         headStyles: { fontStyle: "bold", textColor: INK, fillColor: [238, 246, 242] },
         columnStyles: { 1: { halign: "right", cellWidth: 60 } },
@@ -231,6 +241,7 @@ export function buildReportPdf(report: Report, generatedAt: Date): jsPDF {
       head: [["Habit", "Target", "Days logged", "Days at target", "Average"]],
       body: report.customHabits.map((h) => [h.name, `${h.target} ${h.unit}`.trim(), String(h.daysLogged), String(h.daysAtTarget), fmt(h.average)]),
       theme: "plain",
+      didParseCell: alignHeads,
       styles: { fontSize: 10, cellPadding: 5, textColor: 40 },
       headStyles: { fontStyle: "bold", textColor: INK, fillColor: [238, 246, 242] },
       columnStyles: { 1: { halign: "right" }, 2: { halign: "right" }, 3: { halign: "right" }, 4: { halign: "right" } },

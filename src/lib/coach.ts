@@ -30,6 +30,9 @@ export async function fetchCoachMessages(): Promise<CoachMessage[]> {
 
 // ── Weekly check-ins (migration 036) ───────────────────────────────────────
 
+/** Fired once the coach screen marks check-ins read, so the Coach tab's dot can clear. */
+export const CHECKINS_READ_EVENT = "fikko:checkins-read";
+
 /** Check-ins the member hasn't seen yet, for the dot on the Coach tab. 0 if anything's missing. */
 export async function fetchUnreadCheckins(): Promise<number> {
   const { count, error } = await supabase.from("coach_messages").select("id", { count: "exact", head: true })

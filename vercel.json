@@ -3,7 +3,12 @@
   "redirects": [
     {
       "source": "/:path((?!api/).*)",
-      "has": [{ "type": "host", "value": "fikko-eta.vercel.app" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "fikko-eta.vercel.app"
+        }
+      ],
       "destination": "https://app.fikko.io/:path",
       "permanent": true
     }
@@ -65,10 +70,17 @@
     {
       "path": "/api/email",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/coach-checkin",
+      "schedule": "5 * * * *"
     }
   ],
   "functions": {
     "api/email.ts": {
+      "maxDuration": 300
+    },
+    "api/coach-checkin.ts": {
       "maxDuration": 300
     }
   }

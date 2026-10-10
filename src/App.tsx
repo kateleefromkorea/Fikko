@@ -6,6 +6,7 @@ import ScrollToTop from "./components/ScrollToTop";
 import InstallCard from "./components/InstallCard";
 import { FoundingWelcome } from "./components/FoundingMember";
 import { syncReminderTimeZone } from "./lib/reminders";
+import { CHECKINS_READ_EVENT, fetchUnreadCheckins, syncCheckinTimeZone } from "./lib/coach";
 import type { DeviceOutcome } from "./components/profile/DevicesCard";
 import { useAuth } from "./auth/AuthProvider";
 import SignInScreen from "./auth/SignInScreen";
@@ -104,6 +105,15 @@ export default function App() {
   useEffect(() => { if (userId) void loadHabitsView(); }, [userId]);
   // Reminders go out at the member's local hour, so follow them if they travel.
   useEffect(() => { if (userId) void syncReminderTimeZone(userId); }, [userId]);
+  // The same for the coach's Monday check-ins, and a dot on the Coach tab while one is unread.
+  useEffect(() => { if (userId) void syncCheckinTimeZone(userId); }, [userId]);
+  const [unreadCheckins, setUnreadCheckins] = useState(0);
+  useEffect(() => { if (userId && tab !== "coaches") void fetchUnreadCheckins().then(setUnreadCheckins); }, [userId, tab]);
+  useEffect(() => {
+    const clear = () => setUnreadCheckins(0);
+    window.addEventListener(CHECKINS_READ_EVENT, clear);
+    return () => window.removeEventListener(CHECKINS_READ_EVENT, clear);
+  }, []);
   const consent = useConsents(userId);
   const medications = useMedications(userId);
   const { biometrics, reload: reloadBiometrics } = useBiometrics(userId);
@@ -219,6 +229,11 @@ export default function App() {
                       )}
                     >
                       {credits.left}
+                    </span>
+                  )}
+                  {id === "coaches" && unreadCheckins > 0 && (
+                    <span className="size-2 rounded-full bg-orange-500" title="New weekly check-in">
+                      <span className="sr-only">(new check-in)</span>
                     </span>
                   )}
                   {soon && (
@@ -436,7 +451,7 @@ export default function App() {
                     setTab(id);
                   }}
                   aria-current={active ? "page" : undefined}
-                  aria-label={soon ? `${label} (coming soon)` : label}
+                  aria-label={soon ? `${label} (coming soon)` : id === "coaches" && unreadCheckins > 0 ? `${label} (new check-in)` : label}
                   className={cn(
                     "flex h-full w-full flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors outline-none focus-visible:bg-muted",
                     active ? "text-primary-ink" : "text-muted-foreground",
@@ -449,7 +464,12 @@ export default function App() {
                     )}
                     aria-hidden="true"
                   >
-                    <Icon className="size-5" strokeWidth={active ? 2.25 : 1.75} />
+                    <span className="relative">
+                      <Icon className="size-5" strokeWidth={active ? 2.25 : 1.75} />
+                      {id === "coaches" && unreadCheckins > 0 && (
+                        <span className="absolute -top-0.5 -right-1 size-2 rounded-full bg-orange-500 ring-2 ring-white" />
+                      )}
+                    </span>
                   </span>
                   {label}
                 </button>

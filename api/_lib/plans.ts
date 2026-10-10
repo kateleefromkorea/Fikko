@@ -29,20 +29,27 @@ export interface PlanLimits {
   /** The interaction check's AI review, for items the built-in list doesn't know. */
   interactionAi: boolean;
   csvExport: boolean;
+  /** The monthly deep-dive and lifetime reports. */
+  deepDiveReports: boolean;
+  /** The coach's weekly check-in (api/coach-checkin.ts). */
+  proactiveCoach: boolean;
 }
 
 export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
   free: {
     customHabits: 3, aiPerWeek: 5, coachPerDay: null, aiPerDay: FAIR_USE_DAILY_AI,
     historyDays: 7, wearableBiometrics: false, interactionAi: false, csvExport: false,
+    deepDiveReports: false, proactiveCoach: false,
   },
   premium: {
     customHabits: null, aiPerWeek: null, coachPerDay: 20, aiPerDay: FAIR_USE_DAILY_AI,
     historyDays: 30, wearableBiometrics: true, interactionAi: false, csvExport: false,
+    deepDiveReports: false, proactiveCoach: false,
   },
   max: {
     customHabits: null, aiPerWeek: null, coachPerDay: 50, aiPerDay: FAIR_USE_DAILY_AI,
     historyDays: null, wearableBiometrics: true, interactionAi: true, csvExport: true,
+    deepDiveReports: true, proactiveCoach: true,
   },
 };
 

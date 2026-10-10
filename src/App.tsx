@@ -92,6 +92,9 @@ export default function App() {
   // Links in Fikko's emails open Profile with /?open=profile.
   const [openProfile] = useState(() => new URLSearchParams(window.location.search).get("open") === "profile");
   const [tab, setTab] = useState<Tab>((deviceOutcome && !hasDraft()) || openProfile ? "profile" : "habits");
+  // A question from a Dashboard pattern, waiting in the coach's message box. Cleared once the coach is left.
+  const [coachDraft, setCoachDraft] = useState("");
+  useEffect(() => { if (tab !== "coaches") setCoachDraft(""); }, [tab]);
   useEffect(() => {
     if (deviceOutcome || openProfile) window.history.replaceState(null, "", window.location.pathname);
   }, [deviceOutcome, openProfile]);
@@ -321,7 +324,12 @@ export default function App() {
         )}
         {tab === "dashboard" && !habitsLoading && !habitsLoadError && (
           <Suspense fallback={<p className="py-10 text-center text-sm text-muted-foreground">Loading dashboard…</p>}>
-            <Dashboard data={data} biometrics={biometrics} profile={profile} />
+            <Dashboard
+              data={data}
+              biometrics={biometrics}
+              profile={profile}
+              onAskCoach={(question) => { setCoachDraft(question); setTab("coaches"); }}
+            />
           </Suspense>
         )}
         {tab === "fikko" && !habitsLoading && !habitsLoadError && (
@@ -348,7 +356,7 @@ export default function App() {
         )}
         {tab === "coaches" && (
           <Suspense fallback={<p className="py-10 text-center text-sm text-muted-foreground">Loading coach…</p>}>
-            <CoachView profileName={profile.name} />
+            <CoachView profileName={profile.name} initialDraft={coachDraft} />
           </Suspense>
         )}
         {tab === "profile" && (

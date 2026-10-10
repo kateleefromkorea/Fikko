@@ -36,6 +36,8 @@ interface Props {
   biometrics: BiometricData;
   /** Carries the baseline computed at the end of onboarding. */
   profile?: ProfileRow;
+  /** Opens the AI coach with a question about a pattern ready to send. */
+  onAskCoach?: (question: string) => void;
 }
 
 const TODAY = todayKey();
@@ -206,7 +208,7 @@ function WearableComingSoon() {
   );
 }
 
-export default function Dashboard({ data: logged, biometrics, profile }: Props) {
+export default function Dashboard({ data: logged, biometrics, profile, onAskCoach }: Props) {
   // Activity here is the day's total: logged workouts plus wearable minutes.
   const data = useMemo(() => withDeviceActivity(logged), [logged]);
   const [period, setPeriod] = useState<Period>("week");
@@ -329,8 +331,9 @@ export default function Dashboard({ data: logged, biometrics, profile }: Props) 
         note={hasWearableData ? "Wearable data included." : undefined}
         report={<WeeklyReportCard data={data} biometrics={biometrics} profile={profile} />}
       />
+      {/* What Fikko noticed is the Dashboard's core feature, so it comes first. */}
+      <PatternsSection ctx={ctx} onAskCoach={onAskCoach} />
       <ConsistencySection ctx={ctx} />
-      <PatternsSection ctx={ctx} />
       <ScorecardSection ctx={ctx} />
       <NutritionSection
         ctx={ctx}

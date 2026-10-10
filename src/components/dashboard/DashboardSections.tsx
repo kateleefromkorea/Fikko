@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import {
-  BedDouble, CalendarDays, ChevronLeft, ChevronRight, Dumbbell, Flame, GlassWater, Lightbulb, Moon, SmilePlus, TrendingUp, Utensils,
+  BedDouble, CalendarDays, ChevronLeft, ChevronRight, Dumbbell, Flame, GlassWater, Lightbulb, MessageCircle, Moon, SmilePlus, Target, TrendingUp, Utensils,
 } from "lucide-react";
 import ProgressRing from "../ProgressRing";
 import { CustomHabitIcon, EmptyState, HabitBar, HabitIcon } from "../HabitCard";
@@ -11,6 +11,8 @@ import {
   split, valuesIn,
 } from "../../lib/dashboardStats";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import FikkoAvatar from "../FikkoAvatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { BarTrend, C, ChartCard, Delta, InsightRow, ScoreLine, Section, Stat } from "./ui";
 import {
@@ -534,7 +536,47 @@ export function CustomHabitsSection({ ctx }: { ctx: DashCtx }) {
 
 const WEEKDAYS = ["Sundays", "Mondays", "Tuesdays", "Wednesdays", "Thursdays", "Fridays", "Saturdays"];
 
-export interface Pattern { id: string; icon: typeof Lightbulb; text: string }
+/** The two averages behind a pattern, for its chart. */
+export interface PatternCompare {
+  /** What's being compared, e.g. "Mood". Both values are out of `max`. */
+  measure: string;
+  withLabel: string;
+  withoutLabel: string;
+  /** The same two groups, as they read in a sentence ("after rested nights"). */
+  withPhrase: string;
+  withoutPhrase: string;
+  with: number;
+  without: number;
+  max: number;
+  /** Days that went into the two averages. */
+  days: number;
+}
+
+export interface Pattern {
+  id: string;
+  icon: typeof Lightbulb;
+  /** The full sentence, used in compact rows and the weekly report. */
+  text: string;
+  /** For featured patterns: a short headline, the comparison and one thing to try. */
+  headline?: string;
+  compare?: PatternCompare;
+  tryText?: string;
+}
+
+/** One small, ordinary thing to try for each sleep factor that lowers rest. */
+const SLEEP_TRY: Record<string, string> = {
+  caffeine: "no caffeine after midday for a few days.",
+  screens: "putting your phone away 30 minutes before bed.",
+  stress: "five minutes of winding down before bed.",
+  exercise: "moving workouts earlier in the day.",
+  alcohol: "a few alcohol-free evenings this week.",
+  noise: "earplugs, or a fan for steady background noise.",
+  heat: "a cooler room or a lighter blanket.",
+  nap: "keeping naps short and before 3pm.",
+};
+
+/** How strongly a pattern stands out: the gap between its two averages, as a share of the scale. */
+const strength = (p: Pattern) => (p.compare ? Math.abs(p.compare.with - p.compare.without) / p.compare.max : 0);
 
 /**
  * Plain-language connections between habits, only where the data backs them.
@@ -562,21 +604,39 @@ export function patternItems(ctx: DashCtx, { relative = true } = {}): Pattern[] 
 
   const exMood = split(dates, (d) => (val(m.exercise, d) ?? 0) >= EXERCISE_TARGET_MIN, moodOf);
   if (exMood && exMood.withAvg - exMood.withoutAvg >= 0.3) {
-    items.push({ id: "exercise-mood", icon: Dumbbell, text: `On days you exercised ${EXERCISE_TARGET_MIN}+ minutes, your mood averaged ${one(exMood.withAvg)} vs ${one(exMood.withoutAvg)} on other days.` });
+    items.push({
+      id: "exercise-mood", icon: Dumbbell,
+      text: `On days you exercised ${EXERCISE_TARGET_MIN}+ minutes, your mood averaged ${one(exMood.withAvg)} vs ${one(exMood.withoutAvg)} on other days.`,
+      headline: "Moving lifts your mood",
+      compare: { measure: "Mood", withLabel: "Active days", withoutLabel: "Other days", withPhrase: "on active days", withoutPhrase: "on other days", with: exMood.withAvg, without: exMood.withoutAvg, max: 5, days: exMood.withN + exMood.withoutN },
+      tryText: "a 15-minute walk on the days you feel low.",
+    });
   }
 
   const sleepMood = split(dates, (d) => { const r = val(m.sleep, d); return r && r > 0 ? r >= 4 : null; }, moodOf);
   if (sleepMood && sleepMood.withAvg - sleepMood.withoutAvg >= 0.3) {
-    items.push({ id: "sleep-mood", icon: Moon, text: `After nights you woke up rested, your mood averaged ${one(sleepMood.withAvg)} vs ${one(sleepMood.withoutAvg)} otherwise.` });
+    items.push({
+      id: "sleep-mood", icon: Moon,
+      text: `After nights you woke up rested, your mood averaged ${one(sleepMood.withAvg)} vs ${one(sleepMood.withoutAvg)} otherwise.`,
+      headline: "Sleep is your mood lever",
+      compare: { measure: "Mood", withLabel: "After rested nights", withoutLabel: "After the rest", withPhrase: "after rested nights", withoutPhrase: "after the rest", with: sleepMood.withAvg, without: sleepMood.withoutAvg, max: 5, days: sleepMood.withN + sleepMood.withoutN },
+      tryText: "the same bedtime every night this week.",
+    });
   }
 
   const waterMood = split(dates, (d) => (val(m.water, d) ?? 0) >= waterTarget, moodOf);
   if (waterMood && waterMood.withAvg - waterMood.withoutAvg >= 0.3) {
-    items.push({ id: "water-mood", icon: GlassWater, text: `Days you hit your water target came with a better mood: ${one(waterMood.withAvg)} vs ${one(waterMood.withoutAvg)}.` });
+    items.push({
+      id: "water-mood", icon: GlassWater,
+      text: `Days you hit your water target came with a better mood: ${one(waterMood.withAvg)} vs ${one(waterMood.withoutAvg)}.`,
+      headline: "Water days are better days",
+      compare: { measure: "Mood", withLabel: "Water target hit", withoutLabel: "Missed", withPhrase: "on days you hit your water target", withoutPhrase: "on days you missed it", with: waterMood.withAvg, without: waterMood.withoutAvg, max: 5, days: waterMood.withN + waterMood.withoutN },
+      tryText: "a glass of water with every meal.",
+    });
   }
 
   // Worst sleep factor, when it clearly lowers rest.
-  let worst: { label: string; gap: number; with: number; without: number } | null = null;
+  let worst: { id: string; label: string; gap: number; with: number; without: number; days: number } | null = null;
   for (const f of SLEEP_FACTORS) {
     const s = split(
       dates,
@@ -584,11 +644,17 @@ export function patternItems(ctx: DashCtx, { relative = true } = {}): Pattern[] 
       (d) => { const r = val(m.sleep, d); return r && r > 0 ? r : null; },
     );
     if (s && s.withoutAvg - s.withAvg >= 0.5 && (!worst || s.withoutAvg - s.withAvg > worst.gap)) {
-      worst = { label: f.label.toLowerCase(), gap: s.withoutAvg - s.withAvg, with: s.withAvg, without: s.withoutAvg };
+      worst = { id: f.id, label: f.label.toLowerCase(), gap: s.withoutAvg - s.withAvg, with: s.withAvg, without: s.withoutAvg, days: s.withN + s.withoutN };
     }
   }
   if (worst) {
-    items.push({ id: "sleep-factor", icon: BedDouble, text: `Nights with ${worst.label} averaged a rest score of ${one(worst.with)}, against ${one(worst.without)} without.` });
+    items.push({
+      id: "sleep-factor", icon: BedDouble,
+      text: `Nights with ${worst.label} averaged a rest score of ${one(worst.with)}, against ${one(worst.without)} without.`,
+      headline: `${worst.label[0].toUpperCase()}${worst.label.slice(1)} costs you rest`,
+      compare: { measure: "Rest", withLabel: `Nights with ${worst.label}`, withoutLabel: "Without", withPhrase: `on nights with ${worst.label}`, withoutPhrase: "without", with: worst.with, without: worst.without, max: 5, days: worst.days },
+      tryText: SLEEP_TRY[worst.id] ?? `a few nights without ${worst.label}.`,
+    });
   }
 
   // Best and worst weekday, once there are a few of each.
@@ -620,21 +686,120 @@ export function patternItems(ctx: DashCtx, { relative = true } = {}): Pattern[] 
   return items;
 }
 
-export function PatternsSection({ ctx }: { ctx: DashCtx }) {
-  const items = patternItems(ctx);
+/**
+ * "Fikko noticed": the Dashboard's core feature, on the teal-and-sky panel. The
+ * strongest pattern is featured with its chart and one thing to try (step
+ * through the others), and the rest follow as compact rows. The check-in
+ * streak isn't a pattern, so it stays with the summary's stats.
+ */
+export function PatternsSection({ ctx, onAskCoach }: { ctx: DashCtx; onAskCoach?: (question: string) => void }) {
+  const items = patternItems(ctx).filter((p) => p.id !== "streak");
+  const featured = items.filter((p) => p.compare).sort((a, b) => strength(b) - strength(a));
+  const [index, setIndex] = useState(0);
+  const at = featured.length ? Math.min(index, featured.length - 1) : 0;
+  const pick = featured[at];
+  const others = items.filter((p) => p !== pick);
+  const step = (by: number) => setIndex((i) => (i + by + featured.length) % featured.length);
+
   return (
-    <Section title="What we noticed" sub="Connections in your own data. These are patterns, not medical advice.">
-      <Card className="[--card-spacing:--spacing(6)]">
-        <CardContent>
-          {items.length ? (
-            <ul className="grid gap-3 md:grid-cols-2">
-              {items.map((it) => <InsightRow key={it.id} icon={it.icon} text={it.text} />)}
-            </ul>
-          ) : (
-            <EmptyState icon={Lightbulb} title="Nothing to point out yet" body="Keep logging. Patterns show up after a week or two of check-ins." />
-          )}
-        </CardContent>
-      </Card>
-    </Section>
+    <section aria-labelledby="patterns-title" className="fresh-panel space-y-4 rounded-2xl border border-teal/20 p-5 shadow-sm sm:p-6">
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white shadow-sm" aria-hidden="true">
+          <FikkoAvatar plain className="size-6" />
+        </span>
+        <div className="min-w-0 flex-1 basis-48">
+          <h2 id="patterns-title" className="text-xl font-semibold">
+            {items.length ? `Fikko noticed ${plural(items.length, "pattern")}` : "What Fikko noticed"}
+          </h2>
+          <p className="text-sm text-muted-foreground">In {PERIOD_PHRASE[ctx.period]}</p>
+        </div>
+        {featured.length > 1 && (
+          <div className="ml-auto flex items-center gap-1 rounded-full bg-white/85 p-1 shadow-sm">
+            <Button variant="ghost" size="icon-sm" onClick={() => step(-1)} aria-label="Previous pattern" className="rounded-full">
+              <ChevronLeft />
+            </Button>
+            <span className="px-1 text-xs font-medium tabular-nums" aria-live="polite">{at + 1} of {featured.length}</span>
+            <Button variant="ghost" size="icon-sm" onClick={() => step(1)} aria-label="Next pattern" className="rounded-full">
+              <ChevronRight />
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {pick?.compare ? (
+        <FeaturedPattern pattern={pick} strongest={at === 0} onAskCoach={onAskCoach} />
+      ) : !items.length && (
+        <div className="rounded-xl bg-white/90 p-2">
+          <EmptyState icon={Lightbulb} title="Nothing to point out yet" body="Keep logging. Patterns show up after a week or two of check-ins." />
+        </div>
+      )}
+
+      {others.length > 0 && (
+        <ul className="grid gap-2.5 md:grid-cols-2">
+          {others.map((p) => (
+            <li key={p.id} className="flex items-start gap-3 rounded-xl bg-white/85 px-4 py-3 shadow-xs">
+              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[#DDF5F1] text-[#0A6E63]" aria-hidden="true">
+                <p.icon className="size-3.5" />
+              </span>
+              <p className="text-sm">{p.text}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <p className="text-xs text-muted-foreground">Patterns in your own data, not medical advice.</p>
+    </section>
+  );
+}
+
+/** The featured pattern: headline, the two numbers, a two-bar chart and one thing to try. */
+function FeaturedPattern({ pattern, strongest, onAskCoach }: { pattern: Pattern; strongest: boolean; onAskCoach?: (question: string) => void }) {
+  const c = pattern.compare!;
+  const bars = [
+    { label: c.withLabel, value: c.with, strong: true },
+    { label: c.withoutLabel, value: c.without, strong: false },
+  ];
+  return (
+    <div className="grid gap-5 rounded-2xl bg-white p-5 shadow-sm md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] md:items-center">
+      <div className="min-w-0">
+        {strongest && (
+          <span className="inline-flex rounded-full bg-[#DDF5F1] px-2.5 py-0.5 text-xs font-medium text-[#0A6E63]">Your strongest pattern</span>
+        )}
+        <p className="mt-2.5 text-2xl leading-tight font-semibold">{pattern.headline}</p>
+        <p className="mt-1.5 text-sm text-muted-foreground">
+          Your {c.measure.toLowerCase()} averaged <span className="font-semibold text-foreground">{one(c.with)}</span> {c.withPhrase} and{" "}
+          <span className="font-semibold text-foreground">{one(c.without)}</span> {c.withoutPhrase}, out of {c.max}. Based on {plural(c.days, "day")}.
+        </p>
+        {pattern.tryText && (
+          <p className="mt-4 flex items-start gap-2 text-sm font-medium text-[#0A6E63]">
+            <Target className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            <span>Try: {pattern.tryText}</span>
+          </p>
+        )}
+        {onAskCoach && (
+          <Button
+            variant="outline"
+            onClick={() => onAskCoach(`${pattern.text} What could I try to make the most of this?`)}
+            className="mt-4 h-9 gap-2"
+          >
+            <MessageCircle />
+            Ask Fikko about this
+          </Button>
+        )}
+      </div>
+      <div className="flex h-40 items-end gap-4" role="img" aria-label={`${c.measure}: ${one(c.with)} ${c.withLabel.toLowerCase()}, ${one(c.without)} ${c.withoutLabel.toLowerCase()}, out of ${c.max}`}>
+        {bars.map((b) => (
+          <div key={b.label} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1.5">
+            <span className="text-sm font-semibold tabular-nums">{one(b.value)}</span>
+            <span
+              className={cn("w-full max-w-20 rounded-t-lg transition-[height] duration-700", b.strong ? "bg-[#1A9C8C]" : "bg-[#BFE7E0]")}
+              // Scaled to 75% of the column at the top of the scale, leaving room for the labels.
+              style={{ height: `${Math.max(5, (b.value / c.max) * 75)}%` }}
+            />
+            <span className="text-center text-xs leading-tight text-muted-foreground">{b.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

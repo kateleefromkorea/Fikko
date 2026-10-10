@@ -64,13 +64,17 @@ function FikkoMessage({ named, children }: { named: boolean; children: ReactNode
 }
 
 /** The AI coach, Fikko: a chat grounded in what the member has logged in Fikko. */
-export default function CoachView({ profileName }: { profileName: string }) {
+export default function CoachView({ profileName, initialDraft = "" }: {
+  profileName: string;
+  /** A question to start from, e.g. one about a Dashboard pattern. Left for the member to send. */
+  initialDraft?: string;
+}) {
   const [messages, setMessages] = useState<CoachMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [used, setUsed] = useState(0);
   const { ai } = usePlan();
   const when = ai.period === "week" ? "this week" : "today";
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useState(initialDraft);
   const [streaming, setStreaming] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);

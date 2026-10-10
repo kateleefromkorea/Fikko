@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 import { fetchAllRows } from "./fetchAll";
-import { shiftDateKey } from "./dates";
+import { shiftDateKey, todayKey } from "./dates";
 
 // Every table holding a user's data, and the column that dates each row.
 // Row-level security scopes each query to the signed-in user, so these reads
@@ -30,6 +30,53 @@ const USER_TABLES = [
   ["ai_recipes", "created_at"],
 ] as const;
 
+/** The tables a deep-dive report reads (report.ts). */
+const REPORT_TABLES = new Set(["profiles", "habit_entries", "custom_habits", "custom_habit_entries", "food_log_items", "biometric_entries"]);
+
+async function fetchTables(userId: string, range: ExportRange | null, only?: Set<string>) {
+  // Timestamps are cut at the member's own midnights, matching their day keys.
+  const startOf = (key: string) => new Date(key + "T00:00:00").toISOString();
+  const tables: Record<string, Record<string, unknown>[]> = {};
+  for (const [table, dateColumn] of USER_TABLES) {
+    if (only && !only.has(table)) continue;
+    tables[table] = await fetchAllRows<Record<string, unknown>>((from, to) => {
+      let q = supabase.from(table).select("*").eq("user_id", userId);
+      if (range && dateColumn === "date") q = q.gte("date", range.from).lte("date", range.to);
+      if (range && dateColumn === "created_at") {
+        q = q.gte("created_at", startOf(range.from)).lt("created_at", startOf(shiftDateKey(range.to, 1)));
+      }
+      return q.order("user_id").range(from, to);
+    });
+  }
+  return tables;
+}
+
+function save(blob: Blob, name: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.click();
+  // Revoking straight away can cancel the download in some browsers.
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/**
+ * A deep-dive report as a PDF: the calendar month containing `anyDay` against
+ * the month before, or (with no day) everything since the first log.
+ */
+export async function exportReport(userId: string, anyDay: string | null) {
+  const today = todayKey();
+  const range = anyDay
+    ? { from: shiftDateKey(anyDay.slice(0, 7) + "-01", -1).slice(0, 7) + "-01", to: today }
+    : null;
+  const tables = await fetchTables(userId, range, REPORT_TABLES);
+  // Loaded on demand so the PDF library stays out of the main bundle.
+  const [{ monthlyReport, lifetimeReport }, { buildReportPdf }] = await Promise.all([import("./report"), import("./exportReport")]);
+  const report = anyDay ? monthlyReport(tables, anyDay, today) : lifetimeReport(tables, today);
+  save(buildReportPdf(report, new Date()).output("blob"), anyDay ? `fikko-report-${anyDay.slice(0, 7)}.pdf` : "fikko-report-lifetime.pdf");
+}
+
 /** "daily" and "food" are spreadsheets (CSV): one row per day, or one row per logged food. */
 export type ExportFormat = "pdf" | "json" | "daily" | "food";
 
@@ -47,20 +94,7 @@ export interface ExportRange {
  * a readable report of the same rows.
  */
 export async function exportAllData(userId: string, format: ExportFormat, range: ExportRange | null = null) {
-  // Timestamps are cut at the member's own midnights, matching their day keys.
-  const startOf = (key: string) => new Date(key + "T00:00:00").toISOString();
-  const tables: Record<string, Record<string, unknown>[]> = {};
-  for (const [table, dateColumn] of USER_TABLES) {
-    tables[table] = await fetchAllRows<Record<string, unknown>>((from, to) => {
-      let q = supabase.from(table).select("*").eq("user_id", userId);
-      if (range && dateColumn === "date") q = q.gte("date", range.from).lte("date", range.to);
-      if (range && dateColumn === "created_at") {
-        q = q.gte("created_at", startOf(range.from)).lt("created_at", startOf(shiftDateKey(range.to, 1)));
-      }
-      return q.order("user_id").range(from, to);
-    });
-  }
-
+  const tables = await fetchTables(userId, range);
   const exportedAt = new Date();
   let blob: Blob;
   if (format === "pdf") {
@@ -75,16 +109,10 @@ export async function exportAllData(userId: string, format: ExportFormat, range:
     blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
   }
 
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
   const span = !range ? "all" : range.from === range.to ? range.from : `${range.from}_to_${range.to}`;
-  a.download = format === "daily" || format === "food"
+  save(blob, format === "daily" || format === "food"
     ? `fikko-${format === "daily" ? "daily" : "food-diary"}-${span}.csv`
-    : `fikko-export-${span}.${format}`;
-  a.click();
-  // Revoking straight away can cancel the download in some browsers.
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+    : `fikko-export-${span}.${format}`);
 }
 
 /** Days between asking to delete an account and it being permanently deleted. */

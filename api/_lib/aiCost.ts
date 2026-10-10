@@ -9,7 +9,7 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export type AiFeature = "coach" | "coach_screen" | "coach_review" | "voice" | "photo" | "interactions" | "recipe";
+export type AiFeature = "coach" | "coach_screen" | "coach_review" | "coach_checkin" | "voice" | "photo" | "interactions" | "recipe";
 
 const PRICES: Record<string, { input: number; output: number; cacheRead: number; cacheWrite: number }> = {
   // Haiku 4.5: US$1 input, US$5 output; cache reads 0.1x input, 5-minute cache writes 1.25x input.

@@ -50,7 +50,11 @@ function toCsv(header: string[], rows: unknown[][]): Blob {
   return new Blob(["﻿" + lines.join("\r\n") + "\r\n"], { type: "text/csv;charset=utf-8" });
 }
 
-export function buildDailyCsv(tables: Tables): Blob {
+/**
+ * Every logged day as column header → value, plus the custom habits' headers.
+ * Shared with the deep-dive report (report.ts), so both read the logs the same way.
+ */
+export function dailyRollup(tables: Tables) {
   const days = new Map<string, Map<string, unknown>>();
   const day = (date: unknown) => {
     const key = String(date);
@@ -122,7 +126,11 @@ export function buildDailyCsv(tables: Tables): Blob {
     const column = WEARABLE_COLUMNS.find(([m]) => m === metric);
     if (column) d.set(column[1], round(value));
   }
+  return { days, customHabits };
+}
 
+export function buildDailyCsv(tables: Tables): Blob {
+  const { days, customHabits } = dailyRollup(tables);
   const header = [
     "Date", "Calories (kcal)", "Protein (g)", "Carbs (g)", "Fat (g)", "Water (glasses)", "Activity (minutes)",
     "Sleep (hours)", "Bedtime", "Wake time", "Rested (1-5)", "Sleep notes", "Mood (1-5)", "Mood",

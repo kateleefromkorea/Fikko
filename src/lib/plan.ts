@@ -16,16 +16,18 @@ export interface PlanLimits {
   wearableBiometrics: boolean;
   interactionAi: boolean;
   csvExport: boolean;
+  deepDiveReports: boolean;
+  proactiveCoach: boolean;
 }
 
 export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
-  free: { customHabits: 3, aiPerWeek: 5, coachPerDay: null, historyDays: 7, wearableBiometrics: false, interactionAi: false, csvExport: false },
-  premium: { customHabits: null, aiPerWeek: null, coachPerDay: 20, historyDays: 30, wearableBiometrics: true, interactionAi: false, csvExport: false },
-  max: { customHabits: null, aiPerWeek: null, coachPerDay: 50, historyDays: null, wearableBiometrics: true, interactionAi: true, csvExport: true },
+  free: { customHabits: 3, aiPerWeek: 5, coachPerDay: null, historyDays: 7, wearableBiometrics: false, interactionAi: false, csvExport: false, deepDiveReports: false, proactiveCoach: false },
+  premium: { customHabits: null, aiPerWeek: null, coachPerDay: 20, historyDays: 30, wearableBiometrics: true, interactionAi: false, csvExport: false, deepDiveReports: false, proactiveCoach: false },
+  max: { customHabits: null, aiPerWeek: null, coachPerDay: 50, historyDays: null, wearableBiometrics: true, interactionAi: true, csvExport: true, deepDiveReports: true, proactiveCoach: true },
 };
 
 /** Before plans are enforced, everyone has everything. */
-const OPEN: PlanLimits = { customHabits: null, aiPerWeek: null, coachPerDay: 20, historyDays: null, wearableBiometrics: true, interactionAi: true, csvExport: true };
+const OPEN: PlanLimits = { customHabits: null, aiPerWeek: null, coachPerDay: 20, historyDays: null, wearableBiometrics: true, interactionAi: true, csvExport: true, deepDiveReports: true, proactiveCoach: true };
 
 export const limitsFor = ({ plan, enforced }: PlanState): PlanLimits => (enforced ? PLAN_LIMITS[plan] : OPEN);
 

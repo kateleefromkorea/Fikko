@@ -687,7 +687,9 @@ export function patternItems(ctx: DashCtx, { relative = true } = {}): Pattern[] 
 }
 
 /**
- * "Fikko noticed": the Dashboard's core feature, on the teal-and-sky panel. The
+ * "Fikko noticed": the Dashboard's core feature. A white panel with a thin
+ * teal-to-sky strip along the top (the banner above already carries the full
+ * gradient), and the featured pattern on a pale teal tint. The
  * strongest pattern is featured with its chart and one thing to try (step
  * through the others), and the rest follow as compact rows. The check-in
  * streak isn't a pattern, so it stays with the summary's stats.
@@ -702,9 +704,10 @@ export function PatternsSection({ ctx, onAskCoach }: { ctx: DashCtx; onAskCoach?
   const step = (by: number) => setIndex((i) => (i + by + featured.length) % featured.length);
 
   return (
-    <section aria-labelledby="patterns-title" className="fresh-panel space-y-4 rounded-2xl border border-teal/20 p-5 shadow-sm sm:p-6">
+    <section aria-labelledby="patterns-title" className="relative space-y-4 overflow-hidden rounded-2xl border bg-card p-5 shadow-sm sm:p-6">
+      <span className="absolute inset-x-0 top-0 h-[3px] bg-linear-to-r from-[#2DC4B2] to-[#5BA9F0]" aria-hidden="true" />
       <div className="flex flex-wrap items-center gap-3">
-        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white shadow-sm" aria-hidden="true">
+        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[#DDF5F1]" aria-hidden="true">
           <FikkoAvatar plain className="size-6" />
         </span>
         <div className="min-w-0 flex-1 basis-48">
@@ -714,7 +717,7 @@ export function PatternsSection({ ctx, onAskCoach }: { ctx: DashCtx; onAskCoach?
           <p className="text-sm text-muted-foreground">In {PERIOD_PHRASE[ctx.period]}</p>
         </div>
         {featured.length > 1 && (
-          <div className="ml-auto flex items-center gap-1 rounded-full bg-white/85 p-1 shadow-sm">
+          <div className="ml-auto flex items-center gap-1 rounded-full border bg-card p-1">
             <Button variant="ghost" size="icon-sm" onClick={() => step(-1)} aria-label="Previous pattern" className="rounded-full">
               <ChevronLeft />
             </Button>
@@ -729,7 +732,7 @@ export function PatternsSection({ ctx, onAskCoach }: { ctx: DashCtx; onAskCoach?
       {pick?.compare ? (
         <FeaturedPattern pattern={pick} strongest={at === 0} onAskCoach={onAskCoach} />
       ) : !items.length && (
-        <div className="rounded-xl bg-white/90 p-2">
+        <div className="rounded-xl bg-[#F4FBFA] p-2">
           <EmptyState icon={Lightbulb} title="Nothing to point out yet" body="Keep logging. Patterns show up after a week or two of check-ins." />
         </div>
       )}
@@ -737,7 +740,7 @@ export function PatternsSection({ ctx, onAskCoach }: { ctx: DashCtx; onAskCoach?
       {others.length > 0 && (
         <ul className="grid gap-2.5 md:grid-cols-2">
           {others.map((p) => (
-            <li key={p.id} className="flex items-start gap-3 rounded-xl bg-white/85 px-4 py-3 shadow-xs">
+            <li key={p.id} className="flex items-start gap-3 rounded-xl border px-4 py-3">
               <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[#DDF5F1] text-[#0A6E63]" aria-hidden="true">
                 <p.icon className="size-3.5" />
               </span>
@@ -760,10 +763,10 @@ function FeaturedPattern({ pattern, strongest, onAskCoach }: { pattern: Pattern;
     { label: c.withoutLabel, value: c.without, strong: false },
   ];
   return (
-    <div className="grid gap-5 rounded-2xl bg-white p-5 shadow-sm md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] md:items-center">
+    <div className="grid gap-5 rounded-2xl border border-[#1A9C8C]/20 bg-[#F4FBFA] p-5 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] md:items-center">
       <div className="min-w-0">
         {strongest && (
-          <span className="inline-flex rounded-full bg-[#DDF5F1] px-2.5 py-0.5 text-xs font-medium text-[#0A6E63]">Your strongest pattern</span>
+          <span className="inline-flex rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-[#0A6E63] ring-1 ring-[#1A9C8C]/25">Your strongest pattern</span>
         )}
         <p className="mt-2.5 text-2xl leading-tight font-semibold">{pattern.headline}</p>
         <p className="mt-1.5 text-sm text-muted-foreground">

@@ -1,63 +1,69 @@
-import { Suspense, lazy, useEffect, useMemo, useState } from "react";
-import { ChartNoAxesColumn, ChefHat, ListChecks, LogOut, Sparkles, UserRound, Users, type LucideIcon } from "lucide-react";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
+import { App as NativeApp } from "@capacitor/app";
 import { useAuth } from "@/auth/AuthProvider";
 import SignInScreen from "@/auth/SignInScreen";
 import SetNewPassword from "@/auth/SetNewPassword";
 import RestoreAccount from "@/auth/RestoreAccount";
 import SetupNeeded from "@/auth/SetupNeeded";
-import CoachView from "@/components/CoachView";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import Celebration from "@/components/Celebration";
+import { MEALS, useDayCompleteCelebration, useToday, type HabitCardProps } from "@/components/HabitsView";
 import { useBiometrics } from "@/hooks/useBiometrics";
-import { useHabitData } from "@/hooks/useHabitData";
+import { useFoodLog, type NewFood } from "@/hooks/useFoodLog";
+import { useHabitData, type HabitUpdate } from "@/hooks/useHabitData";
 import { useMedications } from "@/hooks/useMedications";
+import { usePlan } from "@/hooks/usePlan";
 import { useProfile } from "@/hooks/useProfile";
 import { useConsents } from "@/hooks/useConsents";
 import { hasRequiredConsent } from "@/lib/consent";
 import { completion } from "@/lib/completion";
-import { todayKey } from "@/lib/dates";
+import { shiftDateKey } from "@/lib/dates";
 import { dietsOf, tracksMacros } from "@/lib/preferences";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { trackView } from "@/lib/track";
-import { cn } from "@/lib/utils";
+import type { HabitData, MealKey } from "@/types";
+import CaptureSheet from "@mobile/components/CaptureSheet";
+import SearchScreen, { type Place } from "@mobile/components/SearchScreen";
+import TopBar from "@mobile/components/TopBar";
+import MealLogger from "@mobile/components/MealLogger";
+import ScreenTitle from "@mobile/components/ScreenTitle";
+import TabBar, { type Tab } from "@mobile/components/TabBar";
+import { useToast } from "@mobile/components/Toast";
 import { useAuthLinks } from "@mobile/lib/authLinks";
-import HabitsScreen from "@mobile/screens/HabitsScreen";
+import { haptics } from "@mobile/lib/haptics";
+import CoachScreen, { type CoachPane } from "@mobile/screens/CoachScreen";
+import TodayScreen from "@mobile/screens/TodayScreen";
+import YouScreen, { type YouPage } from "@mobile/screens/YouScreen";
 
 const Dashboard = lazy(() => import("@/components/Dashboard"));
 const OnboardingModal = lazy(() => import("@/onboarding/OnboardingModal"));
 const ConsentPrompt = lazy(() => import("@/components/ConsentPrompt"));
-const CommunityView = lazy(() => import("@/components/CommunityView"));
-const RecipesView = lazy(() => import("@/components/RecipesView"));
-const ProfileView = lazy(() => import("@/components/ProfileView"));
 
-type Tab = "habits" | "dashboard" | "recipes" | "community" | "coaches" | "profile";
-
-const TABS: { id: Tab; label: string; icon: LucideIcon }[] = [
-  { id: "habits", label: "Habits", icon: ListChecks },
-  { id: "dashboard", label: "Dashboard", icon: ChartNoAxesColumn },
-  { id: "recipes", label: "Recipes", icon: ChefHat },
-  { id: "community", label: "Community", icon: Users },
-  { id: "coaches", label: "AI Coach", icon: Sparkles },
-];
-
-const loading = (what: string) => <p className="py-10 text-center text-sm text-muted-foreground">Loading {what}…</p>;
+const loading = (what: string) => <p role="status" className="py-24 text-center text-sm text-muted-foreground">Loading {what}…</p>;
 
 /**
- * The iOS and Android app's shell: a top bar under the status bar, the
- * current screen, and a tab bar above the home indicator. It shares the web
- * app's data hooks and screens but owns its own layout, so phone-only changes
- * live here and in mobile/src/screens.
+ * The iOS and Android app's shell. Four tabs (Today, Progress, Coach, You)
+ * with the capture button between them: logging is the app's main job, so it
+ * is one tap from every screen. It shares the web app's data hooks, cards and
+ * screens, but owns its own layout, which lives here and in mobile/src.
  */
 export default function MobileApp() {
   const { session, loading: authLoading, signOut, recovering } = useAuth();
   useAuthLinks();
+  const toast = useToast();
   const userId = session?.user.id ?? null;
-  const [tab, setTab] = useState<Tab>("habits");
+  const [tab, setTab] = useState<Tab>("today");
+  const [youPage, setYouPage] = useState<YouPage | null>(null);
+  const [capturing, setCapturing] = useState(false);
+  const [meal, setMeal] = useState<MealKey | null>(null);
+  const [coachDraft, setCoachDraft] = useState("");
+  const [coachPane, setCoachPane] = useState<CoachPane>("coach");
+  const [searching, setSearching] = useState(false);
+  // Bumped when a log finishes a habit, so the plant hops.
+  const [hop, setHop] = useState(0);
+
   const { data: loggedData, setData, loading: habitsLoading, loadError: habitsLoadError, reload: reloadHabits, saveState, retrySave } = useHabitData(userId);
   const { profile, updateProfile, loading: profileLoading } = useProfile(userId);
+  const { seedPlan } = usePlan();
   const consent = useConsents(userId);
   const medications = useMedications(userId);
   const { biometrics, reload: reloadBiometrics } = useBiometrics(userId);
@@ -72,10 +78,70 @@ export default function MobileApp() {
     [loggedData, medications.loading, medications.loadError, medications.medications.length, biometrics.activeMinutes],
   );
 
-  const signedIn = !!session;
+  // The day being logged, shared by Today and the capture sheet. When the day
+  // rolls over, someone looking at "today" moves to the new today.
+  const today = useToday();
+  const [activeDate, setActiveDate] = useState(today);
+  const shownToday = useRef(today);
   useEffect(() => {
-    if (!authLoading) trackView(signedIn ? `/app/${tab}` : "/app/sign-in");
-  }, [signedIn, authLoading, tab]);
+    if (shownToday.current === today) return;
+    setActiveDate((d) => (d === shownToday.current ? today : d));
+    shownToday.current = today;
+  }, [today]);
+
+  const memberActed = useRef(false);
+  const onChange = (next: HabitUpdate) => { memberActed.current = true; setData(next); };
+  const foodLog = useFoodLog(userId, activeDate, data, onChange);
+  const celebrating = useDayCompleteCelebration(data, profile.water_goal, userId, memberActed);
+
+  /** A one-tap log, answered with a toast; finishing a habit makes the plant hop. */
+  const quickLog = (update: (d: HabitData) => HabitData, message: string) => {
+    const before = completion(data, activeDate, profile.water_goal).done;
+    const next = update(data);
+    const after = completion(next, activeDate, profile.water_goal).done;
+    onChange(next);
+    toast(message, { grew: after > before });
+    if (after > before) { setHop((h) => h + 1); haptics.success(); }
+    else haptics.logged();
+  };
+
+  /** Food added from search: same answer as a one-tap log. */
+  const addFood = (meal: MealKey, food: NewFood) => {
+    const foodDone = completion(data, activeDate, profile.water_goal).core.find((c) => c.key === "food")?.done ?? true;
+    void foodLog.addItem(meal, food);
+    const label = MEALS.find((m) => m.key === meal)!.label.toLowerCase();
+    toast(`${food.name} added to ${label}`, { grew: !foodDone });
+    if (!foodDone) { setHop((h) => h + 1); haptics.success(); } else haptics.logged();
+  };
+
+  const signedIn = !!session;
+  const page = tab === "you" && youPage ? `/app/you/${youPage}` : `/app/${tab}`;
+  useEffect(() => {
+    if (!authLoading) trackView(signedIn ? page : "/app/sign-in");
+  }, [signedIn, authLoading, page]);
+
+  const open = (next: Tab) => {
+    // Tapping the current tab again returns to its top (and You to its first page), as in native apps.
+    if (next === tab) {
+      if (next === "you") setYouPage(null);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      window.scrollTo({ top: 0 });
+    }
+    setTab(next);
+  };
+
+  // Android's back button steps back inside the app before leaving it.
+  const back = useRef<() => boolean>(() => false);
+  back.current = () => {
+    if (tab === "you" && youPage) { setYouPage(null); return true; }
+    if (tab !== "today") { setTab("today"); return true; }
+    return false;
+  };
+  useEffect(() => {
+    const listener = NativeApp.addListener("backButton", () => { if (!back.current()) void NativeApp.minimizeApp(); });
+    return () => { void listener.then((l) => l.remove()); };
+  }, []);
 
   if (!isSupabaseConfigured) return <SetupNeeded />;
   if (authLoading) return <div className="min-h-dvh bg-background" />;
@@ -93,117 +159,145 @@ export default function MobileApp() {
   }
 
   const email = session.user.email ?? "";
-  const initials = (profile.name || email || "?").split(/\s+/).map((s) => s[0]).join("").slice(0, 2).toUpperCase();
   const needsOnboarding = !profileLoading && !profile.onboarding_completed_at;
   // Same privacy consent gate as the website (see src/App.tsx).
   const needsConsent = !consent.loading && !hasRequiredConsent(consent.consents);
-  const { done, total } = completion(data, todayKey(), profile.water_goal);
-
-  const open = (next: Tab) => {
-    // Tapping the current tab again returns to its top, as in native apps.
-    window.scrollTo({ top: 0, behavior: next === tab ? "smooth" : "auto" });
-    setTab(next);
+  const habitsReady = !habitsLoading && !habitsLoadError;
+  const goals = { calories: profile.calorie_goal, water: profile.water_goal, sleepHours: profile.sleep_goal, weightKg: profile.weight_kg, goalKey: profile.primary_goal };
+  const cardProps: HabitCardProps = {
+    data, onChange, activeDate, biometrics, medications, userId, profileName: profile.name, goals, trackMacros: tracksMacros(profile.tracking_style),
+  };
+  // A page inside You brings its own top bar (with Back) in place of the app's.
+  const ownTopBar = tab === "you" && youPage;
+  const initials = (profile.name || email || "?").split(/\s+/).map((s) => s[0]).join("").slice(0, 2).toUpperCase();
+  const go = (place: Place) => {
+    if (place === "today" || place === "progress") return open(place);
+    if (place === "coach" || place === "recipes") { setCoachPane(place); return open("coach"); }
+    setTab("you");
+    setYouPage(place);
+    window.scrollTo({ top: 0 });
+  };
+  const mealLabelFor = (meal: MealKey) => {
+    const label = MEALS.find((m) => m.key === meal)!.label;
+    if (activeDate === today) return label;
+    if (activeDate === shiftDateKey(today, -1)) return `${label} yesterday`;
+    return `${label} on ${new Date(activeDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "long" })}`;
   };
 
   return (
-    <div data-page={tab} className="mobile-app app-wash flex min-h-dvh flex-col pb-[calc(4rem+env(safe-area-inset-bottom))]">
-      <header className="sticky top-0 z-40 h-(--mobile-header-h) border-b bg-white pt-[env(safe-area-inset-top)]">
-        <div className="flex h-14 items-center gap-3 px-4">
-          <button onClick={() => open("habits")} className="text-lg font-bold tracking-wide" aria-label="Fikko, go to today">
-            FIKKO
-          </button>
-
-          <div className="ml-auto flex items-center gap-3">
-            <span className="text-sm text-muted-foreground tabular-nums" aria-label={`${done} of ${total} habits done today`}>
-              {done}/{total} today
-            </span>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50" aria-label="Account menu">
-                  <Avatar>
-                    <AvatarFallback
-                      className={cn("text-xs font-medium", tab === "profile" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground")}
-                    >
-                      {initials}
-                    </AvatarFallback>
-                  </Avatar>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel className="font-normal">
-                  <p className="truncate text-sm font-medium text-foreground">{profile.name || "Your account"}</p>
-                  <p className="truncate text-xs text-muted-foreground">{email}</p>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuItem onSelect={() => open("profile")}><UserRound />Profile</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => signOut()}><LogOut />Sign out</DropdownMenuItem>
-                </DropdownMenuGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-      </header>
-
-      <main className={cn("w-full flex-1 px-4 pb-8", tab !== "habits" && "pt-6")}>
-        {saveState === "error" && (
-          <div role="alert" className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            <span>Your latest changes haven&apos;t saved yet. We&apos;ll keep trying.</span>
-            <button onClick={retrySave} className="font-semibold underline underline-offset-2">Try again</button>
-          </div>
-        )}
-        {(tab === "habits" || tab === "dashboard") && habitsLoadError && (
-          <div role="alert" className="flex flex-col items-center gap-3 py-16 text-center">
-            <p className="text-sm text-muted-foreground">{habitsLoadError}</p>
-            <button onClick={() => reloadHabits()} className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground">Try again</button>
-          </div>
-        )}
-        {(tab === "habits" || tab === "dashboard") && habitsLoading && !habitsLoadError && (
-          <p role="status" className="py-24 text-center text-sm text-muted-foreground">Loading your habits…</p>
-        )}
-        {tab === "habits" && !habitsLoading && !habitsLoadError && (
-          <HabitsScreen
-            data={data}
-            onChange={setData}
-            biometrics={biometrics}
-            medications={medications}
-            userId={userId}
-            profileName={profile.name}
-            goals={{ calories: profile.calorie_goal, water: profile.water_goal, sleepHours: profile.sleep_goal, weightKg: profile.weight_kg, goalKey: profile.primary_goal }}
-            trackMacros={tracksMacros(profile.tracking_style)}
-            onOpenCommunity={() => open("community")}
+    <div data-page={tab} className="mobile-app app-wash flex min-h-dvh flex-col">
+      <main className="w-full flex-1 px-4 pb-[calc(var(--mobile-tabbar-h)+2rem)]">
+        {!ownTopBar && (
+          <TopBar
+            initials={initials}
+            profileActive={tab === "you"}
+            onHome={() => open("today")}
+            onSearch={() => {
+              // Food found from another screen is logged for today.
+              if (tab !== "today") setActiveDate(today);
+              setSearching(true);
+            }}
+            onProfile={() => { setYouPage(null); open("you"); }}
           />
         )}
-        {tab === "dashboard" && !habitsLoading && !habitsLoadError && (
-          <Suspense fallback={loading("dashboard")}>
-            <Dashboard data={data} biometrics={biometrics} profile={profile} />
-          </Suspense>
+        {saveState === "error" && (
+          <div role="alert" className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            <span>Your latest changes haven&apos;t saved yet. We&apos;ll keep trying.</span>
+            <button onClick={retrySave} className="h-9 font-semibold underline underline-offset-2">Try again</button>
+          </div>
         )}
-        {tab === "recipes" && (
-          <Suspense fallback={loading("recipes")}>
-            <RecipesView userId={session.user.id} profileName={profile.name} diets={dietsOf(profile)} allergies={profile.allergies ?? []} />
-          </Suspense>
+        {(tab === "today" || tab === "progress") && habitsLoadError && (
+          <div role="alert" className="flex flex-col items-center gap-3 py-16 text-center">
+            <p className="text-sm text-muted-foreground">{habitsLoadError}</p>
+            <button onClick={() => reloadHabits()} className="h-11 rounded-full bg-button px-5 text-sm font-semibold text-white">Try again</button>
+          </div>
         )}
-        {tab === "community" && (
-          <Suspense fallback={loading("community")}>
-            <CommunityView userId={session.user.id} profileName={profile.name} />
-          </Suspense>
+        {(tab === "today" || tab === "progress") && habitsLoading && !habitsLoadError && loading("your habits")}
+
+        {tab === "today" && habitsReady && (
+          <TodayScreen
+            {...cardProps}
+            onQuick={quickLog}
+            onDateChange={setActiveDate}
+            profile={profile}
+            foodLog={foodLog}
+            onLogMeal={setMeal}
+            hop={hop}
+            onOpenGarden={() => { setTab("you"); setYouPage("garden"); window.scrollTo({ top: 0 }); }}
+          />
         )}
-        {tab === "coaches" && <CoachView profileName={profile.name} />}
-        {tab === "profile" && (
-          <Suspense fallback={loading("profile")}>
-            <ProfileView
-              email={email}
-              profile={profile}
-              onUpdateProfile={updateProfile}
-              userId={session.user.id}
-              onSignOut={signOut}
-              deviceOutcome={null}
-              onDevicesSynced={() => void reloadBiometrics()}
-            />
-          </Suspense>
+        {tab === "progress" && habitsReady && (
+          <div className="screen-in">
+            <ScreenTitle>Progress</ScreenTitle>
+            <Suspense fallback={loading("your progress")}>
+              <Dashboard
+                data={data}
+                biometrics={biometrics}
+                profile={profile}
+                onAskCoach={(question) => { setCoachDraft(question); setCoachPane("coach"); open("coach"); }}
+              />
+            </Suspense>
+          </div>
+        )}
+        {tab === "coach" && (
+          <CoachScreen
+            view={coachPane}
+            onView={setCoachPane}
+            profileName={profile.name}
+            draft={coachDraft}
+            userId={session.user.id}
+            diets={dietsOf(profile)}
+            allergies={profile.allergies ?? []}
+          />
+        )}
+        {tab === "you" && (
+          <YouScreen
+            page={youPage}
+            onPage={(p) => { setYouPage(p); window.scrollTo({ top: 0 }); }}
+            userId={session.user.id}
+            email={email}
+            data={data}
+            profile={profile}
+            plan={seedPlan}
+            onUpdateProfile={updateProfile}
+            onSignOut={signOut}
+            onDevicesSynced={() => void reloadBiometrics()}
+            onOpenToday={() => open("today")}
+          />
         )}
       </main>
+
+      {habitsReady && (
+        <>
+          <CaptureSheet
+            open={capturing}
+            onClose={() => setCapturing(false)}
+            cardProps={cardProps}
+            onQuick={quickLog}
+            onLogMeal={setMeal}
+            onVoiceSave={(next, foods) => {
+              const before = completion(data, activeDate, profile.water_goal).done;
+              if (foods.length) void foodLog.addEntries(foods, next);
+              else onChange(next);
+              const grew = completion(next, activeDate, profile.water_goal).done > before;
+              toast("Check-in saved", { grew });
+              if (grew) setHop((h) => h + 1);
+              haptics.success();
+            }}
+          />
+          <SearchScreen
+            open={searching}
+            onClose={() => setSearching(false)}
+            onAddFood={addFood}
+            onAsk={(question) => { setCoachDraft(question); setCoachPane("coach"); open("coach"); }}
+            onGo={go}
+            mealLabelFor={mealLabelFor}
+          />
+          <MealLogger meal={meal} onClose={() => setMeal(null)} date={activeDate} userId={userId} foodLog={foodLog} showMacros={cardProps.trackMacros} />
+        </>
+      )}
+
+      {celebrating.show && <Celebration onDone={celebrating.dismiss} />}
 
       {needsOnboarding && (
         <Suspense fallback={null}>
@@ -214,7 +308,7 @@ export default function MobileApp() {
             onAddMedication={(name) => medications.addMedication(name, "breakfast")}
             onComplete={async (patch) => {
               await updateProfile(patch);
-              open("dashboard");
+              open("today");
             }}
             consent={needsConsent ? { region: consent.region, save: consent.save } : undefined}
           />
@@ -227,30 +321,16 @@ export default function MobileApp() {
         </Suspense>
       )}
 
-      <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-40 border-t bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
-        <ul className="grid h-16 grid-cols-5">
-          {TABS.map(({ id, label, icon: Icon }) => {
-            const active = tab === id;
-            return (
-              <li key={id}>
-                <button
-                  onClick={() => open(id)}
-                  aria-current={active ? "page" : undefined}
-                  className={cn(
-                    "flex h-full w-full flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors outline-none",
-                    active ? "text-primary-ink" : "text-muted-foreground",
-                  )}
-                >
-                  <span className={cn("grid h-7 w-12 place-items-center rounded-full transition-colors", active && "bg-primary/10")} aria-hidden="true">
-                    <Icon className="size-5" strokeWidth={active ? 2.25 : 1.75} />
-                  </span>
-                  {label}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
+      <TabBar
+        tab={tab}
+        onTab={open}
+        onCapture={() => {
+          // Logging from another screen logs for today.
+          if (tab !== "today") setActiveDate(today);
+          haptics.tap();
+          setCapturing(true);
+        }}
+      />
     </div>
   );
 }

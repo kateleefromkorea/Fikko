@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Fikko Mobile prototype</title>
+<style>
+:root{
+  --ink:#001F27; --muted:#4B5257; --line:#E4EAEC; --bg:#F6F8F8; --card:#fff;
+  --teal:#2DC4B2; --teal-deep:#157954; --sky:#5BA9F0; --sky-deep:#1F73C2;
+  --teal-tint:#E3F6F1; --sky-tint:#E6F1FC; --warn:#B4531A; --warn-tint:#FCEFE4;
+  --r-lg:28px; --r-md:18px; --r-sm:12px;
+  font-family:'Inter Variable',Inter,-apple-system,system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
+body{background:#DDE5E7;min-height:100dvh;display:grid;place-items:center;color:var(--ink);padding:24px 0;overflow-x:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:focus-visible{outline:3px solid var(--sky-deep);outline-offset:2px}
+
+/* device */
+.phone{width:390px;height:844px;background:var(--bg);border-radius:54px;position:relative;overflow:hidden;
+  box-shadow:0 0 0 10px #0d1719,0 30px 80px rgba(0,31,39,.35)}
+.status{position:absolute;inset:0 0 auto 0;height:54px;display:flex;justify-content:space-between;align-items:flex-end;
+  padding:0 34px 8px;font-weight:600;font-size:15px;z-index:60;pointer-events:none}
+.island{position:absolute;top:11px;left:50%;translate:-50% 0;width:120px;height:34px;border-radius:20px;background:#000;z-index:61}
+.screen{position:absolute;inset:0;overflow-y:auto;padding:62px 20px 130px;scrollbar-width:none;display:none}
+.screen.on{display:block}
+.screen::-webkit-scrollbar{display:none}
+.homebar{position:absolute;bottom:8px;left:50%;translate:-50% 0;width:134px;height:5px;border-radius:3px;background:var(--ink);z-index:70}
+
+/* type */
+.t-title{font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+.t-h{font-size:19px;font-weight:650;letter-spacing:-.01em}
+.t-sub{font-size:15px;color:var(--muted);line-height:1.4}
+.t-small{font-size:13px;color:var(--muted)}
+.num{font-variant-numeric:tabular-nums}
+
+/* Today hero: the locked teal/sky wash */
+.hero{border-radius:var(--r-lg);padding:20px 20px 18px;position:relative;overflow:hidden;
+  background:radial-gradient(120% 90% at 85% 0%,rgba(91,169,240,.45),transparent 60%),
+             radial-gradient(110% 90% at 0% 100%,rgba(45,196,178,.5),transparent 62%),#fff;
+  border:1px solid rgba(45,196,178,.25)}
+.hero-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.plant-wrap{display:grid;place-items:center;height:196px;margin:2px 0 2px}
+.plant-wrap svg{height:196px;width:auto;overflow:visible;display:block}
+.grow{transition:transform .8s cubic-bezier(.2,.9,.3,1.2);transform-origin:50% 100%}
+.progress-line{display:flex;align-items:center;gap:10px;margin-top:6px}
+.dots{display:flex;gap:6px;flex:1}
+.dots i{height:8px;flex:1;border-radius:4px;background:rgba(0,31,39,.1);transition:background .4s}
+.dots i.on{background:var(--teal-deep)}
+
+/* date strip */
+.days{display:flex;gap:6px;margin:14px 0 14px}
+.day{flex:1;text-align:center;padding:7px 0 6px;border-radius:14px;font-size:12px;color:var(--muted)}
+.day b{display:block;font-size:16px;color:var(--ink);margin-top:2px}
+.day.sel{background:var(--ink);color:#fff}.day.sel b{color:#fff}
+.day .pip{display:block;margin:4px auto 0;width:5px;height:5px;border-radius:50%;background:var(--line)}
+.day .pip.full{background:var(--teal-deep)}
+
+/* up next list */
+.sect{display:flex;justify-content:space-between;align-items:baseline;margin:22px 4px 10px}
+.rows{display:grid;gap:10px}
+.row{background:var(--card);border-radius:var(--r-md);padding:12px 14px;display:flex;align-items:center;gap:12px;
+  min-height:64px;border:1px solid var(--line);transition:opacity .3s}
+.ico{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;flex:none}
+.ico svg{width:22px;height:22px}
+.ico.t{background:var(--teal-tint);color:var(--teal-deep)} .ico.s{background:var(--sky-tint);color:var(--sky-deep)}
+.row{flex-wrap:wrap}.row .txt{flex:1;min-width:0}.row .moods{flex-basis:100%;justify-content:space-between;margin-top:2px}.row .moods button{flex:1}
+.row .txt b{display:block;font-weight:600;font-size:16px}
+.row .txt span{font-size:13px;color:var(--muted)}
+.btn{min-height:44px;min-width:44px;padding:0 16px;border-radius:22px;font-weight:600;font-size:15px;background:var(--teal-deep);color:#fff}
+.btn.soft{background:var(--teal-tint);color:var(--teal-deep)}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
+.step{display:flex;align-items:center;gap:4px}
+.step button{width:44px;height:44px;border-radius:50%;background:var(--sky-tint);color:var(--sky-deep);font-size:22px;font-weight:600}
+.moods{display:flex;gap:2px}
+.moods button{width:40px;height:44px;font-size:24px;border-radius:12px}
+.moods button.sel{background:var(--teal-tint)}
+.row.done{opacity:.62}
+.check{width:28px;height:28px;border-radius:50%;background:var(--teal-deep);color:#fff;display:grid;place-items:center;flex:none}
+.done-toggle{width:100%;text-align:left;padding:14px 4px;color:var(--muted);font-size:14px;font-weight:600}
+
+/* tab bar */
+.tabbar{position:absolute;left:0;right:0;bottom:0;height:98px;padding:8px 14px 28px;z-index:50;
+  display:grid;grid-template-columns:1fr 1fr 84px 1fr 1fr;align-items:end;
+  background:rgba(255,255,255,.78);backdrop-filter:blur(22px) saturate(1.6);border-top:1px solid rgba(0,31,39,.08)}
+.tab{display:grid;justify-items:center;gap:3px;font-size:11px;font-weight:600;color:#6a7479;min-height:48px;padding-top:2px}
+.tab svg{width:25px;height:25px}
+.tab.on{color:var(--teal-deep)}
+.fab{width:64px;height:64px;border-radius:50%;margin:0 auto 6px;display:grid;place-items:center;color:#fff;
+  background:linear-gradient(145deg,var(--teal-deep),#0e5e55);box-shadow:0 10px 24px rgba(21,121,84,.45);translate:0 -14px;
+  transition:transform .2s}
+.fab:active{transform:scale(.94)}
+.fab svg{width:30px;height:30px}
+
+/* sheet */
+.scrim{position:absolute;inset:0;background:rgba(0,31,39,.4);z-index:80;opacity:0;pointer-events:none;transition:opacity .25s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:90;background:#fff;border-radius:30px 30px 0 0;padding:10px 20px 40px;
+  translate:0 105%;transition:translate .35s cubic-bezier(.2,.9,.3,1);max-height:88%;overflow-y:auto}
+.sheet.on{translate:0 0}
+.grab{width:40px;height:5px;border-radius:3px;background:#CBD5D8;margin:0 auto 14px}
+.mic{width:100%;min-height:92px;border-radius:24px;background:linear-gradient(120deg,var(--teal-deep),#0f6a78);color:#fff;
+  display:flex;align-items:center;gap:16px;padding:0 20px;text-align:left}
+.mic .m{width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.18);display:grid;place-items:center;flex:none}
+.mic.listen .m{animation:pulse 1.1s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,255,255,.55)}100%{box-shadow:0 0 0 22px rgba(255,255,255,0)}}
+.mic b{display:block;font-size:18px}.mic span{font-size:14px;opacity:.85}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
+.tile{display:grid;justify-items:center;gap:6px;padding:14px 0 10px;border-radius:18px;background:var(--bg);font-size:13px;font-weight:600;min-height:76px}
+.tile svg{width:26px;height:26px;color:var(--teal-deep)}
+.quick{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.chip{min-height:44px;padding:0 14px;border-radius:22px;border:1px solid var(--line);font-weight:600;font-size:14px;display:inline-flex;align-items:center;gap:6px}
+.parsed{margin-top:14px;border-radius:20px;border:1px solid rgba(45,196,178,.4);background:var(--teal-tint);padding:14px}
+.parsed li{list-style:none;display:flex;justify-content:space-between;padding:6px 0;font-size:15px;border-bottom:1px solid rgba(21,121,84,.12)}
+.parsed li:last-child{border:0}
+.sheet-actions{display:flex;gap:10px;margin-top:14px}.sheet-actions .btn{flex:1;min-height:52px;border-radius:26px;font-size:16px}
+
+.toast{position:absolute;left:20px;right:20px;top:60px;z-index:100;background:var(--ink);color:#fff;border-radius:18px;padding:14px 16px;
+  display:flex;align-items:center;gap:10px;font-size:15px;font-weight:550;translate:0 -140%;opacity:0;transition:translate .35s cubic-bezier(.2,.9,.3,1),opacity .2s}
+.toast.on{translate:0 0;opacity:1}
+
+/* progress */
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);padding:18px;margin-top:14px}
+.bars{display:flex;align-items:flex-end;gap:10px;height:110px;margin-top:14px}
+.bars div{flex:1;border-radius:8px 8px 4px 4px;background:var(--sky-tint);position:relative}
+.bars div.hi{background:var(--teal-deep)}
+.bars span{position:absolute;bottom:-20px;left:0;right:0;text-align:center;font-size:11px;color:var(--muted)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:var(--r-md);padding:14px}
+.stat b{font-size:24px;letter-spacing:-.02em}.stat span{display:block;font-size:13px;color:var(--muted);margin-top:2px}
+.seg{display:flex;background:#E9EEEF;border-radius:14px;padding:3px;margin:14px 0}
+.seg button{flex:1;min-height:38px;border-radius:11px;font-weight:600;font-size:14px;color:var(--muted)}
+.seg button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+
+/* coach */
+.bubble{max-width:86%;padding:12px 14px;border-radius:20px;font-size:15px;line-height:1.4;margin-top:10px}
+.bubble.c{background:#fff;border:1px solid var(--line);border-bottom-left-radius:6px}
+.bubble.u{background:var(--teal-deep);color:#fff;margin-left:auto;border-bottom-right-radius:6px}
+.recipe{display:flex;gap:12px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:var(--r-md);padding:12px;margin-top:10px}
+.recipe .ph{width:64px;height:64px;border-radius:14px;background:linear-gradient(135deg,var(--teal-tint),var(--sky-tint));display:grid;place-items:center;font-size:28px}
+
+/* you */
+.list{background:#fff;border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden;margin-top:14px}
+.list button{display:flex;align-items:center;gap:12px;width:100%;min-height:54px;padding:0 16px;text-align:left;font-size:16px;border-bottom:1px solid var(--line)}
+.list button:last-child{border:0}.list button span:last-child{margin-left:auto;color:var(--muted);font-size:14px}
+
+.note{position:fixed;right:24px;bottom:24px;max-width:300px;background:#fff;border-radius:16px;padding:14px 16px;font-size:13px;color:var(--muted);box-shadow:0 8px 30px rgba(0,31,39,.15);line-height:1.5}
+.note b{color:var(--ink)}
+@media (max-width:760px){.note{display:none}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<div class="phone" id="phone">
+  <div class="status"><span>9:41</span><span>●●● 5G ▮</span></div>
+  <div class="island"></div>
+  <div class="toast" id="toast" role="status"><span id="toastIcon">🌱</span><span id="toastText"></span></div>
+
+  <!-- TODAY -->
+  <section class="screen on" id="s-today" aria-label="Today">
+    <div class="hero">
+      <div class="hero-top">
+        <div>
+          <p class="t-small" id="dateLine">Sunday, 11 October</p>
+          <h1 class="t-title" id="greet">Good morning, Kate</h1>
+        </div>
+        <button class="chip" style="min-height:40px;padding:0 12px;background:rgba(255,255,255,.7)" aria-label="3 day streak">🔥 <span class="num">3</span></button>
+      </div>
+      <div class="plant-wrap" id="plantWrap"></div>
+      <p class="t-sub" id="plantLine" style="text-align:center"></p>
+      <div class="progress-line"><div class="dots" id="dots"></div><span class="t-small num" id="count"></span></div>
+    </div>
+
+    <div class="days" id="days"></div>
+
+    <div class="sect"><h2 class="t-h">Up next</h2><span class="t-small" id="leftLabel"></span></div>
+    <div class="rows" id="upNext"></div>
+
+    <button class="done-toggle" id="doneToggle" hidden></button>
+    <div class="rows" id="doneList" hidden></div>
+  </section>
+
+  <!-- PROGRESS -->
+  <section class="screen" id="s-progress" aria-label="Progress">
+    <h1 class="t-title">Progress</h1>
+    <div class="seg"><button class="on">Week</button><button>Month</button><button>All time</button></div>
+    <div class="card">
+      <p class="t-h">Habits completed</p><p class="t-small">Your best week yet. Keep going.</p>
+      <div class="bars" style="margin-bottom:24px" id="bars"></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><b class="num">1,840</b><span>Avg calories</span></div>
+      <div class="stat"><b class="num">6.9 h</b><span>Avg sleep</span></div>
+      <div class="stat"><b class="num">7.2k</b><span>Avg steps · Fitbit</span></div>
+      <div class="stat"><b class="num">5 / 7</b><span>Days all done</span></div>
+    </div>
+    <div class="card" style="display:flex;gap:12px;align-items:center">
+      <div class="ico s">🧾</div><div style="flex:1"><p class="t-h" style="font-size:16px">Monthly report</p><p class="t-small">PDF ready to share with your doctor</p></div><button class="btn soft">Open</button>
+    </div>
+  </section>
+
+  <!-- COACH -->
+  <section class="screen" id="s-coach" aria-label="Coach and recipes">
+    <h1 class="t-title">Coach</h1>
+    <div class="seg" id="coachSeg"><button class="on" data-v="chat">Ask Fikko</button><button data-v="recipes">Recipes</button></div>
+    <div id="coachChat">
+      <div class="bubble c">You're 460 kcal under your goal and haven't logged lunch. Want a quick idea that keeps protein up?</div>
+      <div class="bubble u">Yes, something light</div>
+      <div class="bubble c">Try the tuna and white bean bowl: 380 kcal, 31 g protein, 10 minutes.</div>
+      <div class="quick"><button class="chip">Log it</button><button class="chip">Another idea</button><button class="chip">Why protein?</button></div>
+    </div>
+    <div id="coachRecipes" hidden>
+      <div class="recipe"><div class="ph">🥣</div><div style="flex:1"><b>Tuna &amp; white bean bowl</b><p class="t-small">380 kcal · 10 min</p></div></div>
+      <div class="recipe"><div class="ph">🍳</div><div style="flex:1"><b>Spinach egg scramble</b><p class="t-small">290 kcal · 8 min</p></div></div>
+      <div class="recipe"><div class="ph">🥗</div><div style="flex:1"><b>Chickpea lemon salad</b><p class="t-small">340 kcal · 12 min</p></div></div>
+    </div>
+    <div style="position:absolute;left:20px;right:20px;bottom:116px;background:#fff;border:1px solid var(--line);border-radius:26px;min-height:52px;display:flex;align-items:center;padding:0 18px;color:#8a9499">Ask anything about your day…</div>
+  </section>
+
+  <!-- YOU -->
+  <section class="screen" id="s-you" aria-label="You">
+    <h1 class="t-title">You</h1>
+    <div class="card" style="display:flex;gap:14px;align-items:center;margin-top:16px">
+      <div style="width:64px;height:64px;border-radius:50%;background:var(--teal-tint);display:grid;place-items:center" id="miniPlant"></div>
+      <div style="flex:1"><p class="t-h">Kate's garden</p><p class="t-small">Seedling · day 12 · 3 companions</p></div>
+      <button class="btn soft">Customise</button>
+    </div>
+    <div class="list">
+      <button><span>🏅</span><span>Goals &amp; targets</span><span>›</span></button>
+      <button><span>⌚</span><span>Devices</span><span>Fitbit ›</span></button>
+      <button><span>💊</span><span>Medications</span><span>2 ›</span></button>
+      <button><span>🔔</span><span>Reminders</span><span>8 pm ›</span></button>
+    </div>
+    <div class="list">
+      <button><span>👥</span><span>Community</span><span>12 new ›</span></button>
+      <button><span>⭐</span><span>Plan</span><span>Founding ›</span></button>
+      <button><span>🔒</span><span>Privacy &amp; data</span><span>›</span></button>
+      <button><span>↪︎</span><span>Sign out</span><span></span></button>
+    </div>
+  </section>
+
+  <div class="scrim" id="scrim"></div>
+
+  <!-- CAPTURE SHEET -->
+  <div class="sheet" id="sheet" role="dialog" aria-label="Log something">
+    <div class="grab"></div>
+    <div id="capHome">
+      <button class="mic" id="mic"><span class="m"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span><span><b id="micTitle">Tell Fikko what you had</b><span id="micSub">Food, water, a workout. Say it in one go.</span></span></button>
+      <div class="grid4">
+        <button class="tile" data-act="photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>Photo</button>
+        <button class="tile" data-act="scan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3M7 9v6M11 9v6M15 9v6"/></svg>Scan</button>
+        <button class="tile" data-act="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.2-4.2"/></svg>Search</button>
+        <button class="tile" data-act="recent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>Recent</button>
+      </div>
+      <p class="t-small" style="margin:18px 4px 0">One tap</p>
+      <div class="quick">
+        <button class="chip" data-quick="water">💧 Glass of water</button>
+        <button class="chip" data-quick="meds">💊 Took meds</button>
+        <button class="chip" data-quick="exercise">🏃 Workout done</button>
+        <button class="chip" data-quick="sleep">🌙 Slept 7 h</button>
+      </div>
+    </div>
+    <div id="capParsed" hidden>
+      <p class="t-small">Fikko heard</p>
+      <p class="t-h" style="margin-top:2px">“Two eggs, a slice of toast with butter, and a black coffee.”</p>
+      <ul class="parsed">
+        <li><span>2 eggs, scrambled</span><b class="num">182 kcal</b></li>
+        <li><span>Toast, 1 slice</span><b class="num">79 kcal</b></li>
+        <li><span>Butter, 1 tsp</span><b class="num">36 kcal</b></li>
+        <li><span>Black coffee</span><b class="num">2 kcal</b></li>
+      </ul>
+      <div class="sheet-actions"><button class="btn ghost" id="editParsed">Edit</button><button class="btn" id="saveParsed">Save breakfast · 299 kcal</button></div>
+    </div>
+  </div>
+
+  <nav class="tabbar" aria-label="Main">
+    <button class="tab on" data-tab="today"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V11M12 14c-4 0-6.500-2.500-6.500-6.500 4 0 6.500 2.500 6.500 6.500ZM12 11c0-4 2.500-6.500 6.500-6.500 0 4-2.500 6.500-6.500 6.500Z"/></svg>Today</button>
+    <button class="tab" data-tab="progress"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 20V11M12 20V4M19 20v-6"/></svg>Progress</button>
+    <button class="fab" id="fab" aria-label="Log something"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+    <button class="tab" data-tab="coach"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.800 5.200L19 10l-5.200 1.800L12 17l-1.800-5.200L5 10l5.200-1.800z"/></svg>Coach</button>
+    <button class="tab" data-tab="you"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>You</button>
+  </nav>
+  <div class="homebar"></div>
+</div>
+
+<aside class="note"><b>Prototype notes.</b> Tap <b>+</b> to log. Try the mic: it simulates a voice entry. Tap Water <b>+</b>, a mood, or a check and watch the plant grow. Tabs: Today · Progress · Coach (chat + recipes) · You (garden, devices, community).</aside>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const svg=(p)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+const ICONS={
+  food:svg('<path d="M6 3v8a3 3 0 0 0 3 3v7M9 3v6M12 3v8a3 3 0 0 1-3 3M17 3c-2 2-2.500 5-2 8h2v10"/>'),
+  water:svg('<path d="M12 3s6 6.500 6 11a6 6 0 0 1-12 0c0-4.500 6-11 6-11Z"/>'),
+  mood:svg('<circle cx="12" cy="12" r="9"/><path d="M8 14c1 1.500 2.500 2 4 2s3-.5 4-2M9 9.500h.01M15 9.500h.01"/>'),
+  meds:svg('<rect x="3" y="9" width="18" height="7" rx="3.500" transform="rotate(-35 12 12)"/><path d="m9 8.500 6 6"/>'),
+  exercise:svg('<path d="M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12"/>'),
+  sleep:svg('<path d="M20 14.500A8 8 0 1 1 9.500 4a6.500 6.500 0 0 0 10.500 10.500Z"/>'),
+};
+const check='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.500" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>';
+
+/* state */
+const S={food:0,water:3,mood:null,meds:false,exercise:false,sleep:false,waterGoal:8,expanded:false,date:6};
+const items=[
+  {k:'food',label:'Food',tone:'t'},{k:'water',label:'Water',tone:'s'},{k:'mood',label:'Mood',tone:'t'},
+  {k:'meds',label:'Medication',tone:'t'},{k:'exercise',label:'Exercise',tone:'s'},{k:'sleep',label:'Sleep',tone:'s'}];
+const isDone=k=>k==='food'?S.food>=1:k==='water'?S.water>=S.waterGoal:k==='mood'?S.mood!==null:S[k];
+const sub={
+  food:()=>S.food?`${S.food} meal${S.food>1?'s':''} logged`:'Nothing logged yet',
+  water:()=>`${S.water} of ${S.waterGoal} glasses`,
+  mood:()=>S.mood!==null?'Logged':'How are you feeling?',
+  meds:()=>'Vitamin D, Omega-3',
+  exercise:()=>'30 min goal',
+  sleep:()=>'Last night',
+};
+
+/* plant: stage grows with habits done */
+function plant(n){
+  const top=128-(14+n*17);               // stem tip rises as habits are done
+  const k=.55+n*.075;                    // crown size
+  const pos=[.25,.4,.55,.7,.82,.92];
+  let L='';
+  for(let i=0;i<n;i++){
+    const d=i%2?1:-1, y=128-(128-top)*pos[i], c=i%2?'#2DC4B2':'#22A06B';
+    L+=`<path d="M60 ${y} C ${60+d*8} ${y-24}, ${60+d*40} ${y-24}, ${60+d*44} ${y-4} C ${60+d*32} ${y+8}, ${60+d*10} ${y+5}, 60 ${y}Z" fill="${c}"/>`;
+  }
+  const crown=`<g transform="translate(60 ${top}) scale(${k}) translate(-60 ${-top})"><path d="M60 ${top} C 54 ${top-4}, 36 ${top-4}, 30 ${top-30} C 52 ${top-30}, 60 ${top-14}, 60 ${top}Z" fill="#22A06B"/><path d="M60 ${top} C 66 ${top-8}, 84 ${top-10}, 92 ${top-38} C 70 ${top-38}, 60 ${top-20}, 60 ${top}Z" fill="#2DC4B2"/></g>`;
+  const bloom=n>=6?`<circle cx="60" cy="${top-34}" r="11" fill="#5BA9F0"/><circle cx="60" cy="${top-34}" r="4.500" fill="#fff"/>`:'';
+  return `<svg viewBox="0 0 120 190" role="img" aria-label="Your Fikko plant, ${n} of 6 habits done">
+    <ellipse cx="60" cy="178" rx="40" ry="5" fill="rgba(0,31,39,.1)"/>
+    <g class="grow"><path d="M60 130V${top}" stroke="#157954" stroke-width="4" stroke-linecap="round" fill="none"/>${L}${crown}${bloom}</g>
+    <path d="M34 128h52l-7 48H41z" fill="#fff" stroke="#157954" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M34 128h52" stroke="#157954" stroke-width="5" stroke-linecap="round"/></svg>`;
+}
+const plantMsg=n=>['Your plant is waiting for its first drop.','A good start. One habit and it has begun.','Two down. The roots are taking hold.','Halfway there. Look at that new leaf.','Four done. Nearly in bloom.','One more and it blooms.','All done. Your plant is in full bloom today.'][n];
+
+function render(){
+  const done=items.filter(i=>isDone(i.k)).length, total=items.length;
+  $('#plantWrap').innerHTML=plant(done);
+  $('#miniPlant').innerHTML=`<div style="height:46px">${plant(done)}</div>`;
+  $('#plantLine').textContent=plantMsg(done);
+  $('#count').textContent=`${done}/${total}`;
+  $('#dots').innerHTML=items.map((_,i)=>`<i class="${i<done?'on':''}"></i>`).join('');
+  const left=items.filter(i=>!isDone(i.k)), fin=items.filter(i=>isDone(i.k));
+  $('#leftLabel').textContent=left.length?`${left.length} to go`:'All done';
+  $('#upNext').innerHTML=left.length?left.map(rowHtml).join(''):`<div class="row"><div class="check">${check}</div><div class="txt"><b>That's everything for today</b><span>See you tomorrow morning.</span></div></div>`;
+  const dt=$('#doneToggle'), dl=$('#doneList');
+  dt.hidden=!fin.length; dt.textContent=`${S.expanded?'Hide':'Show'} done today (${fin.length})`;
+  dl.hidden=!(fin.length&&S.expanded); dl.innerHTML=fin.map(i=>`<div class="row done"><div class="check">${check}</div><div class="txt"><b>${i.label}</b><span>${sub[i.k]()}</span></div></div>`).join('');
+}
+function rowHtml(i){
+  const ico=`<div class="ico ${i.tone}">${ICONS[i.k]}</div>`;
+  const t=`<div class="txt"><b>${i.label}</b><span>${sub[i.k]()}</span></div>`;
+  let a='';
+  if(i.k==='water') a=`<div class="step"><button data-water="1" aria-label="Add a glass of water">+</button></div>`;
+  else if(i.k==='mood') a=`<div class="moods">${['😞','😕','😐','🙂','😄'].map((e,n)=>`<button data-mood="${n}" aria-label="Mood ${n+1} of 5">${e}</button>`).join('')}</div>`;
+  else if(i.k==='food') a=`<button class="btn" data-open>Log</button>`;
+  else a=`<button class="btn soft" data-do="${i.k}">${i.k==='meds'?'Took them':i.k==='sleep'?'7 h':'Done'}</button>`;
+  return `<div class="row">${ico}${t}${a}</div>`;
+}
+
+/* toast */
+let tt;function toast(msg,ico='🌱'){ $('#toastText').textContent=msg;$('#toastIcon').textContent=ico;$('#toast').classList.add('on');clearTimeout(tt);tt=setTimeout(()=>$('#toast').classList.remove('on'),2200)}
+function bump(msg,k){const before=items.filter(i=>isDone(i.k)).length;return()=>{const after=items.filter(i=>isDone(i.k)).length;render();toast(after>before?`${msg}. Your plant grew.`:msg, after>before?'🌱':'✓')}}
+
+/* events */
+$('#upNext').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.water){const f=bump('Water logged');S.water++;f()}
+  else if(b.dataset.mood){const f=bump('Mood saved');S.mood=+b.dataset.mood;f()}
+  else if(b.dataset.do){const f=bump('Saved');S[b.dataset.do]=true;f()}
+  else if('open' in b.dataset) openSheet();
+});
+$('#doneToggle').onclick=()=>{S.expanded=!S.expanded;render()};
+
+$$('.tab').forEach(t=>t.onclick=()=>{
+  const id=t.dataset.tab;
+  $$('.tab').forEach(x=>x.classList.toggle('on',x===t));
+  $$('.screen').forEach(s=>s.classList.toggle('on',s.id==='s-'+id));
+  $('#s-'+id).scrollTo({top:0});
+});
+$$('#coachSeg button').forEach(b=>b.onclick=()=>{
+  $$('#coachSeg button').forEach(x=>x.classList.toggle('on',x===b));
+  $('#coachChat').hidden=b.dataset.v!=='chat';$('#coachRecipes').hidden=b.dataset.v!=='recipes';
+});
+
+/* sheet */
+const sheet=$('#sheet'),scrim=$('#scrim');
+function openSheet(){reset();sheet.classList.add('on');scrim.classList.add('on')}
+function closeSheet(){sheet.classList.remove('on');scrim.classList.remove('on')}
+function reset(){$('#capHome').hidden=false;$('#capParsed').hidden=true;$('#mic').classList.remove('listen');$('#micTitle').textContent='Tell Fikko what you had';$('#micSub').textContent='Food, water, a workout. Say it in one go.'}
+$('#fab').onclick=openSheet;scrim.onclick=closeSheet;
+$('#mic').onclick=()=>{
+  const m=$('#mic');m.classList.add('listen');$('#micTitle').textContent='Listening…';$('#micSub').textContent='“Two eggs, a slice of toast with butter…”';
+  setTimeout(()=>{$('#capHome').hidden=true;$('#capParsed').hidden=false},1700);
+};
+$('#saveParsed').onclick=()=>{const f=bump('Breakfast saved');S.food++;closeSheet();setTimeout(f,300)};
+$('#editParsed').onclick=()=>toast('Tap any line to change it','✎');
+$$('[data-quick]').forEach(c=>c.onclick=()=>{
+  const k=c.dataset.quick,f=bump(k==='water'?'Water logged':'Saved');
+  if(k==='water')S.water++;else S[k]=true;
+  closeSheet();setTimeout(f,300);
+});
+$$('[data-act]').forEach(t=>t.onclick=()=>{closeSheet();toast({photo:'Camera opens here',scan:'Barcode scanner opens here',search:'Food search opens here',recent:'Your recent foods open here'}[t.dataset.act],'→')});
+
+/* header + days + bars */
+const hr=new Date().getHours();$('#greet').textContent=(hr<12?'Good morning':hr<18?'Good afternoon':'Good evening')+', Kate';
+const dn=['M','T','W','T','F','S','S'];
+$('#days').innerHTML=dn.map((d,i)=>`<button class="day ${i===S.date?'sel':''}" style="flex:1"><span>${d}</span><b>${5+i}</b><i class="pip ${i<S.date?'full':''}"></i></button>`).join('');
+$('#days').addEventListener('click',e=>{const b=e.target.closest('.day');if(!b)return;$$('.day').forEach(x=>x.classList.toggle('sel',x===b))});
+$('#bars').innerHTML=[60,80,100,70,100,90,45].map((h,i)=>`<div class="${h===100?'hi':''}" style="height:${h}%"><span>${dn[i]}</span></div>`).join('');
+render();
+function fit(){const k=Math.min(1,(innerHeight-24)/880);document.getElementById('phone').style.zoom=k}
+addEventListener('resize',fit);fit();
+</script>
+</body>
+</html>

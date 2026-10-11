@@ -9,20 +9,22 @@ import { useProfile, type ProfileRow } from "@/hooks/useProfile";
 import { completion } from "@/lib/completion";
 import { shiftDateKey, todayKey } from "@/lib/dates";
 import { EMPTY_BIOMETRICS, type HabitData, type MealKey } from "@/types";
-import CaptureSheet from "@mobile/components/CaptureSheet";
-import SearchScreen from "@mobile/components/SearchScreen";
-import TopBar from "@mobile/components/TopBar";
-import MealLogger from "@mobile/components/MealLogger";
-import ScreenTitle from "@mobile/components/ScreenTitle";
-import TabBar, { type Tab } from "@mobile/components/TabBar";
-import { ToastProvider, useToast } from "@mobile/components/Toast";
-import CoachScreen, { type CoachPane } from "@mobile/screens/CoachScreen";
-import TodayScreen from "@mobile/screens/TodayScreen";
-import YouScreen, { type YouPage } from "@mobile/screens/YouScreen";
-import { setupSwipeToDismiss } from "@mobile/lib/swipeToDismiss";
+import CaptureSheet from "@/phone/CaptureSheet";
+import SearchScreen from "@/phone/SearchScreen";
+import TopBar from "@/phone/TopBar";
+import MealLogger from "@/phone/MealLogger";
+import ScreenTitle from "@/phone/ScreenTitle";
+import TabBar, { type Tab } from "@/phone/TabBar";
+import { ToastProvider, useToast } from "@/phone/Toast";
+import CoachScreen, { type CoachPane } from "@/phone/screens/CoachScreen";
+import TodayScreen from "@/phone/screens/TodayScreen";
+import YouScreen, { type YouPage } from "@/phone/screens/YouScreen";
+import { setupSwipeToDismiss } from "@/phone/swipeToDismiss";
 import "../mobile.css";
+import "@/phone/phone.css";
 
 setupSwipeToDismiss();
+document.documentElement.classList.add("phone-ui");
 
 const Dashboard = lazy(() => import("@/components/Dashboard"));
 
@@ -93,7 +95,7 @@ function Preview() {
   };
 
   return (
-    <div className="mobile-app app-wash flex min-h-dvh flex-col">
+    <div className="phone-app app-wash flex min-h-dvh flex-col">
       <main className="w-full flex-1 px-4 pb-[calc(var(--mobile-tabbar-h)+2rem)]">
         {!(tab === "you" && youPage) && (
           <TopBar initials="KL" profileActive={tab === "you"} onHome={() => setTab("today")} onSearch={() => setSearching(true)}

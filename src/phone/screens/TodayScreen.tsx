@@ -10,10 +10,10 @@ import type { ProfileRow } from "@/hooks/useProfile";
 import { activityMinutes, completion, EXERCISE_TARGET_MIN, type CoreHabit } from "@/lib/completion";
 import { cn } from "@/lib/utils";
 import type { HabitData, MealKey } from "@/types";
-import PlantHero from "@mobile/components/PlantHero";
-import Sheet from "@mobile/components/Sheet";
-import StickyDateBar from "@mobile/components/StickyDateBar";
-import { addGlass, bumpCustom, mealForNow, medsTaken, QUICK_MOODS, setMood, takeAllMeds } from "@mobile/lib/quickLog";
+import PlantHero from "@/phone/PlantHero";
+import Sheet from "@/phone/Sheet";
+import StickyDateBar from "@/phone/StickyDateBar";
+import { addGlass, bumpCustom, mealForNow, medsTaken, QUICK_MOODS, setMood, takeAllMeds } from "@/phone/quickLog";
 
 type Detail = CoreHabit | "custom";
 

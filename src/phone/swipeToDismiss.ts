@@ -1,4 +1,4 @@
-import { haptics } from "@mobile/lib/haptics";
+import { haptics } from "@/phone/haptics";
 
 /** Distance (px) a finger must travel down before the sheet follows it, so taps and scrolls aren't mistaken for drags. */
 const START_PX = 8;
@@ -18,7 +18,11 @@ const SHEET = '[data-slot="dialog-content"]';
  * Escape handling, so a dialog that refuses Escape (the food search with its
  * options open) springs back instead.
  */
+let installed = false;
+
 export function setupSwipeToDismiss() {
+  if (installed) return;
+  installed = true;
   let sheet: HTMLElement | null = null;
   let overlay: HTMLElement | null = null;
   let startX = 0;

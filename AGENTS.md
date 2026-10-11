@@ -19,11 +19,14 @@ This is the canonical project structure. Start with task-relevant files below. O
 - `package.json` - Project dependencies and the Vite build, development, preview, and formatting scripts
 - `vite.config.ts` - Vite configuration with React, Tailwind CSS v4, and Figma Make plugins plus the `@` alias for `src`
 - `.mise.toml` - Toolchain versions for Node.js and pnpm
-- `mobile/` - The iOS and Android app (Capacitor), a separate Vite app with its own shell and screens; see `mobile/README.md`
+- `src/phone/` - The phone experience (shell, screens, styles), shown by the website on phones and by the mobile app
+- `mobile/` - The iOS and Android app (Capacitor), a separate Vite app that wraps `src/phone`; see `mobile/README.md`
 
-### Web and mobile are separate
+### Web, phone and mobile
 
-`src/` is the web app and also the shared layer (hooks, auth, `lib/`, `components/ui/`, habit cards). `mobile/src` may import from `src/` via `@/`, but `src/` must never import from `mobile/`. Make phone-app-only changes in `mobile/src` (via `@mobile/`), not by editing shared files or the web pages, so they never reach the website. The bottom tab bar in `src/App.tsx` is the website's own phone layout, not the mobile app.
+`src/` is the web app and also the shared layer (hooks, auth, `lib/`, `components/ui/`, habit cards). `mobile/src` may import from `src/` via `@/`, but `src/` must never import from `mobile/`.
+
+The phone experience lives in `src/phone/` (`PhoneApp.tsx` shell, `screens/`, `phone.css`). It is shared: the website shows it on screens under 768px (`src/App.tsx` picks it with a media query), and the iOS and Android apps show it always (`mobile/src/MobileApp.tsx`). Tablets and desktops get the layout in `src/App.tsx` (`DesktopApp`). Every rule in `phone.css` is scoped to `html.phone-ui`, which `PhoneApp` sets while it's mounted, so phone styles never reach the desktop layout. Only native-app concerns (Capacitor plugins such as haptics and the Android back button, deep links, API routing) belong in `mobile/src`.
 
 ## Dependencies
 

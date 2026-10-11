@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useAiCredits } from "./hooks/useAiCredits";
 import { ChartNoAxesColumn, Loader2, ChefHat, ListChecks, LogOut, Sparkles, Sprout, UserRound, Users, type LucideIcon } from "lucide-react";
 import { completion } from "./lib/completion";
@@ -55,6 +55,8 @@ const MyFikkoView = lazy(() => import("./components/MyFikkoView"));
 const RecipesView = lazy(() => import("./components/RecipesView"));
 const ProfileView = lazy(() => import("./components/ProfileView"));
 const AdminView = lazy(() => import("./admin/AdminView"));
+// Phones get the phone experience (shared with the iOS and Android apps).
+const PhoneApp = lazy(() => import("./phone/PhoneApp"));
 
 // The admin site lives at /admin, outside the member app.
 const isAdminPage = window.location.pathname.replace(/\/+$/, "") === "/admin";
@@ -75,11 +77,27 @@ const NAV: { id: Tab; label: string; icon: LucideIcon; soon?: boolean; ai?: bool
 ];
 
 
+// Below Tailwind's md breakpoint: the same width at which this layout used to
+// switch to its bottom tab bar.
+const PHONE_QUERY = "(max-width: 767.98px)";
+
+function useIsPhone() {
+  return useSyncExternalStore(
+    (onChange) => {
+      const mq = window.matchMedia(PHONE_QUERY);
+      mq.addEventListener("change", onChange);
+      return () => mq.removeEventListener("change", onChange);
+    },
+    () => window.matchMedia(PHONE_QUERY).matches,
+  );
+}
+
+/**
+ * The member app. On phones it's the phone experience (src/phone, the same
+ * as the iOS and Android apps); on tablets and desktops, the layout below.
+ */
 export default function App() {
-  const { session, loading, signOut, recovering } = useAuth();
-  const credits = useAiCredits();
-  const { seedPlan } = usePlan();
-  const userId = session?.user.id ?? null;
+  const phone = useIsPhone();
   // Returning from a device's sign-in lands on /?device=<provider>&result=<outcome>:
   // open Profile to show how it went.
   const [deviceOutcome] = useState<DeviceOutcome | null>(() => {
@@ -89,16 +107,33 @@ export default function App() {
     if (result !== "connected" && result !== "declined" && result !== "failed") return null;
     return { provider: provider === "oura" || provider === "google" ? provider : null, result };
   });
-  // Unless the sign-in was started from onboarding, which picks up where it left off.
   // Links in Fikko's emails open Profile with /?open=profile.
   const [openProfile] = useState(() => new URLSearchParams(window.location.search).get("open") === "profile");
+  useEffect(() => {
+    if (deviceOutcome || openProfile) window.history.replaceState(null, "", window.location.pathname);
+  }, [deviceOutcome, openProfile]);
+
+  if (phone && !isAdminPage) {
+    return (
+      <Suspense fallback={<div className="min-h-dvh bg-background" />}>
+        <PhoneApp viewPrefix="/phone" deviceOutcome={deviceOutcome} startOnSettings={openProfile} todayExtra={<InstallCard />} />
+      </Suspense>
+    );
+  }
+  return <DesktopApp deviceOutcome={deviceOutcome} openProfile={openProfile} />;
+}
+
+function DesktopApp({ deviceOutcome, openProfile }: { deviceOutcome: DeviceOutcome | null; openProfile: boolean }) {
+  const { session, loading, signOut, recovering } = useAuth();
+  const credits = useAiCredits();
+  const { seedPlan } = usePlan();
+  const userId = session?.user.id ?? null;
+  // Returning from a device's sign-in opens Profile to show how it went, unless
+  // the sign-in was started from onboarding, which picks up where it left off.
   const [tab, setTab] = useState<Tab>((deviceOutcome && !hasDraft()) || openProfile ? "profile" : "habits");
   // A question from a Dashboard pattern, waiting in the coach's message box. Cleared once the coach is left.
   const [coachDraft, setCoachDraft] = useState("");
   useEffect(() => { if (tab !== "coaches") setCoachDraft(""); }, [tab]);
-  useEffect(() => {
-    if (deviceOutcome || openProfile) window.history.replaceState(null, "", window.location.pathname);
-  }, [deviceOutcome, openProfile]);
   const { data: loggedData, setData, loading: habitsLoading, loadError: habitsLoadError, reload: reloadHabits, saveState, retrySave } = useHabitData(userId);
   const { profile, updateProfile, loading: profileLoading } = useProfile(userId);
   // Start fetching the Habits page the moment someone is signed in, in parallel with their data.

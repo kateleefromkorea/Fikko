@@ -16,7 +16,13 @@ const RIGHT: { id: Tab; label: string; icon: LucideIcon }[] = [
  * Four tabs with the capture button in the middle, where the thumb rests.
  * The capture button is the app's main action: everything can be logged from it.
  */
-export default function TabBar({ tab, onTab, onCapture }: { tab: Tab; onTab: (t: Tab) => void; onCapture: () => void }) {
+export default function TabBar({ tab, onTab, onCapture, coachDot }: {
+  tab: Tab;
+  onTab: (t: Tab) => void;
+  onCapture: () => void;
+  /** A new weekly check-in from the coach is waiting. */
+  coachDot?: boolean;
+}) {
   const item = ({ id, label, icon: Icon }: (typeof LEFT)[number]) => {
     const active = tab === id;
     return (
@@ -24,12 +30,16 @@ export default function TabBar({ tab, onTab, onCapture }: { tab: Tab; onTab: (t:
         <button
           onClick={() => onTab(id)}
           aria-current={active ? "page" : undefined}
+          aria-label={id === "coach" && coachDot ? `${label} (new check-in)` : undefined}
           className={cn(
             "press flex h-16 w-full flex-col items-center justify-center gap-1 text-[11px] font-semibold outline-none",
             active ? "text-primary-ink" : "text-[#6A7479]",
           )}
         >
-          <Icon className="size-6" strokeWidth={active ? 2.25 : 1.75} aria-hidden="true" />
+          <span className="relative" aria-hidden="true">
+            <Icon className="size-6" strokeWidth={active ? 2.25 : 1.75} />
+            {id === "coach" && coachDot && <span className="absolute -top-0.5 -right-1 size-2.5 rounded-full bg-orange-500 ring-2 ring-white" />}
+          </span>
           {label}
         </button>
       </li>

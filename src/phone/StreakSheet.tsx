@@ -1,7 +1,7 @@
 import { CloudRain, Flame } from "lucide-react";
 import { MAX_RAIN_CLOUDS, RAIN_CLOUD_EVERY, type Growth } from "@/lib/fikko";
 import { cn } from "@/lib/utils";
-import Sheet from "@mobile/components/Sheet";
+import Sheet from "@/phone/Sheet";
 
 /**
  * What the streak and the rain clouds above the plant mean, opened by tapping

@@ -7,7 +7,7 @@ import { todayKey } from "@/lib/dates";
 import { computeGrowth, seedById, STAGES } from "@/lib/fikko";
 import { cn } from "@/lib/utils";
 import type { HabitData } from "@/types";
-import StreakSheet from "@mobile/components/StreakSheet";
+import StreakSheet from "@/phone/StreakSheet";
 
 function timeGreeting(now = new Date()) {
   const h = now.getHours();

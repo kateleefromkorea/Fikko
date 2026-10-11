@@ -1,6 +1,6 @@
 import { Suspense, lazy } from "react";
 import CoachView from "@/components/CoachView";
-import ScreenTitle, { Segmented } from "@mobile/components/ScreenTitle";
+import ScreenTitle, { Segmented } from "@/phone/ScreenTitle";
 
 const RecipesView = lazy(() => import("@/components/RecipesView"));
 

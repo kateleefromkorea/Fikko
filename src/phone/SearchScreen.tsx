@@ -9,7 +9,7 @@ import { friendlyError } from "@/lib/errors";
 import { cachedSearch, searchFoods, type FoodResult } from "@/lib/usdaFoodSearch";
 import { cn } from "@/lib/utils";
 import type { MealKey } from "@/types";
-import { mealForNow } from "@mobile/lib/quickLog";
+import { mealForNow } from "@/phone/quickLog";
 
 /** Somewhere search can take you, found by its name or by the things it holds. */
 export type Place = "today" | "progress" | "coach" | "recipes" | "garden" | "settings" | "community";
@@ -37,154 +37,159 @@ const loggedName = (r: FoodResult) =>
  * meal right from the results, a question goes to the coach, and screens and
  * settings are found by what's in them ("reminders" finds Profile & settings).
  */
-export default function SearchScreen({ open, onClose, onAddFood, onAsk, onGo, mealLabelFor }: {
-  open: boolean;
+type SearchProps = {
   onClose: () => void;
   onAddFood: (meal: MealKey, food: NewFood) => void;
   onAsk: (question: string) => void;
   onGo: (place: Place) => void;
   /** "Lunch", or "Lunch yesterday" when Today is showing another day. */
   mealLabelFor: (meal: MealKey) => string;
-}) {
+};
+
+export default function SearchScreen({ open, ...props }: SearchProps & { open: boolean }) {
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && props.onClose()}>
+      <DialogContent showCloseButton={false} data-no-swipe="" className="search-screen block gap-0 p-0">
+        <DialogTitle className="sr-only">Search</DialogTitle>
+        <DialogDescription className="sr-only">Search foods to log, ask Fikko, or find a screen or setting.</DialogDescription>
+        {/* Unmounted when search closes, so each time it opens it starts empty. */}
+        <SearchBody {...props} />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function SearchBody({ onClose, onAddFood, onAsk, onGo, mealLabelFor }: SearchProps) {
   const [query, setQuery] = useState("");
-  const [foods, setFoods] = useState<FoodResult[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // The last answer from the food databases, and the last failure, each for the query it was about.
+  const [result, setResult] = useState<{ q: string; foods: FoodResult[] } | null>(null);
+  const [failed, setFailed] = useState<{ q: string; message: string } | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
   const q = query.trim();
+  const tooShort = q.length < MIN_SEARCH;
+  // Earlier answers this session show straight away.
+  const known = tooShort ? null : cachedSearch(q);
 
-  // A fresh search each time it opens.
+  // Asks the food databases once typing pauses.
   useEffect(() => {
-    if (!open) return;
-    setQuery(""); setFoods([]); setPicked(null); setError(null);
-  }, [open]);
-
-  // Asks the food databases once typing pauses; earlier answers show straight away.
-  useEffect(() => {
-    setPicked(null);
-    if (q.length < MIN_SEARCH) { setFoods([]); setSearching(false); return; }
-    const known = cachedSearch(q);
-    if (known) { setFoods(known); setSearching(false); return; }
+    if (tooShort || known) return;
     let live = true;
-    setSearching(true);
     const timer = setTimeout(() => {
       searchFoods(q)
-        .then((f) => { if (live) { setFoods(f); setError(null); } })
-        .catch((err) => { if (live) setError(friendlyError(err, "Food search isn't working right now. Try again in a moment.")); })
-        .finally(() => { if (live) setSearching(false); });
+        .then((foods) => { if (live) setResult({ q, foods }); })
+        .catch((err) => { if (live) setFailed({ q, message: friendlyError(err, "Food search isn't working right now. Try again in a moment.") }); });
     }, SEARCH_DELAY_MS);
     return () => { live = false; clearTimeout(timer); };
-  }, [q]);
+  }, [q, tooShort, known]);
+
+  const foods = tooShort ? [] : known ?? (result?.q === q ? result.foods : []);
+  const error = !tooShort && failed?.q === q ? failed.message : null;
+  const searching = !tooShort && !known && result?.q !== q && !error;
 
   const lower = q.toLowerCase();
   const places = q ? PLACES.filter((p) => `${p.label} ${p.hint} ${p.words}`.toLowerCase().includes(lower)) : PLACES;
   const shownFoods = foods.slice(0, FOOD_RESULTS);
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent showCloseButton={false} data-no-swipe="" className="search-screen block gap-0 p-0">
-        <DialogTitle className="sr-only">Search</DialogTitle>
-        <DialogDescription className="sr-only">Search foods to log, ask Fikko, or find a screen or setting.</DialogDescription>
-
-        <form
-          onSubmit={(e) => { e.preventDefault(); if (q) { onAsk(q); onClose(); } }}
-          className="tabbar-glass sticky top-0 z-10 flex items-center gap-2 border-b border-ink/8 px-4 pt-[calc(var(--mobile-top)+0.5rem)] pb-2.5"
-        >
-          <label className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-full bg-ink/[0.06] px-3.5">
-            <Search className="size-[1.125rem] shrink-0 text-muted-foreground" aria-hidden="true" />
-            <input
-              autoFocus
-              type="search"
-              enterKeyHint="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search foods, ask Fikko…"
-              aria-label="Search"
-              className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:hidden"
-            />
-            {query && (
-              <button type="button" onClick={() => setQuery("")} aria-label="Clear search" className="-mr-1 grid size-7 place-items-center rounded-full bg-ink/15 text-white">
-                <X className="size-3.5" strokeWidth={3} />
-              </button>
-            )}
-          </label>
-          <button type="button" onClick={onClose} className="h-10 px-1 text-[15px] font-medium text-primary-ink">Cancel</button>
-        </form>
-
-        <div className="space-y-6 px-4 pt-4 pb-8">
-          {q && (
-            <button
-              onClick={() => { onAsk(q); onClose(); }}
-              className="press flex w-full items-center gap-3 rounded-2xl bg-primary/[0.07] px-3.5 py-3 text-left"
-            >
-              <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white text-primary-ink shadow-sm" aria-hidden="true">
-                <Sparkles className="size-5" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-[13px] text-muted-foreground">Ask Fikko</span>
-                <span className="block truncate text-[15px] font-semibold">“{q}”</span>
-              </span>
-              <ChevronRight className="size-5 shrink-0 text-muted-foreground/60" aria-hidden="true" />
+    <>
+      <form
+        onSubmit={(e) => { e.preventDefault(); if (q) { onAsk(q); onClose(); } }}
+        className="tabbar-glass sticky top-0 z-10 flex items-center gap-2 border-b border-ink/8 px-4 pt-[calc(var(--mobile-top)+0.5rem)] pb-2.5"
+      >
+        <label className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-full bg-ink/[0.06] px-3.5">
+          <Search className="size-[1.125rem] shrink-0 text-muted-foreground" aria-hidden="true" />
+          <input
+            autoFocus
+            type="search"
+            enterKeyHint="search"
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); setPicked(null); }}
+            placeholder="Search foods, ask Fikko…"
+            aria-label="Search"
+            className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:hidden"
+          />
+          {query && (
+            <button type="button" onClick={() => { setQuery(""); setPicked(null); }} aria-label="Clear search" className="-mr-1 grid size-7 place-items-center rounded-full bg-ink/15 text-white">
+              <X className="size-3.5" strokeWidth={3} />
             </button>
           )}
+        </label>
+        <button type="button" onClick={onClose} className="h-10 px-1 text-[15px] font-medium text-primary-ink">Cancel</button>
+      </form>
 
-          {q.length >= MIN_SEARCH && (
-            <section aria-labelledby="search-foods">
-              <h2 id="search-foods" className="mb-2 flex items-center gap-2 px-1 text-[13px] font-semibold text-muted-foreground">
-                Foods
-                {searching && <Loader2 className="size-3.5 animate-spin" aria-label="Searching" />}
-              </h2>
-              {error && <p role="alert" className="rounded-xl bg-destructive/10 px-3.5 py-3 text-sm text-destructive">{error}</p>}
-              {!error && !searching && shownFoods.length === 0 && (
-                <p className="px-1 text-sm text-muted-foreground">No foods match “{q}”. Try a simpler word, like “rice” or “apple”.</p>
-              )}
-              {shownFoods.length > 0 && (
-                <ul className="divide-y divide-ink/8 overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-8px_rgba(16,24,40,0.10)]">
-                  {shownFoods.map((f) => (
-                    <FoodRow
-                      key={f.id}
-                      food={f}
-                      open={picked === f.id}
-                      onToggle={() => setPicked((p) => (p === f.id ? null : f.id))}
-                      mealLabelFor={mealLabelFor}
-                      onAdd={(meal, grams) => {
-                        onAddFood(meal, {
-                          name: loggedName(f), grams, caloriesPer100g: f.caloriesPer100g,
-                          proteinPer100g: f.proteinPer100g, carbsPer100g: f.carbsPer100g, fatPer100g: f.fatPer100g,
-                        });
-                        onClose();
-                      }}
-                    />
-                  ))}
-                </ul>
-              )}
-            </section>
-          )}
+      <div className="space-y-6 px-4 pt-4 pb-8">
+        {q && (
+          <button
+            onClick={() => { onAsk(q); onClose(); }}
+            className="press flex w-full items-center gap-3 rounded-2xl bg-primary/[0.07] px-3.5 py-3 text-left"
+          >
+            <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white text-primary-ink shadow-sm" aria-hidden="true">
+              <Sparkles className="size-5" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[13px] text-muted-foreground">Ask Fikko</span>
+              <span className="block truncate text-[15px] font-semibold">“{q}”</span>
+            </span>
+            <ChevronRight className="size-5 shrink-0 text-muted-foreground/60" aria-hidden="true" />
+          </button>
+        )}
 
-          {places.length > 0 && (
-            <section aria-labelledby="search-places">
-              <h2 id="search-places" className="mb-2 px-1 text-[13px] font-semibold text-muted-foreground">Go to</h2>
+        {q.length >= MIN_SEARCH && (
+          <section aria-labelledby="search-foods">
+            <h2 id="search-foods" className="mb-2 flex items-center gap-2 px-1 text-[13px] font-semibold text-muted-foreground">
+              Foods
+              {searching && <Loader2 className="size-3.5 animate-spin" aria-label="Searching" />}
+            </h2>
+            {error && <p role="alert" className="rounded-xl bg-destructive/10 px-3.5 py-3 text-sm text-destructive">{error}</p>}
+            {!error && !searching && shownFoods.length === 0 && (
+              <p className="px-1 text-sm text-muted-foreground">No foods match “{q}”. Try a simpler word, like “rice” or “apple”.</p>
+            )}
+            {shownFoods.length > 0 && (
               <ul className="divide-y divide-ink/8 overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-8px_rgba(16,24,40,0.10)]">
-                {places.map((p) => (
-                  <li key={p.id}>
-                    <button onClick={() => { onGo(p.id); onClose(); }} className="flex min-h-14 w-full items-center gap-3 px-3.5 py-2.5 text-left active:bg-ink/[0.04]">
-                      <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary-ink" aria-hidden="true">
-                        <p.icon className="size-5" />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-[15px] font-medium">{p.label}</span>
-                        <span className="block truncate text-[13px] text-muted-foreground">{p.hint}</span>
-                      </span>
-                      <ChevronRight className="size-5 shrink-0 text-muted-foreground/60" aria-hidden="true" />
-                    </button>
-                  </li>
+                {shownFoods.map((f) => (
+                  <FoodRow
+                    key={f.id}
+                    food={f}
+                    open={picked === f.id}
+                    onToggle={() => setPicked((p) => (p === f.id ? null : f.id))}
+                    mealLabelFor={mealLabelFor}
+                    onAdd={(meal, grams) => {
+                      onAddFood(meal, {
+                        name: loggedName(f), grams, caloriesPer100g: f.caloriesPer100g,
+                        proteinPer100g: f.proteinPer100g, carbsPer100g: f.carbsPer100g, fatPer100g: f.fatPer100g,
+                      });
+                      onClose();
+                    }}
+                  />
                 ))}
               </ul>
-            </section>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
+            )}
+          </section>
+        )}
+
+        {places.length > 0 && (
+          <section aria-labelledby="search-places">
+            <h2 id="search-places" className="mb-2 px-1 text-[13px] font-semibold text-muted-foreground">Go to</h2>
+            <ul className="divide-y divide-ink/8 overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-8px_rgba(16,24,40,0.10)]">
+              {places.map((p) => (
+                <li key={p.id}>
+                  <button onClick={() => { onGo(p.id); onClose(); }} className="flex min-h-14 w-full items-center gap-3 px-3.5 py-2.5 text-left active:bg-ink/[0.04]">
+                    <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary-ink" aria-hidden="true">
+                      <p.icon className="size-5" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[15px] font-medium">{p.label}</span>
+                      <span className="block truncate text-[13px] text-muted-foreground">{p.hint}</span>
+                    </span>
+                    <ChevronRight className="size-5 shrink-0 text-muted-foreground/60" aria-hidden="true" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </div>
+    </>
   );
 }
 

@@ -1,21 +1,24 @@
 # Fikko mobile (iOS and Android)
 
 The phone app, wrapped for the App Store and Google Play with [Capacitor](https://capacitorjs.com).
-It is a separate Vite app from the web app in `../`, so phone-only changes never reach the website.
+It is a separate Vite app from the web app in `../`, built from the same phone experience the website shows on phones.
 
 ## How the two are split
 
 | | Web app | Mobile app |
 |---|---|---|
-| Entry and shell | `../index.html`, `../src/main.tsx`, `../src/App.tsx` | `index.html`, `src/main.tsx`, `src/MobileApp.tsx` |
-| Screens | `../src/components/*View.tsx` | `src/screens/` (falls back to the web screens for tabs without a mobile one yet) |
-| Styles | `../src/index.css` | `src/mobile.css` (imports the web theme, then adds mobile-only rules) |
+| Entry and shell | `../index.html`, `../src/main.tsx`, `../src/App.tsx` (phones: `../src/phone/PhoneApp.tsx`) | `index.html`, `src/main.tsx`, `src/MobileApp.tsx` (wraps `../src/phone/PhoneApp.tsx`) |
+| Screens | `../src/components/*View.tsx`; on phones `../src/phone/screens/` | `../src/phone/screens/` |
+| Styles | `../src/index.css`; on phones also `../src/phone/phone.css` | `src/mobile.css` (the web theme) plus `../src/phone/phone.css` |
 | Build and config | `../vite.config.ts`, deployed to Vercel | `vite.config.ts`, `capacitor.config.ts`, `ios/`, `android/` |
 
 **The one rule:** `mobile/` may import from `../src` (through `@/`), but nothing in `../src` imports from `mobile/`.
-Data hooks, auth, `lib/`, `components/ui/` and the habit cards are shared. If a shared component needs to look or
-behave differently on the phone, build the mobile version in `mobile/src` (through `@mobile/`) instead of
-editing the shared one. Web Tailwind only scans `../src`, and Vercel ignores this folder (`../.vercelignore`).
+The phone experience in `../src/phone/` is shared by the website on phones and by this app, so a change there
+reaches both. Only native-app concerns live here in `mobile/src`: Capacitor haptics (`src/lib/haptics.ts`,
+plugged into `../src/phone/haptics.ts`), Android's back button (`src/MobileApp.tsx`), links that open the app
+(`src/lib/authLinks.ts`) and API routing (`src/lib/api.ts`). Vercel ignores this folder (`../.vercelignore`).
+
+`npm run dev` also serves `/preview.html`: the phone screens with sample data and no sign-in, for checking layouts.
 
 ## Commands
 

@@ -8,9 +8,9 @@ import { completion } from "@/lib/completion";
 import { shiftDateKey, todayKey } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 import type { HabitData, MealKey } from "@/types";
-import Sheet from "@mobile/components/Sheet";
-import { addGlass, bumpCustom, mealForNow, setMood, takeAllMeds } from "@mobile/lib/quickLog";
-import type { QuickLog } from "@mobile/screens/TodayScreen";
+import Sheet from "@/phone/Sheet";
+import { addGlass, bumpCustom, mealForNow, setMood, takeAllMeds } from "@/phone/quickLog";
+import type { QuickLog } from "@/phone/screens/TodayScreen";
 
 type Step = "home" | "mood" | "exercise" | "sleep";
 const STEP_TITLE: Record<Step, string> = { home: "Log", mood: "How are you feeling?", exercise: "Activity", sleep: "Sleep" };

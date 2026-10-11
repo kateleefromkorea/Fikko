@@ -18,7 +18,11 @@ Tabs: **Today · Progress · (+) · Coach · You**
 - You: profile header, garden card, Profile & settings, Community, My Fikko (pushed pages with a back button), Sign out.
 - All shared dialogs become bottom sheets on the phone (`mobile.css`, `[data-slot="dialog-content"]`).
 
-## Files
+## Shared with the website (2026-10-11)
+The phone experience moved to `src/phone/` and is now what fikko.io shows on phones (under 768px) as well as the
+app. `mobile/src` keeps only native concerns. See `AGENTS.md` ("Web, phone and mobile").
+
+## Files (before the move to src/phone)
 - `src/MobileApp.tsx` shell (tabs, shared day state, quick logging + toasts + plant hop, Android back button)
 - `src/screens/TodayScreen.tsx`, `CoachScreen.tsx`, `YouScreen.tsx`
 - `src/components/TabBar.tsx`, `CaptureSheet.tsx`, `PlantHero.tsx`, `Sheet.tsx`, `MealLogger.tsx`, `Toast.tsx`, `ScreenTitle.tsx`

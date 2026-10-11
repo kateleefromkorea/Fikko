@@ -1,11 +1,12 @@
 import { Suspense, lazy, useMemo, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight, LogOut, Settings, Users, type LucideIcon } from "lucide-react";
 import FikkoPlant from "@/components/fikko/FikkoPlant";
+import type { DeviceOutcome } from "@/components/profile/DevicesCard";
 import type { ProfileRow } from "@/hooks/useProfile";
 import { todayKey } from "@/lib/dates";
 import { computeGrowth, seedById, STAGES, type Plan } from "@/lib/fikko";
 import type { HabitData } from "@/types";
-import ScreenTitle from "@mobile/components/ScreenTitle";
+import ScreenTitle from "@/phone/ScreenTitle";
 
 const MyFikkoView = lazy(() => import("@/components/MyFikkoView"));
 const ProfileView = lazy(() => import("@/components/ProfileView"));
@@ -13,6 +14,15 @@ const CommunityView = lazy(() => import("@/components/CommunityView"));
 
 export type YouPage = "garden" | "settings" | "community";
 const PAGE_TITLE: Record<YouPage, string> = { garden: "My Fikko", settings: "Profile & settings", community: "Community" };
+
+/** The website footer's links, at the bottom of You. */
+const LINKS: [string, string][] = [
+  ["Help", "/help.html"],
+  ["Privacy", "/privacy.html"],
+  ["Terms", "/terms.html"],
+  ["Food data", "/food-data-sources.html"],
+  ["Contact", "mailto:hello@fikko.io"],
+];
 
 const loading = <p className="py-10 text-center text-sm text-muted-foreground">Loading…</p>;
 
@@ -22,7 +32,7 @@ const loading = <p className="py-10 text-center text-sm text-muted-foreground">L
  * settings work on a phone.
  */
 export default function YouScreen({
-  page, onPage, userId, email, data, profile, plan, onUpdateProfile, onSignOut, onDevicesSynced, onOpenToday,
+  page, onPage, userId, email, data, profile, plan, onUpdateProfile, onSignOut, deviceOutcome = null, onDevicesSynced, onOpenToday, siteOrigin = "",
 }: {
   page: YouPage | null;
   onPage: (p: YouPage | null) => void;
@@ -33,8 +43,12 @@ export default function YouScreen({
   plan: Plan;
   onUpdateProfile: (patch: Partial<ProfileRow>) => Promise<void>;
   onSignOut: () => void;
+  /** How connecting a wearable went, shown in Profile & settings. */
+  deviceOutcome?: DeviceOutcome | null;
   onDevicesSynced: () => void;
   onOpenToday: () => void;
+  /** Where the website lives, for the Help, Privacy and Terms links. */
+  siteOrigin?: string;
 }) {
   const seed = seedById(profile.fikko_seed);
   const growth = useMemo(
@@ -63,7 +77,7 @@ export default function YouScreen({
               onUpdateProfile={onUpdateProfile}
               userId={userId}
               onSignOut={onSignOut}
-              deviceOutcome={null}
+              deviceOutcome={deviceOutcome}
               onDevicesSynced={onDevicesSynced}
             />
           )}
@@ -123,6 +137,14 @@ export default function YouScreen({
       <Group>
         <Item icon={LogOut} label="Sign out" onClick={onSignOut} plain />
       </Group>
+
+      <nav aria-label="Help and legal" className="flex flex-wrap justify-center gap-x-5 gap-y-2 px-2 pb-2 text-sm text-muted-foreground">
+        {LINKS.map(([label, path]) => (
+          <a key={path} href={path.startsWith("mailto:") ? path : siteOrigin + path} className="py-1.5">
+            {label}
+          </a>
+        ))}
+      </nav>
     </div>
   );
 }

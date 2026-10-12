@@ -4,6 +4,7 @@ import type { BiometricData, HabitData } from "@/types";
 import type { ProfileRow } from "@/hooks/useProfile";
 import { usePlan } from "@/hooks/usePlan";
 import { withDeviceActivity, type CoreHabit } from "@/lib/completion";
+import { goalProgress, type GoalLine, type GoalStatus } from "@/lib/goalProgress";
 import {
   PERIOD_DAYS, avgOf, buildSeries, byDate, currentStreak, longestStreak, loggedOn, parseJSON, sleepHours, valuesIn,
   type HabitStat, type Period,
@@ -86,7 +87,7 @@ export default function ProgressScreen({ data: logged, biometrics, profile, onAs
 
       <div className="space-y-6 pt-2">
         <Summary ctx={ctx} />
-        <Patterns ctx={ctx} onAskCoach={onAskCoach} />
+        <Patterns ctx={ctx} biometrics={biometrics} onAskCoach={onAskCoach} />
         <Consistency ctx={ctx} onOpen={() => setDetail({ kind: "consistency" })} />
 
         <section aria-labelledby="habits-title">
@@ -196,11 +197,18 @@ function Summary({ ctx }: { ctx: DashCtx }) {
 /** How strongly a pattern stands out: the gap between its two averages, as a share of the scale. */
 const strength = (p: Pattern) => (p.compare ? Math.abs(p.compare.with - p.compare.without) / p.compare.max : 0);
 
-/** The patterns in the member's data, strongest first, one card at a time to swipe through. */
-function Patterns({ ctx, onAskCoach }: { ctx: DashCtx; onAskCoach?: (question: string) => void }) {
-  const items = patternItems(ctx)
-    .filter((p) => p.id !== "streak")
+/**
+ * What Fikko noticed, one card at a time to swipe through: first how the
+ * member is doing against the targets they set in onboarding, then the
+ * patterns in their data, strongest first.
+ */
+function Patterns({ ctx, biometrics, onAskCoach }: { ctx: DashCtx; biometrics: BiometricData; onAskCoach?: (question: string) => void }) {
+  const goals = goalProgress(ctx.data, biometrics, ctx.profile, ctx.dates);
+  const patterns = patternItems(ctx)
+    // The streak sits in the summary, and the goals card already covers calories.
+    .filter((p) => p.id !== "streak" && !(p.id === "calories" && goals.some((g) => g.key === "calories")))
     .sort((a, b) => strength(b) - strength(a));
+  const items = [...(goals.length ? ["goals"] : []), ...patterns.map((p) => p.id)];
   const track = useRef<HTMLDivElement>(null);
   const [at, setAt] = useState(0);
 
@@ -235,20 +243,76 @@ function Patterns({ ctx, onAskCoach }: { ctx: DashCtx; onAskCoach?: (question: s
             onScroll={onScroll}
             className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
-            {items.map((p, i) => (
+            {goals.length > 0 && <GoalsCard lines={goals} onAskCoach={onAskCoach} single={items.length === 1} />}
+            {patterns.map((p, i) => (
               <PatternCard key={p.id} pattern={p} strongest={i === 0 && p.compare != null} onAskCoach={onAskCoach} single={items.length === 1} />
             ))}
           </div>
           {items.length > 1 && (
             <div className="mt-2.5 flex justify-center gap-1.5" aria-hidden="true">
-              {items.map((p, i) => (
-                <span key={p.id} className={cn("h-1.5 rounded-full transition-all", i === at ? "w-4 bg-primary" : "w-1.5 bg-foreground/15")} />
+              {items.map((id, i) => (
+                <span key={id} className={cn("h-1.5 rounded-full transition-all", i === at ? "w-4 bg-primary" : "w-1.5 bg-foreground/15")} />
               ))}
             </div>
           )}
         </>
       )}
     </section>
+  );
+}
+
+const STATUS: Record<GoalStatus, { label: string; cls: string }> = {
+  on: { label: "On track", cls: "bg-primary/10 text-primary-ink" },
+  close: { label: "Nearly", cls: "bg-[#E6F1FC] text-[#1F73C2]" },
+  off: { label: "Not yet", cls: "bg-foreground/[0.06] text-foreground/70" },
+};
+
+/** Whether the member is heading for the targets they set in onboarding. */
+function GoalsCard({ lines, onAskCoach, single }: { lines: GoalLine[]; onAskCoach?: (question: string) => void; single: boolean }) {
+  const on = lines.filter((l) => l.status === "on").length;
+  const behind = lines.filter((l) => l.status !== "on");
+  const title = on === lines.length
+    ? (lines.length === 1 ? "You're on track for your goal" : "You're on track for all your goals")
+    : `On track for ${on} of your ${lines.length} goals`;
+  return (
+    <article
+      aria-labelledby="goals-title"
+      className={cn(
+        "flex shrink-0 snap-start flex-col rounded-2xl border border-[#1A9C8C]/20 bg-[#F4FBFA] p-4",
+        single ? "w-full" : "w-[calc(100%-1.75rem)]",
+      )}
+    >
+      <span className="mb-2 flex items-center gap-1.5 self-start rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-[#0A6E63] ring-1 ring-[#1A9C8C]/25">
+        <Target className="size-3.5" aria-hidden="true" />
+        Your goals
+      </span>
+      <h3 id="goals-title" className="text-lg leading-snug font-semibold">{title}</h3>
+      <ul className="mt-3 space-y-3">
+        {lines.map((l) => (
+          <li key={l.key}>
+            <div className="flex items-center gap-2">
+              <span className="text-[15px] font-semibold">{l.label}</span>
+              <span className={cn("ml-auto shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold", STATUS[l.status].cls)}>{STATUS[l.status].label}</span>
+            </div>
+            <p className="text-[13px] text-foreground/80 tabular-nums">{l.now} <span className="text-muted-foreground">· {l.target}</span></p>
+            <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">{l.note}</p>
+          </li>
+        ))}
+      </ul>
+      {onAskCoach && (
+        <button
+          onClick={() => onAskCoach(
+            behind.length
+              ? `I'm behind on my ${behind.map((l) => l.label.toLowerCase()).join(" and ")} goal${behind.length > 1 ? "s" : ""}. ${behind.map((l) => l.note).join(" ")} What would help me get back on track?`
+              : "I'm on track for all my goals. What could I focus on next?",
+          )}
+          className="press mt-auto flex h-11 items-center gap-2 self-start pt-3 text-[15px] font-semibold text-primary-ink"
+        >
+          <MessageCircle className="size-4" aria-hidden="true" />
+          {behind.length ? "Ask Fikko how to catch up" : "Ask Fikko what's next"}
+        </button>
+      )}
+    </article>
   );
 }
 

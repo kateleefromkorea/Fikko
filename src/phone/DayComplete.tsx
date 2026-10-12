@@ -339,14 +339,15 @@ export default function DayComplete({ data, profile, onDone }: { data: HabitData
       </div>
 
       <div className="relative z-10 px-5 pb-[max(env(safe-area-inset-bottom),1.25rem)]">
-        {explain ? (
-          <Explanation key={explain} {...explanations[explain]} onClose={() => setExplain(null)} />
-        ) : (
-          <p className={cn("dc-continue mb-3 flex items-center justify-center gap-1.5 text-sm text-foreground/60", ready && "dc-on")} aria-hidden={!ready}>
-            <CircleHelp className="size-4" aria-hidden="true" />
-            Tap anything above to see what it means
-          </p>
-        )}
+        {/* Floats over the lower part of the screen so the button never moves. */}
+        {explain && <Explanation key={explain} {...explanations[explain]} onClose={() => setExplain(null)} />}
+        <p
+          className={cn("dc-continue mb-3 flex items-center justify-center gap-1.5 text-sm text-foreground/60", ready && !explain && "dc-on")}
+          aria-hidden={!ready || !!explain}
+        >
+          <CircleHelp className="size-4" aria-hidden="true" />
+          Tap anything above to see what it means
+        </p>
         <button
           ref={buttonRef}
           onClick={(e) => { e.stopPropagation(); haptics.tap(); onDone(); }}
@@ -369,7 +370,7 @@ function Explanation({ icon: Icon, tone, title, body, onClose }: {
     <section
       role="status"
       onClick={(e) => e.stopPropagation()}
-      className="dc-explain mb-3 flex gap-3 rounded-2xl bg-white p-4 shadow-lg ring-1 ring-ink/5"
+      className="dc-explain absolute inset-x-5 bottom-[calc(100%-1.75rem)] flex gap-3 rounded-2xl bg-white p-4 shadow-xl ring-1 ring-ink/5"
     >
       <span className={cn("grid size-10 shrink-0 place-items-center rounded-xl", tone)} aria-hidden="true">
         <Icon className="size-5" />

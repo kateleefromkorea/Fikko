@@ -1,7 +1,11 @@
-// Monthly trees (migration 037). Fikko donates and plants a real tree for every
-// calendar month in which a member completed every habit on every day. This
-// records the trees owed in fikko_trees, checking each member's habit log with
-// the same rule the app shows (src/lib/treeRules.ts).
+// Monthly trees (migrations 037 and 038). Every calendar month in which a member
+// completed every habit on every day earns a tree in their garden, and Fikko
+// donates and plants a real tree for members on Max. This records each
+// completed month in fikko_trees, checking the member's habit log with the same
+// rule the app shows (src/lib/treeRules.ts). The row is 'pending' (a real tree
+// is owed) for a member on Max when it is recorded, otherwise 'none'. If the
+// plan can't be read the month is left unrecorded and tried again the next
+// day, so a failure never plants a tree for the wrong member.
 //
 //   GET, from Vercel's daily cron: on the 2nd to the 8th of a month (UTC),
 //     checks the month that just ended. By the 2nd it has ended in every time
@@ -23,6 +27,7 @@ import type { CustomHabit, HabitData, HabitEntry } from "../src/types.js";
 const CONCURRENCY = 8;
 const CATEGORIES = ["water", "medication", "food", "exercise", "sleep", "mood"] as const;
 const PAGE = 1000;
+const PLANS = ["free", "premium", "max"] as const;
 
 type Candidate = { user_id: string; water_goal: number | string | null };
 
@@ -98,16 +103,25 @@ async function handleGET(request: Request) {
 
   const done = new Set(recorded.map((r) => r.user_id));
   const queue = ((candidates.data ?? []) as Candidate[]).filter((c) => !done.has(c.user_id));
-  const tally = { checked: 0, trees: 0, failed: 0, alreadyRecorded: done.size };
+  const tally = { checked: 0, trees: 0, real: 0, failed: 0, alreadyRecorded: done.size };
   await Promise.all(Array.from({ length: CONCURRENCY }, async () => {
     for (let c = queue.shift(); c; c = queue.shift()) {
       try {
         const data = await habitData(db, c.user_id, shiftDateKey(from, -TREE_LOOKBACK_DAYS), to);
         tally.checked++;
         if (!monthStatus(data, month, today, Number(c.water_goal ?? 8)).complete) continue;
-        const { error } = await db.from("fikko_trees").upsert({ user_id: c.user_id, month: from }, { onConflict: "user_id,month", ignoreDuplicates: true });
+        // Only a plan that was read counts; while plans aren't enforced everyone is Max.
+        const state = await db.rpc("plan_state", { p_user: c.user_id });
+        const plan = (state.data as { plan?: unknown } | null)?.plan;
+        if (state.error || !PLANS.includes(plan as (typeof PLANS)[number])) throw state.error ?? new Error("No plan");
+        const real = plan === "max";
+        const { error } = await db.from("fikko_trees").upsert(
+          { user_id: c.user_id, month: from, plan, status: real ? "pending" : "none" },
+          { onConflict: "user_id,month", ignoreDuplicates: true },
+        );
         if (error) throw error;
         tally.trees++;
+        if (real) tally.real++;
       } catch {
         tally.failed++;
       }

@@ -105,8 +105,8 @@ export default function HarvestDialog({ open, onOpenChange, seedId, potId, compa
             <p className="flex gap-3 rounded-lg pair-soft p-3 text-sm">
               <TreeDeciduous className="mt-0.5 size-5 shrink-0 text-primary-ink" aria-hidden="true" />
               <span>
-                <span className="block font-medium">Real trees come from complete months</span>
-                Complete every habit on every day of a calendar month and Fikko donates and plants a real tree.
+                <span className="block font-medium">Trees come from complete months</span>
+                Complete every habit on every day of a calendar month and a tree grows in your garden. Max members get a real tree planted too.
               </span>
             </p>
 

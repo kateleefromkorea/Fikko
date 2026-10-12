@@ -15,11 +15,15 @@ export interface GardenPlant {
   premiumMonth: boolean;
 }
 
-/** A real tree owed for a fully completed month (migration 037), recorded by api/trees.ts. */
+/**
+ * A fully completed month (migrations 037 and 038), recorded by api/trees.ts.
+ * Every one is a tree in the garden; only `pending` and `planted` are real
+ * trees, for members on Max (`none` is a garden tree only).
+ */
 export interface MonthTree {
   /** "YYYY-MM". */
   month: string;
-  status: "pending" | "planted";
+  status: "none" | "pending" | "planted";
 }
 
 export interface HarvestResult {

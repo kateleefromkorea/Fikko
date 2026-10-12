@@ -14,15 +14,17 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   garden: GardenPlant[];
-  /** Real trees planted for complete months. */
+  /** Trees for complete months. */
   trees: number;
+  /** Of those, the ones Fikko plants for real (Max members). */
+  realTrees: number;
 }
 
 /**
  * A Stories-sized image of the member's garden to post. Shows plants, complete
  * days and trees only: never weight, meals or other health details.
  */
-export default function ShareGardenDialog({ open, onOpenChange, garden, trees }: Props) {
+export default function ShareGardenDialog({ open, onOpenChange, garden, trees, realTrees }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -119,7 +121,10 @@ export default function ShareGardenDialog({ open, onOpenChange, garden, trees }:
             {[
               { value: garden.length, label: garden.length === 1 ? "plant grown" : "plants grown" },
               { value: days, label: "complete days" },
-              { value: trees, label: trees === 1 ? "real tree" : "real trees" },
+              // Only claim real trees when there are some.
+              realTrees > 0
+                ? { value: realTrees, label: realTrees === 1 ? "real tree" : "real trees" }
+                : { value: trees, label: trees === 1 ? "tree" : "trees" },
             ].map((s, i) => (
               <g key={s.label} transform={`translate(${90 + i * 320} 1640)`}>
                 <text fill="#FFFFFF" fontFamily={FONT} fontSize="88" fontWeight="600">{s.value}</text>

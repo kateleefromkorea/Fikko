@@ -1,7 +1,8 @@
 import type { HabitData } from "../types";
-import { CORE_HABITS, completion } from "./completion";
+import { completion } from "./completion";
 import { loggedOn } from "./dashboardStats";
 import { shiftDateKey, todayKey } from "./dates";
+import { MAX_RAIN_CLOUDS, RAIN_CLOUD_EVERY } from "./treeRules";
 
 // My Fikko: the plant a member grows by completing their habits (migration 025).
 // Only the seed, planting day and cosmetics are stored; growth and health are
@@ -78,10 +79,9 @@ export const SCENES: Scene[] = [
   { id: "night", name: "Night sky", tier: "max", blurb: "Moon and stars" },
 ];
 
-/** Every this many complete days in a row earns a rain cloud. */
-export const RAIN_CLOUD_EVERY = 7;
-/** Rain clouds a member can hold at once. */
-export const MAX_RAIN_CLOUDS = 3;
+// Every RAIN_CLOUD_EVERY complete days in a row earns a rain cloud; a member
+// holds up to MAX_RAIN_CLOUDS. Defined with the monthly tree rule, which shares them.
+export { MAX_RAIN_CLOUDS, RAIN_CLOUD_EVERY } from "./treeRules";
 
 /** The free extras a member picks one of at each harvest (matches harvest_fikko in migration 026). */
 export const HARVEST_REWARDS = ["mint", "stripe", "bee", "snail"] as const;
@@ -227,81 +227,3 @@ export function computeGrowth(data: HabitData, plantedOn: string, waterTarget?: 
   };
 }
 
-export type TreeDay = "done" | "missed" | "today" | "upcoming";
-
-export interface TreeMonths {
-  /** Each calendar month ("YYYY-MM") in which every day was complete, oldest first. Each one plants a real tree. */
-  completed: string[];
-  /** The month in progress, one entry per day. */
-  thisMonth: { key: string; days: TreeDay[]; completeDays: number; onTrack: boolean };
-}
-
-/** The first day anything was logged, or null for a new member. */
-function firstLogged(data: HabitData): string | null {
-  let first: string | null = null;
-  const see = (date: string) => { if (first === null || date < first) first = date; };
-  CORE_HABITS.forEach((k) => data[k].forEach((e) => see(e.date)));
-  data.custom.forEach((h) => h.entries.forEach((e) => { if (e.value > 0) see(e.date); }));
-  return first;
-}
-
-const daysIn = (monthKey: string) => {
-  const [y, m] = monthKey.split("-").map(Number);
-  return new Date(y, m, 0).getDate();
-};
-
-/**
- * Fikko donates and plants a real tree for every calendar month in which every
- * habit was done on every day. A day covered by a rain cloud still counts,
- * with clouds earned and used by the same rules as the plant's (but across
- * plants, since a month can span a harvest). Only the loaded history is seen
- * (about 13 months), so this is for showing progress; the trees owed are
- * recorded on the server.
- */
-export function treeMonths(data: HabitData, waterTarget?: number, today = todayKey()): TreeMonths {
-  const thisKey = today.slice(0, 7);
-  const start = firstLogged(data) ?? today;
-  const completed: string[] = [];
-  const days: TreeDay[] = [];
-  let monthOk = start.endsWith("-01");
-  let streak = 0;
-  let clouds = 0;
-
-  for (let date = start > today ? today : start; date <= today; date = shiftDateKey(date, 1)) {
-    const key = date.slice(0, 7);
-    if (date.endsWith("-01")) monthOk = true;
-    const isToday = date === today;
-    const { done, total } = completion(data, date, waterTarget);
-    const complete = total > 0 && done === total;
-    const covered = !complete && !isToday && !loggedOn(data, date) && clouds > 0;
-    if (covered) clouds--;
-
-    if (complete) {
-      streak++;
-      if (streak % RAIN_CLOUD_EVERY === 0) clouds = Math.min(clouds + 1, MAX_RAIN_CLOUDS);
-    } else if (!isToday && !covered) streak = 0;
-
-    const ok = complete || covered;
-    // Today still in progress doesn't spoil the month yet.
-    if (!ok && !isToday) monthOk = false;
-    if (key === thisKey) days.push(ok ? "done" : isToday ? "today" : "missed");
-    const lastDay = shiftDateKey(date, 1).slice(0, 7) !== key;
-    if (lastDay && monthOk && ok) completed.push(key);
-  }
-
-  // Days of this month before the first log were missed; the rest are still to come.
-  const firstDay = `${thisKey}-01`;
-  const before = start > firstDay ? Number(start.slice(8)) - 1 : 0;
-  const all: TreeDay[] = [...Array<TreeDay>(before).fill("missed"), ...days];
-  while (all.length < daysIn(thisKey)) all.push("upcoming");
-
-  return {
-    completed,
-    thisMonth: {
-      key: thisKey,
-      days: all,
-      completeDays: all.filter((d) => d === "done").length,
-      onTrack: !all.includes("missed"),
-    },
-  };
-}

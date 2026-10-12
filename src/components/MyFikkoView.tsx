@@ -7,15 +7,16 @@ import SeedPicker, { TierBadge } from "./fikko/SeedPicker";
 import HarvestDialog from "./fikko/HarvestDialog";
 import ShareGardenDialog from "./fikko/ShareGardenDialog";
 import GardenScene from "./fikko/GardenScene";
-import { useFikkoGarden, type GardenPlant } from "../hooks/useFikkoGarden";
+import { useFikkoGarden, type GardenPlant, type MonthTree } from "../hooks/useFikkoGarden";
 import type { ProfileRow } from "../hooks/useProfile";
 import type { HabitData } from "../types";
 import { completion } from "../lib/completion";
 import { todayKey } from "../lib/dates";
 import {
   BLOOM_DAYS, COMPANIONS, DIE_AFTER, GARDENER_SEEDS, MAX_RAIN_CLOUDS, POTS, PREMIUM_EVERY, RAIN_CLOUD_EVERY, SCENES, STAGES, WITHER_AFTER,
-  computeGrowth, lockedReason, owns, seedById, treeMonths, unlockedItems, type Growth, type Plan, type TreeMonths,
+  computeGrowth, lockedReason, owns, seedById, unlockedItems, type Growth, type Plan,
 } from "../lib/fikko";
+import { monthStatus, previousMonth, type MonthStatus } from "../lib/treeRules";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,7 +40,7 @@ interface Props {
 const HEALTH_LABEL = { growing: "Growing", withering: "Withering", dead: "Wilted away" } as const;
 
 export default function MyFikkoView({ userId, data, profile, onUpdateProfile, plan, onOpenHabits, layout = "page" }: Props) {
-  const { garden, harvest } = useFikkoGarden(userId);
+  const { garden, trees: recorded, harvest } = useFikkoGarden(userId);
   const unlocked = useMemo(() => unlockedItems(garden), [garden]);
   const [harvesting, setHarvesting] = useState(false);
   const seed = seedById(profile.fikko_seed);
@@ -48,7 +49,11 @@ export default function MyFikkoView({ userId, data, profile, onUpdateProfile, pl
     () => computeGrowth(data, plantedOn, profile.water_goal),
     [data, plantedOn, profile.water_goal],
   );
-  const trees = useMemo(() => treeMonths(data, profile.water_goal), [data, profile.water_goal]);
+  const today = todayKey();
+  const thisMonth = useMemo(() => monthStatus(data, today.slice(0, 7), today, profile.water_goal), [data, today, profile.water_goal]);
+  const lastMonth = useMemo(() => monthStatus(data, previousMonth(today.slice(0, 7)), today, profile.water_goal), [data, today, profile.water_goal]);
+  // Last month's tree is recorded in the first days of this month; count it in the meantime.
+  const treeCount = recorded.length + (lastMonth.complete && !recorded.some((t) => t.month === lastMonth.month) ? 1 : 0);
   const gardenFirst = layout === "garden";
 
   // Nothing planted: just harvested, joined before My Fikko existed, or the
@@ -64,7 +69,7 @@ export default function MyFikkoView({ userId, data, profile, onUpdateProfile, pl
             ? `Your garden has ${garden.length} ${garden.length === 1 ? "plant" : "plants"}. What will you grow next?`
             : "Every day you complete your habits, your Fikko grows a little more."}
         />
-        {gardenFirst && <GardenScene garden={garden} current={null} trees={trees.completed.length} />}
+        {gardenFirst && <GardenScene garden={garden} current={null} trees={treeCount} />}
         <div className="max-w-3xl">
           <PlantSeedCard
             plan={plan}
@@ -75,8 +80,8 @@ export default function MyFikkoView({ userId, data, profile, onUpdateProfile, pl
             onPlant={(id) => onUpdateProfile({ fikko_seed: id, fikko_planted_on: todayKey() })}
           />
         </div>
-        <TreeCard trees={trees} />
-        {next && <Garden garden={garden} trees={trees.completed.length} showScene={!gardenFirst} />}
+        <TreeCard month={thisMonth} earned={treeCount} recorded={recorded} />
+        {next && <Garden garden={garden} trees={treeCount} showScene={!gardenFirst} />}
       </div>
     );
   }
@@ -103,7 +108,7 @@ export default function MyFikkoView({ userId, data, profile, onUpdateProfile, pl
         <GardenScene
           garden={garden}
           current={{ seedId: seed.id, stage: growth.stage, health: growth.health }}
-          trees={trees.completed.length}
+          trees={treeCount}
           sunny={growth.sunny}
         />
       )}
@@ -161,11 +166,11 @@ export default function MyFikkoView({ userId, data, profile, onUpdateProfile, pl
         </div>
       </div>
 
-      <TreeCard trees={trees} />
+      <TreeCard month={thisMonth} earned={treeCount} recorded={recorded} />
 
       <Customise profile={profile} plan={plan} unlocked={unlocked} stage={growth.health === "dead" ? 4 : Math.max(growth.stage, 2)} growth={growth} onUpdateProfile={onUpdateProfile} />
 
-      <Garden garden={garden} trees={trees.completed.length} showScene={!gardenFirst} />
+      <Garden garden={garden} trees={treeCount} showScene={!gardenFirst} />
 
       <HowItWorks />
 
@@ -299,11 +304,11 @@ function PlantHero({ growth, profile, seedName }: { growth: Growth; profile: Pro
 }
 
 /** The monthly tree: what earns it, and how this month is going. */
-function TreeCard({ trees }: { trees: TreeMonths }) {
-  const { days, completeDays, onTrack, key } = trees.thisMonth;
-  const month = new Date(key + "-15T12:00:00").toLocaleDateString(undefined, { month: "long" });
+function TreeCard({ month: status, earned, recorded }: { month: MonthStatus; earned: number; recorded: MonthTree[] }) {
+  const { days, completeDays, onTrack } = status;
+  const month = new Date(status.month + "-15T12:00:00").toLocaleDateString(undefined, { month: "long" });
   const left = days.filter((d) => d !== "done" && d !== "missed").length;
-  const earned = trees.completed.length;
+  const planted = recorded.filter((t) => t.status === "planted").length;
   return (
     <section aria-label="A tree for every complete month" className="rounded-2xl pair-soft p-4 sm:p-5">
       <div className="flex gap-3">
@@ -341,7 +346,7 @@ function TreeCard({ trees }: { trees: TreeMonths }) {
             : left === 0
               ? `${month} is complete. Your tree is on its way.`
               : `On track. ${left} more ${left === 1 ? "day" : "days"} to plant ${month}'s tree.`}
-          {earned > 0 && ` ${earned} ${earned === 1 ? "tree" : "trees"} earned so far.`}
+          {earned > 0 && ` ${earned} ${earned === 1 ? "tree" : "trees"} earned so far${planted < earned ? `, ${planted} planted` : ""}.`}
         </p>
       </div>
     </section>

@@ -12,8 +12,14 @@ export interface GardenPlant {
   harvestedOn: string;
   completeDays: number;
   reward: string | null;
-  treeStatus: "pending" | "planted";
   premiumMonth: boolean;
+}
+
+/** A real tree owed for a fully completed month (migration 037), recorded by api/trees.ts. */
+export interface MonthTree {
+  /** "YYYY-MM". */
+  month: string;
+  status: "pending" | "planted";
 }
 
 export interface HarvestResult {
@@ -23,17 +29,24 @@ export interface HarvestResult {
 
 export function useFikkoGarden(userId: string | null) {
   const [garden, setGarden] = useState<GardenPlant[]>([]);
+  const [trees, setTrees] = useState<MonthTree[]>([]);
 
   async function load() {
     if (!userId) {
       setGarden([]);
+      setTrees([]);
       return;
     }
-    const { data } = await supabase
-      .from("fikko_garden")
-      .select("id, seed, pot, companion, planted_on, harvested_on, complete_days, reward, tree_status, premium_month")
-      .eq("user_id", userId)
-      .order("created_at");
+    const [{ data }, treeRows] = await Promise.all([
+      supabase
+        .from("fikko_garden")
+        .select("id, seed, pot, companion, planted_on, harvested_on, complete_days, reward, premium_month")
+        .eq("user_id", userId)
+        .order("created_at"),
+      supabase.from("fikko_trees").select("month, status").eq("user_id", userId).order("month"),
+    ]);
+    // Before migration 037 runs there are no recorded trees.
+    setTrees((treeRows.data ?? []).map((r) => ({ month: String(r.month).slice(0, 7), status: r.status })));
     // A database without migration 026 yet returns an error: show an empty garden.
     setGarden(
       (data ?? []).map((r) => ({
@@ -45,7 +58,6 @@ export function useFikkoGarden(userId: string | null) {
         harvestedOn: r.harvested_on,
         completeDays: r.complete_days,
         reward: r.reward,
-        treeStatus: r.tree_status,
         premiumMonth: r.premium_month,
       })),
     );
@@ -58,7 +70,7 @@ export function useFikkoGarden(userId: string | null) {
 
   /**
    * Moves the blooming plant into the garden. The database checks it has
-   * bloomed, records the reward and the tree, and empties the pot.
+   * bloomed, records the reward, and empties the pot.
    */
   async function harvest(completeDays: number, reward: string | null): Promise<HarvestResult> {
     const { data, error } = await supabase.rpc("harvest_fikko", {
@@ -72,5 +84,5 @@ export function useFikkoGarden(userId: string | null) {
     return { premiumMonth: row.premium_month, gardenSize: row.garden_size };
   }
 
-  return { garden, harvest };
+  return { garden, trees, harvest };
 }

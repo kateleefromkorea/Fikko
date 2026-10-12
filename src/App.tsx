@@ -1,6 +1,6 @@
-import { Suspense, lazy, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useAiCredits } from "./hooks/useAiCredits";
-import { ChartNoAxesColumn, Loader2, ChefHat, ListChecks, LogOut, Sparkles, Sprout, UserRound, Users, type LucideIcon } from "lucide-react";
+import { ChartNoAxesColumn, Loader2, ChefHat, LogOut, Plus, Search, Sparkles, Sprout, Sun, UserRound, Users, type LucideIcon } from "lucide-react";
 import { completion } from "./lib/completion";
 import ScrollToTop from "./components/ScrollToTop";
 import InstallCard from "./components/InstallCard";
@@ -14,7 +14,11 @@ import SetNewPassword from "./auth/SetNewPassword";
 import RestoreAccount from "./auth/RestoreAccount";
 import SetupNeeded from "./auth/SetupNeeded";
 import { isSupabaseConfigured } from "./lib/supabase";
-import { useHabitData } from "./hooks/useHabitData";
+import { useHabitData, type HabitUpdate } from "./hooks/useHabitData";
+import { useFoodLog, type NewFood } from "./hooks/useFoodLog";
+import { useToday } from "./hooks/useToday";
+import { useDayCompleteCelebration } from "./hooks/useDayCompleteCelebration";
+import { computeGrowth } from "./lib/fikko";
 import { useProfile } from "./hooks/useProfile";
 import { useConsents } from "./hooks/useConsents";
 import { hasRequiredConsent } from "./lib/consent";
@@ -33,11 +37,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { todayKey } from "./lib/dates";
+import { shiftDateKey, todayKey } from "./lib/dates";
 import { dietsOf, tracksMacros } from "./lib/preferences";
 import { hasDraft } from "./onboarding/draft";
 import { trackView } from "./lib/track";
 import { usePlan } from "./hooks/usePlan";
+import type { HabitData, MealKey } from "./types";
+import type { Panel } from "./desktop/LogLayer";
+import type { Place } from "./phone/SearchScreen";
+import { useDesktopToast } from "./desktop/Toast";
+import { MOD_KEY, typingIn } from "./desktop/keys";
+import "./desktop/desktop.css";
 
 // Loaded on demand. The Dashboard carries the charting library (most of the
 // app's JavaScript) and onboarding only runs once per user, so neither should
@@ -57,6 +67,9 @@ const ProfileView = lazy(() => import("./components/ProfileView"));
 const AdminView = lazy(() => import("./admin/AdminView"));
 // Phones get the phone experience (shared with the iOS and Android apps).
 const PhoneApp = lazy(() => import("./phone/PhoneApp"));
+// The header's Log, search and the rest (src/desktop), loaded once the habits are in.
+const LogLayer = lazy(() => import("./desktop/LogLayer"));
+const UpNext = lazy(() => import("./desktop/UpNext"));
 
 // The admin site lives at /admin, outside the member app.
 const isAdminPage = window.location.pathname.replace(/\/+$/, "") === "/admin";
@@ -64,16 +77,17 @@ const isAdminPage = window.location.pathname.replace(/\/+$/, "") === "/admin";
 type Tab = "habits" | "dashboard" | "fikko" | "recipes" | "community" | "coaches" | "profile";
 
 // Community isn't a tab: it opens from the Habits page's preview card and the
-// account menu.
+// account menu. Named as on the phone (Today, Progress, Garden, Coach), so
+// someone using both finds the same places.
 // Shown as tabs in the header on tablet and desktop, and as a bottom tab bar
 // on phones, where the labels don't fit across the top.
 // `ai` marks a tab powered by AI: it shows a sparkle in front of its label.
 const NAV: { id: Tab; label: string; icon: LucideIcon; soon?: boolean; ai?: boolean }[] = [
-  { id: "habits", label: "Habits", icon: ListChecks },
-  { id: "dashboard", label: "Dashboard", icon: ChartNoAxesColumn },
-  { id: "fikko", label: "My Fikko", icon: Sprout },
+  { id: "habits", label: "Today", icon: Sun },
+  { id: "dashboard", label: "Progress", icon: ChartNoAxesColumn },
+  { id: "fikko", label: "Garden", icon: Sprout },
   { id: "recipes", label: "Recipes", icon: ChefHat },
-  { id: "coaches", label: "AI Coach", icon: Sparkles, ai: true },
+  { id: "coaches", label: "Coach", icon: Sparkles, ai: true },
 ];
 
 
@@ -123,6 +137,11 @@ export default function App() {
   return <DesktopApp deviceOutcome={deviceOutcome} openProfile={openProfile} />;
 }
 
+/** Where search's "Go to" results land in this layout. */
+const PLACE_TAB: Record<Place, Tab> = {
+  today: "habits", progress: "dashboard", garden: "fikko", recipes: "recipes", coach: "coaches", settings: "profile", community: "community",
+};
+
 function DesktopApp({ deviceOutcome, openProfile }: { deviceOutcome: DeviceOutcome | null; openProfile: boolean }) {
   const { session, loading, signOut, recovering } = useAuth();
   const credits = useAiCredits();
@@ -162,6 +181,88 @@ function DesktopApp({ deviceOutcome, openProfile }: { deviceOutcome: DeviceOutco
     }),
     [loggedData, medications.loading, medications.loadError, medications.medications.length, biometrics.activeMinutes],
   );
+
+  // The day being logged, shared by the Habits page, the Log panel and search.
+  // When the day rolls over, someone looking at "today" moves to the new today.
+  const today = useToday();
+  const [activeDate, setActiveDate] = useState(today);
+  const shownToday = useRef(today);
+  useEffect(() => {
+    if (shownToday.current === today) return;
+    setActiveDate((d) => (d === shownToday.current ? today : d));
+    shownToday.current = today;
+  }, [today]);
+  // Set once the member logs something, so data arriving from the server
+  // (or a sync) never counts as them finishing the day.
+  const memberActed = useRef(false);
+  const onChange = (next: HabitUpdate) => { memberActed.current = true; setData(next); };
+  // Shared by the Calories card, voice check-ins, the Log panel and search, so all see the same meals.
+  const foodLog = useFoodLog(userId, activeDate, data, onChange);
+  const celebrating = useDayCompleteCelebration(data, profile.water_goal, userId, memberActed);
+  const streak = useMemo(
+    () => computeGrowth(data, profile.fikko_planted_on ?? today, profile.water_goal).streak,
+    [data, profile.fikko_planted_on, profile.water_goal, today],
+  );
+  const [panel, setPanel] = useState<Panel>(null);
+  const [meal, setMeal] = useState<MealKey | null>(null);
+  const [toastNode, toast] = useDesktopToast();
+  const habitsReady = !!userId && !habitsLoading && !habitsLoadError;
+
+  /** A one-tap log, answered with a toast. */
+  const quickLog = (update: (d: HabitData) => HabitData, message: string) => {
+    const before = completion(data, activeDate, profile.water_goal).done;
+    const next = update(data);
+    onChange(next);
+    toast(message, { grew: completion(next, activeDate, profile.water_goal).done > before });
+  };
+  /** Food added from search: same answer as a one-tap log. */
+  const addFood = (mealKey: MealKey, food: NewFood) => {
+    const foodDone = completion(data, activeDate, profile.water_goal).core.find((c) => c.key === "food")?.done ?? true;
+    void foodLog.addItem(mealKey, food);
+    toast(`${food.name} added to ${mealKey}`, { grew: !foodDone });
+  };
+  const mealLabelFor = (mealKey: MealKey) => {
+    const label = mealKey[0].toUpperCase() + mealKey.slice(1);
+    if (activeDate === today) return label;
+    if (activeDate === shiftDateKey(today, -1)) return `${label} yesterday`;
+    return `${label} on ${new Date(activeDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "long" })}`;
+  };
+  /** Opens a panel from the header or a shortcut. Away from Today, it logs for today. */
+  const openPanel = (next: Panel) => {
+    if (!habitsReady) return;
+    if ((next === "capture" || next === "search") && tab !== "habits") setActiveDate(today);
+    setPanel(next);
+  };
+  const goTab = (next: Tab) => { setTab(next); window.scrollTo({ top: 0 }); };
+
+  // Keyboard shortcuts (listed with "?"). Single keys never fire while typing or with a window open.
+  const keys = useRef<(e: KeyboardEvent) => void>(() => {});
+  keys.current = (e) => {
+    if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === "k") {
+      e.preventDefault();
+      if (panel === "search") setPanel(null);
+      else if (!document.querySelector('[role="dialog"]')) openPanel("search");
+      return;
+    }
+    if (e.metaKey || e.ctrlKey || e.altKey || e.defaultPrevented || e.isComposing || typingIn(e.target)) return;
+    if (document.querySelector('[role="dialog"], [role="menu"]')) return;
+    const onToday = tab === "habits";
+    const go = (fn: () => void) => { e.preventDefault(); fn(); };
+    switch (e.key) {
+      case "l": case "L": return go(() => openPanel("capture"));
+      case "/": return go(() => openPanel("search"));
+      case "?": return go(() => openPanel("shortcuts"));
+      case "t": case "T": return go(() => { setActiveDate(today); if (!onToday) goTab("habits"); });
+      case "ArrowLeft": if (onToday) go(() => setActiveDate((d) => shiftDateKey(d, -1))); return;
+      case "ArrowRight": if (onToday && activeDate < today) go(() => setActiveDate((d) => shiftDateKey(d, 1))); return;
+      case "1": case "2": case "3": case "4": case "5": return go(() => goTab(NAV[Number(e.key) - 1].id));
+    }
+  };
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => keys.current(e);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // Anonymous page-view stats. Sign-in and each tab count as a page.
   const signedIn = !!session;
@@ -281,7 +382,40 @@ function DesktopApp({ deviceOutcome, openProfile }: { deviceOutcome: DeviceOutco
             })}
           </nav>
 
-          <div className="ml-auto flex items-center gap-4">
+          <div className="ml-auto flex items-center gap-2 lg:gap-3">
+            <button
+              onClick={() => openPanel("search")}
+              disabled={!habitsReady}
+              className="hidden h-9 w-60 items-center gap-2 rounded-full bg-foreground/[0.05] pr-2 pl-3.5 text-sm text-muted-foreground transition-colors hover:bg-foreground/[0.08] disabled:opacity-60 lg:flex xl:w-72"
+              aria-label="Search foods, ask Fikko, or find a page"
+              aria-keyshortcuts="Meta+K Control+K /"
+            >
+              <Search className="size-4 shrink-0" aria-hidden="true" />
+              <span className="flex-1 truncate text-left">Search or ask Fikko</span>
+              <span className="flex gap-0.5" aria-hidden="true"><kbd className="kbd">{MOD_KEY}</kbd><kbd className="kbd">K</kbd></span>
+            </button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => openPanel("search")}
+              disabled={!habitsReady}
+              className="lg:hidden"
+              aria-label="Search foods, ask Fikko, or find a page"
+              title={`Search (${MOD_KEY} K)`}
+            >
+              <Search />
+            </Button>
+            <Button
+              onClick={() => openPanel("capture")}
+              disabled={!habitsReady}
+              className="h-9 gap-1.5 rounded-full px-4 font-semibold"
+              aria-keyshortcuts="L"
+              title="Log something (L)"
+            >
+              <Plus className="size-4" strokeWidth={2.5} />
+              Log
+            </Button>
+            <span className="w-1" aria-hidden="true" />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
@@ -317,6 +451,10 @@ function DesktopApp({ deviceOutcome, openProfile }: { deviceOutcome: DeviceOutco
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
+                  <DropdownMenuItem onSelect={() => openPanel("shortcuts")} disabled={!habitsReady}>
+                    <span className="kbd -ml-0.5" aria-hidden="true">?</span>
+                    Keyboard shortcuts
+                  </DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => setTab("profile")}>
                     <UserRound />
                     Profile
@@ -360,7 +498,25 @@ function DesktopApp({ deviceOutcome, openProfile }: { deviceOutcome: DeviceOutco
           <Suspense fallback={<div className="flex items-center justify-center gap-2 py-24 text-sm text-muted-foreground" role="status"><Loader2 className="size-4 animate-spin" aria-hidden="true" /> Loading your habits…</div>}>
           <HabitsView
             data={data}
-            onChange={setData}
+            onChange={onChange}
+            activeDate={activeDate}
+            onDateChange={setActiveDate}
+            foodLog={foodLog}
+            streak={streak}
+            onOpenStreak={() => openPanel("streak")}
+            upNext={(
+              <Suspense fallback={null}>
+                <UpNext
+                  data={data}
+                  activeDate={activeDate}
+                  goals={{ calories: profile.calorie_goal, water: profile.water_goal, sleepHours: profile.sleep_goal }}
+                  medications={medications}
+                  foodLog={foodLog}
+                  onQuick={quickLog}
+                  onLogMeal={setMeal}
+                />
+              </Suspense>
+            )}
             biometrics={biometrics}
             medications={medications}
             userId={userId}
@@ -373,7 +529,7 @@ function DesktopApp({ deviceOutcome, openProfile }: { deviceOutcome: DeviceOutco
           </>
         )}
         {tab === "dashboard" && !habitsLoading && !habitsLoadError && (
-          <Suspense fallback={<p className="py-10 text-center text-sm text-muted-foreground">Loading dashboard…</p>}>
+          <Suspense fallback={<p className="py-10 text-center text-sm text-muted-foreground">Loading your progress…</p>}>
             <Dashboard
               data={data}
               biometrics={biometrics}
@@ -383,7 +539,7 @@ function DesktopApp({ deviceOutcome, openProfile }: { deviceOutcome: DeviceOutco
           </Suspense>
         )}
         {tab === "fikko" && !habitsLoading && !habitsLoadError && (
-          <Suspense fallback={<p className="py-10 text-center text-sm text-muted-foreground">Loading My Fikko…</p>}>
+          <Suspense fallback={<p className="py-10 text-center text-sm text-muted-foreground">Loading your garden…</p>}>
             <MyFikkoView
               userId={session.user.id}
               data={data}
@@ -423,6 +579,38 @@ function DesktopApp({ deviceOutcome, openProfile }: { deviceOutcome: DeviceOutco
           </Suspense>
         )}
       </main>
+
+      {habitsReady && (
+        <Suspense fallback={null}>
+          <LogLayer
+            panel={panel}
+            onPanel={setPanel}
+            cardProps={{
+              data, onChange, activeDate, biometrics, medications, userId, profileName: profile.name,
+              goals: { calories: profile.calorie_goal, water: profile.water_goal, sleepHours: profile.sleep_goal, weightKg: profile.weight_kg, goalKey: profile.primary_goal },
+              trackMacros: tracksMacros(profile.tracking_style),
+            }}
+            profile={profile}
+            foodLog={foodLog}
+            meal={meal}
+            onMeal={setMeal}
+            onQuick={quickLog}
+            onVoiceSave={(next, foods) => {
+              const before = completion(data, activeDate, profile.water_goal).done;
+              if (foods.length) void foodLog.addEntries(foods, next);
+              else onChange(next);
+              toast("Check-in saved", { grew: completion(next, activeDate, profile.water_goal).done > before });
+            }}
+            onAddFood={addFood}
+            onAsk={(question) => { setCoachDraft(question); goTab("coaches"); }}
+            onGo={(place) => goTab(PLACE_TAB[place])}
+            mealLabelFor={mealLabelFor}
+            celebrating={celebrating.show}
+            onCelebrated={celebrating.dismiss}
+          />
+        </Suspense>
+      )}
+      {toastNode}
 
       {needsOnboarding && (
         <Suspense fallback={null}>

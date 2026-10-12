@@ -1,0 +1,70 @@
+/* The desktop layout's own styles (src/App.tsx's DesktopApp and src/desktop).
+   The phone experience's pieces it reuses (capture, search, streak sheet) are
+   styled for phones in src/phone/phone.css under html.phone-ui; these rules
+   give them a desktop shape and never apply while the phone experience shows. */
+
+/* A confirmation rising in at the bottom of the window. */
+@keyframes desktop-toast-in {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+.desktop-toast-in { animation: desktop-toast-in 240ms cubic-bezier(0.2, 0.9, 0.3, 1); }
+@media (prefers-reduced-motion: reduce) { .desktop-toast-in { animation: none; } }
+
+/* Sheets (capture, streak) are centred panels here, wide enough for the
+   meal tiles and scrolling when a habit card makes them tall. */
+html:not(.phone-ui) [data-slot="dialog-content"][data-sheet] {
+  max-width: 32rem;
+  max-height: calc(100dvh - 3rem);
+  overflow-y: auto;
+  padding-top: 1rem;
+  padding-bottom: 1.5rem;
+}
+
+/* A habit card inside a panel: the panel is the surface. */
+html:not(.phone-ui) .sheet-card [data-slot="card"] {
+  box-shadow: none;
+  --tw-ring-shadow: 0 0 #0000;
+  padding: 0;
+  background: transparent;
+  translate: none;
+}
+html:not(.phone-ui) .sheet-card [data-slot="card"]:hover { box-shadow: none; translate: none; }
+html:not(.phone-ui) .sheet-card [data-slot="card-header"],
+html:not(.phone-ui) .sheet-card [data-slot="card-content"] { padding-inline: 0; }
+
+/* Search (⌘K): a command palette near the top of the window. */
+html:not(.phone-ui) [data-slot="dialog-content"].search-screen {
+  top: 12vh;
+  translate: -50% 0;
+  max-width: 40rem;
+  max-height: 76vh;
+  overflow-y: auto;
+  background: var(--background);
+}
+html:not(.phone-ui) .search-screen > form {
+  padding-top: 0.75rem;
+  background: var(--background);
+}
+
+/* The day-complete moment: its button stays a button, not a full-width bar. */
+.desktop-day-complete .dc-continue {
+  display: block;
+  max-width: 22rem;
+  margin-inline: auto;
+}
+
+/* Keyboard keys in hints and the shortcuts list. */
+.kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.375rem;
+  height: 1.375rem;
+  padding-inline: 0.3rem;
+  border-radius: 0.375rem;
+  border: 1px solid rgb(0 0 0 / 0.12);
+  border-bottom-width: 2px;
+  background: white;
+  font: 600 0.6875rem/1 ui-sans-serif, system-ui, sans-serif;
+  color: var(--muted-foreground);
+}

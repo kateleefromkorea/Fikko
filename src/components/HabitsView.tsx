@@ -7,10 +7,11 @@ import {
 import { DB_LIMITS, clamp } from "../lib/limits";
 import { activityMinutes, completion, EXERCISE_TARGET_MIN, type CoreHabit } from "../lib/completion";
 import { workoutsOf } from "../lib/workouts";
-import { currentStreak, loggedOn } from "../lib/dashboardStats";
 import type { HabitData, BiometricData, HabitEntry, CustomHabit, FoodLogItem, MealKey, TimeOfDay } from "../types";
 import type { useMedications } from "../hooks/useMedications";
 import { mealTotals, useFoodLog, type NewFood } from "../hooks/useFoodLog";
+import { useToday } from "../hooks/useToday";
+import { useDayCompleteCelebration } from "../hooks/useDayCompleteCelebration";
 import { mealShortcuts, type MealShortcuts } from "../lib/foodHistory";
 import type { HabitUpdate } from "../hooks/useHabitData";
 import { useCustomFoods } from "../hooks/useCustomFoods";
@@ -18,7 +19,6 @@ import { usePlan } from "../hooks/usePlan";
 import UpgradeNote from "./UpgradeNote";
 import FoodLogModal from "./FoodLogModal";
 import VoiceCheckIn from "./VoiceCheckIn";
-import Celebration from "./Celebration";
 import InsightCard, { useInsights } from "./InsightCard";
 import InteractionCheck from "./InteractionCheck";
 import { suggestMedications } from "../lib/medicationNames";
@@ -143,30 +143,6 @@ export interface Goals {
   goalKey?: string | null;
 }
 
-/**
- * Today's day key, kept current: it moves on at midnight and when the member
- * comes back to a tab left open overnight, so "today" never logs to yesterday.
- */
-export function useToday() {
-  const [today, setToday] = useState(todayKey);
-  useEffect(() => {
-    const check = () => setToday(todayKey());
-    const msToMidnight = () => {
-      const n = new Date();
-      return new Date(n.getFullYear(), n.getMonth(), n.getDate() + 1).getTime() - n.getTime() + 1000;
-    };
-    let timer = window.setTimeout(function tick() { check(); timer = window.setTimeout(tick, msToMidnight()); }, msToMidnight());
-    document.addEventListener("visibilitychange", check);
-    window.addEventListener("focus", check);
-    return () => {
-      window.clearTimeout(timer);
-      document.removeEventListener("visibilitychange", check);
-      window.removeEventListener("focus", check);
-    };
-  }, []);
-  return today;
-}
-
 /** 7.5 → "7h 30m". */
 function formatHours(h: number) {
   const mins = Math.round(h * 60);
@@ -239,15 +215,20 @@ function HabitChip({ icon: Icon, label, done, onClick }: { icon: LucideIcon; lab
   );
 }
 
-/** Days in a row with something logged, as a small green chip with a flame. Hidden until a streak starts. */
-function StreakChip({ data }: { data: HabitData }) {
-  const streak = currentStreak((d) => loggedOn(data, d));
-  if (streak < 1) return null;
+/**
+ * Full days in a row (every habit done), as a small teal chip with a flame.
+ * Opens what the streak and rain clouds mean.
+ */
+function StreakChip({ streak, onClick }: { streak: number; onClick: () => void }) {
   return (
-    <span className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full bg-[#DDF5F1] px-3 text-sm font-medium text-[#0A6E63]">
+    <button
+      onClick={onClick}
+      className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full bg-[#DDF5F1] px-3 text-sm font-medium text-[#0A6E63] transition-colors hover:bg-[#CDEFE9]"
+      aria-label={`${streak > 0 ? `${streak} ${streak === 1 ? "day" : "days"} in a row` : "No streak yet"}. What does the streak mean?`}
+    >
       <Flame className="size-3.5" aria-hidden="true" />
-      {streak}-day streak
-    </span>
+      {streak > 0 ? `${streak}-day streak` : "Start a streak today"}
+    </button>
   );
 }
 
@@ -1518,24 +1499,25 @@ function DateNavigator({ activeDate, onChange }: { activeDate: string; onChange:
 }
 
 /* ─── Layout ─── */
-export default function HabitsView({ data, onChange: saveData, biometrics, medications, userId, profileName, goals, trackMacros, onOpenCommunity }: Omit<Props, "activeDate"> & { onOpenCommunity?: () => void }) {
-  const today = useToday();
-  const [activeDate, setActiveDate] = useState(today);
-  // When the day rolls over, someone looking at "today" moves to the new today.
-  const shownToday = useRef(today);
-  useEffect(() => {
-    if (shownToday.current === today) return;
-    setActiveDate((d) => (d === shownToday.current ? today : d));
-    shownToday.current = today;
-  }, [today]);
-  // Set once the member logs something, so data arriving from the server
-  // (or a sync) never counts as them finishing the day.
-  const memberActed = useRef(false);
-  const onChange = (next: HabitUpdate) => { memberActed.current = true; saveData(next); };
+/**
+ * The desktop Habits page. The app shell (src/App.tsx) owns the day being
+ * viewed, the meal log and the "day complete" moment, because the header's
+ * Log button and search log into the same day from any page.
+ */
+export default function HabitsView({
+  data, onChange, biometrics, medications, userId, profileName, goals, trackMacros, activeDate, onDateChange, foodLog, upNext, streak, onOpenStreak, onOpenCommunity,
+}: Props & {
+  onDateChange: (date: string) => void;
+  foodLog: ReturnType<typeof useFoodLog>;
+  /** What's left to do today, with one-tap actions, shown under the summary. */
+  upNext?: ReactNode;
+  /** Full days in a row, for the streak chip. */
+  streak: number;
+  onOpenStreak: () => void;
+  onOpenCommunity?: () => void;
+}) {
+  const setActiveDate = onDateChange;
   const cardProps = { data, onChange, activeDate, biometrics, medications, userId, profileName, goals, trackMacros };
-  // Shared by the Calories card and voice check-ins, so both see the same meals.
-  const foodLog = useFoodLog(userId, activeDate, data, onChange);
-  const celebrating = useDayCompleteCelebration(data, goals.water, userId, memberActed);
   const { insights, dismiss } = useInsights({ data, biometrics, userId, activeDate, calorieTarget: goals.calories });
   const summaryRef = useRef<HTMLElement>(null);
   const summaryGone = useScrolledPast(summaryRef);
@@ -1575,8 +1557,10 @@ export default function HabitsView({ data, onChange: saveData, biometrics, medic
       />
       </div>
 
+      {upNext}
+
       <section className="space-y-4">
-        <SectionLabel aside={<StreakChip data={data} />}>Nutrition & movement</SectionLabel>
+        <SectionLabel aside={<StreakChip streak={streak} onClick={onOpenStreak} />}>Nutrition & movement</SectionLabel>
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2"><FoodCard {...cardProps} foodLog={foodLog} /></div>
           <ActivityCard {...cardProps} />
@@ -1607,47 +1591,14 @@ export default function HabitsView({ data, onChange: saveData, biometrics, medic
       <CustomHabitsSection {...cardProps} />
 
       {userId && onOpenCommunity && <CommunityPreview userId={userId} onOpen={onOpenCommunity} />}
-
-      {celebrating.show && <Celebration onDone={celebrating.dismiss} />}
     </div>
   );
 }
 
-/**
- * Confetti the moment today's last habit is completed. It plays on the change
- * from "not all done" to "all done", not when opening a page that's already
- * complete, and at most once a day, so unticking and re-ticking doesn't repeat it.
- */
-function useDayCompleteCelebration(
-  data: HabitData, waterGoal: number, userId: string | null, memberActed: { current: boolean },
-) {
-  const today = todayKey();
-  const { done, total } = completion(data, today, waterGoal);
-  const allDone = total > 0 && done === total;
-  const wasAllDone = useRef<boolean | null>(null);
-  // Opening the app with ?celebrate plays it straight away, for testing.
-  const [show, setShow] = useState(() => new URLSearchParams(window.location.search).has("celebrate"));
-
-  useEffect(() => {
-    const before = wasAllDone.current;
-    wasAllDone.current = allDone;
-    // Only a change the member made counts; loading their data just records where the day stands.
-    if (before === null || before || !allDone || !userId || !memberActed.current) return;
-    const key = `fikko-celebrated-${userId}`;
-    try {
-      if (localStorage.getItem(key) === today) return;
-      localStorage.setItem(key, today);
-    } catch { /* storage blocked: celebrate anyway */ }
-    setShow(true);
-  }, [allDone, today, userId, memberActed]);
-
-  return { show, dismiss: () => setShow(false) };
-}
-
-// Building blocks for the mobile app's own Habits page (mobile/src/screens/HabitsScreen.tsx),
-// which arranges the same cards under a sticky date bar. The web page above doesn't use these exports.
+// Building blocks for the phone experience (src/phone) and the desktop shell,
+// which arrange the same cards in their own way.
 export {
   CORE_META, CustomHabitsSection, ActivityCard as ExerciseCard, FoodCard, HabitChip, MedicationCard, MoodCard, SleepCard, WaterCard,
-  greeting, progressSubtitle, scrollToCard, useDayCompleteCelebration,
+  greeting, progressSubtitle, scrollToCard, useDayCompleteCelebration, useToday,
 };
 export type { Props as HabitCardProps };

@@ -20,6 +20,7 @@ This is the canonical project structure. Start with task-relevant files below. O
 - `vite.config.ts` - Vite configuration with React, Tailwind CSS v4, and Figma Make plugins plus the `@` alias for `src`
 - `.mise.toml` - Toolchain versions for Node.js and pnpm
 - `src/phone/` - The phone experience (shell, screens, styles), shown by the website on phones and by the mobile app
+- `src/desktop/` - The desktop layout's header tools (Log panel, ⌘K search, Up next strip, shortcuts, toasts), reusing the phone's capture, search and day-complete pieces as centred panels (`desktop.css`)
 - `mobile/` - The iOS and Android app (Capacitor), a separate Vite app that wraps `src/phone`; see `mobile/README.md`
 
 ### Web, phone and mobile

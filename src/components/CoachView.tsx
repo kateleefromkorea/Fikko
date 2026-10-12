@@ -154,7 +154,7 @@ export default function CoachView({ profileName, initialDraft = "" }: {
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="AI Coach"
+        eyebrow="Coach"
         title="Ask Fikko about your week."
         subtitle={loading
           ? "Fikko reads your last four weeks of logs."

@@ -28,7 +28,6 @@ import type { HabitData, MealKey } from "@/types";
 import CaptureSheet from "@/phone/CaptureSheet";
 import { haptics } from "@/phone/haptics";
 import MealLogger from "@/phone/MealLogger";
-import ScreenTitle from "@/phone/ScreenTitle";
 import SearchScreen, { type Place } from "@/phone/SearchScreen";
 import { setupSwipeToDismiss } from "@/phone/swipeToDismiss";
 import TabBar, { type Tab } from "@/phone/TabBar";
@@ -39,7 +38,7 @@ import TodayScreen from "@/phone/screens/TodayScreen";
 import YouScreen, { type YouPage } from "@/phone/screens/YouScreen";
 import "./phone.css";
 
-const Dashboard = lazy(() => import("@/components/Dashboard"));
+const ProgressScreen = lazy(() => import("./screens/ProgressScreen"));
 const MyFikkoView = lazy(() => import("@/components/MyFikkoView"));
 const OnboardingModal = lazy(() => import("@/onboarding/OnboardingModal"));
 const ConsentPrompt = lazy(() => import("@/components/ConsentPrompt"));
@@ -287,12 +286,15 @@ function PhoneShell({ viewPrefix, siteOrigin = "", deviceOutcome = null, startOn
           </>
         )}
         {tab === "progress" && habitsReady && (
-          <div className="screen-in">
-            <ScreenTitle>Progress</ScreenTitle>
-            <Suspense fallback={loading("your progress")}>
-              <Dashboard data={data} biometrics={biometrics} profile={profile} onAskCoach={askCoach} />
-            </Suspense>
-          </div>
+          <Suspense fallback={loading("your progress")}>
+            <ProgressScreen
+              data={data}
+              biometrics={biometrics}
+              profile={profile}
+              onAskCoach={askCoach}
+              onOpenDevices={() => { setTab("you"); setYouPage("settings"); window.scrollTo({ top: 0 }); }}
+            />
+          </Suspense>
         )}
         {tab === "coach" && (
           <CoachScreen

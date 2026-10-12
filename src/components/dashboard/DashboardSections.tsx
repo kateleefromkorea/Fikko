@@ -34,7 +34,7 @@ function StatRow({ children, narrow }: { children: ReactNode; narrow?: boolean }
 // ── Consistency ────────────────────────────────────────────────────────────
 
 /** How a day looks on the calendar: the share of that day's habits done. */
-const LEVELS = [
+export const LEVELS = [
   { label: "Nothing", cls: "bg-foreground/[0.06] text-muted-foreground" },
   { label: "Some", cls: "bg-primary/25 text-foreground" },
   { label: "Most", cls: "bg-primary/55 text-foreground" },

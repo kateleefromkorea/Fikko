@@ -13,7 +13,6 @@ import CaptureSheet from "@/phone/CaptureSheet";
 import SearchScreen from "@/phone/SearchScreen";
 import TopBar from "@/phone/TopBar";
 import MealLogger from "@/phone/MealLogger";
-import ScreenTitle from "@/phone/ScreenTitle";
 import TabBar, { type Tab } from "@/phone/TabBar";
 import { ToastProvider, useToast } from "@/phone/Toast";
 import CoachScreen, { type CoachPane } from "@/phone/screens/CoachScreen";
@@ -26,7 +25,7 @@ import "@/phone/phone.css";
 setupSwipeToDismiss();
 document.documentElement.classList.add("phone-ui");
 
-const Dashboard = lazy(() => import("@/components/Dashboard"));
+const ProgressScreen = lazy(() => import("@/phone/screens/ProgressScreen"));
 const MyFikkoView = lazy(() => import("@/components/MyFikkoView"));
 
 /**
@@ -107,10 +106,10 @@ function Preview() {
             onLogMeal={setMeal} hop={hop} onOpenGarden={() => setTab("garden")} />
         )}
         {tab === "progress" && (
-          <div className="screen-in">
-            <ScreenTitle>Progress</ScreenTitle>
-            <Suspense fallback={null}><Dashboard data={data} biometrics={EMPTY_BIOMETRICS} profile={profile} /></Suspense>
-          </div>
+          <Suspense fallback={null}>
+            <ProgressScreen data={data} biometrics={EMPTY_BIOMETRICS} profile={profile}
+              onAskCoach={(q) => { setCoachDraft(q); setCoachPane("coach"); setTab("coach"); }} onOpenDevices={() => setTab("you")} />
+          </Suspense>
         )}
         {tab === "coach" && <CoachScreen view={coachPane} onView={setCoachPane} profileName={profile.name} draft={coachDraft} userId="preview" diets={[]} allergies={[]} />}
         {tab === "garden" && (

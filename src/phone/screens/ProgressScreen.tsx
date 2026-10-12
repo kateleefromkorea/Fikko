@@ -109,7 +109,7 @@ export default function ProgressScreen({ data: logged, biometrics, profile, onAs
           {hasWearable ? (
             <LinkRow icon={Watch} title="Wearable data" sub="Vitals, steps, sleep stages and recovery" onClick={() => setDetail({ kind: "wearable" })} />
           ) : (
-            <LinkRow icon={Watch} title="Connect a wearable" sub="Fitbit and Pixel Watch now. Apple Health and Garmin next." onClick={onOpenDevices} />
+            <LinkRow icon={Watch} title="Connect a wearable" sub="Connect Fitbit and Pixel Watch now. Apple Health and Garmin connections are coming soon." onClick={onOpenDevices} />
           )}
         </ul>
 

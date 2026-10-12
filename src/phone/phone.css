@@ -46,8 +46,12 @@ html.phone-ui, html.phone-ui body {
   bottom: 0;
   left: 0;
   right: 0;
-  translate: none;
-  transform: none;
+  /* Undo the website's centring shift. Set through Tailwind's own variables as
+     well as the property: a minifier once merged "translate: none" away when
+     it sat next to "transform", leaving the sheet half off the screen. */
+  --tw-translate-x: 0;
+  --tw-translate-y: 0;
+  translate: 0 0;
   width: 100%;
   max-width: 100%;
   max-height: calc(100dvh - var(--mobile-top) - 0.75rem);
@@ -164,8 +168,9 @@ html.phone-ui, html.phone-ui body {
   padding: 0.625rem 1rem 1.75rem;
   border-top: 1px solid rgb(0 31 39 / 0.08);
   background: rgb(255 255 255 / 0.88);
-  backdrop-filter: blur(22px) saturate(1.6);
+  /* Prefixed first: the minifier keeps only the last of the two. */
   -webkit-backdrop-filter: blur(22px) saturate(1.6);
+  backdrop-filter: blur(22px) saturate(1.6);
 }
 .phone-ui .coach-mobile form:has(textarea[aria-label="Message Fikko"]) > p:last-child {
   order: -1;
@@ -250,8 +255,9 @@ html.phone-ui:has(.coach-mobile) { scroll-padding-bottom: calc(var(--mobile-tabb
 /* The tab bar's frosted glass. */
 .phone-ui .tabbar-glass {
   background: rgb(255 255 255 / 0.82);
-  backdrop-filter: blur(22px) saturate(1.6);
+  /* Prefixed first: the minifier keeps only the last of the two. */
   -webkit-backdrop-filter: blur(22px) saturate(1.6);
+  backdrop-filter: blur(22px) saturate(1.6);
 }
 
 /* The capture button: lifts above the bar, pressed in on tap. */

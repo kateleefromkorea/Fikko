@@ -16,6 +16,14 @@ html.phone-ui {
   --mobile-datebar-h: 7.25rem;
 }
 
+/* A grid with no columns of its own gets a single column that can shrink to
+   the screen. Without this, "grid gap-3 sm:grid-cols-2" has one implicit column
+   as wide as its widest row of text, and the whole page spreads past the edge
+   of a phone. In the base layer so any grid that sets its own columns wins. */
+@layer base {
+  html.phone-ui .grid { grid-template-columns: minmax(0, 1fr); }
+}
+
 html.phone-ui, html.phone-ui body {
   overscroll-behavior-y: none;
   -webkit-tap-highlight-color: transparent;

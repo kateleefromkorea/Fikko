@@ -1,15 +1,17 @@
-import { ChartNoAxesColumn, Plus, Sparkles, Sprout, UserRound, type LucideIcon } from "lucide-react";
+import { ChartNoAxesColumn, Plus, Sparkles, Sprout, Sun, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type Tab = "today" | "progress" | "coach" | "you";
+/** "you" has no tab of its own: it opens from the profile button in the top bar. */
+export type Tab = "today" | "progress" | "coach" | "garden" | "you";
+type BarTab = Exclude<Tab, "you">;
 
-const LEFT: { id: Tab; label: string; icon: LucideIcon }[] = [
-  { id: "today", label: "Today", icon: Sprout },
+const LEFT: { id: BarTab; label: string; icon: LucideIcon }[] = [
+  { id: "today", label: "Today", icon: Sun },
   { id: "progress", label: "Progress", icon: ChartNoAxesColumn },
 ];
-const RIGHT: { id: Tab; label: string; icon: LucideIcon }[] = [
+const RIGHT: { id: BarTab; label: string; icon: LucideIcon }[] = [
   { id: "coach", label: "Coach", icon: Sparkles },
-  { id: "you", label: "You", icon: UserRound },
+  { id: "garden", label: "Garden", icon: Sprout },
 ];
 
 /**

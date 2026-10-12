@@ -12,7 +12,7 @@ import {
   HABIT_INFO, PERIOD_PHRASE, PREV_PHRASE, habitLabel, kcal, moodLabel, one, pct, plural, restLabel, type DashCtx,
 } from "./context";
 
-function headline(rate: number, logged: number, noun: string) {
+export function headline(rate: number, logged: number, noun: string) {
   if (logged === 0) return "Nothing logged yet";
   if (rate >= 0.8) return `An excellent ${noun}`;
   if (rate >= 0.6) return `A strong ${noun}`;
@@ -47,7 +47,7 @@ export default function DashboardSummary({ ctx, report, toggle, note }: {
 
   let sentence: string;
   if (ov.logged === 0) {
-    sentence = `You haven't logged anything in ${PERIOD_PHRASE[period]}. Check in on the Habits page and this summary fills in as you go.`;
+    sentence = `You haven't logged anything in ${PERIOD_PHRASE[period]}. Check in and this summary fills in as you go.`;
   } else {
     sentence = `You logged ${ov.logged} of ${ov.days} days and completed ${pct(ov.rate)} of your habits.`;
     if (top && top.rate > 0) sentence += ` ${habitLabel(top)} was your most consistent habit`;

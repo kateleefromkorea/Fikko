@@ -27,6 +27,7 @@ setupSwipeToDismiss();
 document.documentElement.classList.add("phone-ui");
 
 const Dashboard = lazy(() => import("@/components/Dashboard"));
+const MyFikkoView = lazy(() => import("@/components/MyFikkoView"));
 
 /**
  * Dev-only preview of the mobile app's screens with sample data and no
@@ -103,7 +104,7 @@ function Preview() {
         )}
         {tab === "today" && (
           <TodayScreen {...cardProps} onQuick={quickLog} onDateChange={setActiveDate} profile={profile} foodLog={foodLog}
-            onLogMeal={setMeal} hop={hop} onOpenGarden={() => { setTab("you"); setYouPage("garden"); }} />
+            onLogMeal={setMeal} hop={hop} onOpenGarden={() => setTab("garden")} />
         )}
         {tab === "progress" && (
           <div className="screen-in">
@@ -112,9 +113,17 @@ function Preview() {
           </div>
         )}
         {tab === "coach" && <CoachScreen view={coachPane} onView={setCoachPane} profileName={profile.name} draft={coachDraft} userId="preview" diets={[]} allergies={[]} />}
+        {tab === "garden" && (
+          <div className="screen-in pt-4">
+            <Suspense fallback={null}>
+              <MyFikkoView userId="preview" data={data} profile={profile} plan={seedPlan}
+                onUpdateProfile={async (p) => setProfile((x) => ({ ...x, ...p }))} onOpenHabits={() => setTab("today")} />
+            </Suspense>
+          </div>
+        )}
         {tab === "you" && (
-          <YouScreen page={youPage} onPage={setYouPage} userId="preview" email="kate@example.com" data={data} profile={profile} plan={seedPlan}
-            onUpdateProfile={async (p) => setProfile((x) => ({ ...x, ...p }))} onSignOut={() => {}} onDevicesSynced={() => {}} onOpenToday={() => setTab("today")} />
+          <YouScreen page={youPage} onPage={setYouPage} userId="preview" email="kate@example.com" profile={profile}
+            onUpdateProfile={async (p) => setProfile((x) => ({ ...x, ...p }))} onSignOut={() => {}} onDevicesSynced={() => {}} />
         )}
       </main>
       <CaptureSheet open={capturing} onClose={() => setCapturing(false)} cardProps={cardProps} onQuick={quickLog} onLogMeal={setMeal}
@@ -125,6 +134,7 @@ function Preview() {
         onGo={(p) => {
           if (p === "today" || p === "progress") setTab(p);
           else if (p === "coach" || p === "recipes") { setCoachPane(p); setTab("coach"); }
+          else if (p === "garden") setTab("garden");
           else { setTab("you"); setYouPage(p); }
         }}
         mealLabelFor={(m) => MEALS.find((x) => x.key === m)!.label} />

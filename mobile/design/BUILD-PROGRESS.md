@@ -10,12 +10,13 @@ If a session stops part-way, start the next one with: "Continue the Fikko Mobile
 - Teal/sky habit tones are locked (`.daily-overview`); never sage green.
 
 ## Structure
-Tabs: **Today · Progress · (+) · Coach · You**
+Tabs: **Today · Progress · (+) · Coach · Garden** (You opens from the profile initials in the top bar; Garden replaced the You tab on 2026-10-12)
 - Today: date strip, plant hero (real `FikkoPlant`, streak, rain clouds, per-habit segments), "Up next" rows with one-tap actions, "Done" fold, "Add a habit". Tap a row → that habit's full web card in a sheet.
 - (+) Capture sheet: voice check-in (big lead button), meals (opens the full food window: describe, photo, barcode, search), one-tap tiles (water, mood, meds, workout, sleep, custom +1).
 - Progress: the web Dashboard ("Ask coach" jumps to Coach with the question).
 - Coach: segmented Ask Fikko / Recipes.
-- You: profile header, garden card, Profile & settings, Community, My Fikko (pushed pages with a back button), Sign out.
+- Garden: the web My Fikko page (`MyFikkoView`), also reached by tapping the plant on Today. Icons: Today = Sun, Garden = Sprout.
+- You (from the top-bar profile button): profile header, Profile & settings, Community (pushed pages with a back button), Sign out.
 - All shared dialogs become bottom sheets on the phone (`mobile.css`, `[data-slot="dialog-content"]`).
 
 ## Shared with the website (2026-10-11)

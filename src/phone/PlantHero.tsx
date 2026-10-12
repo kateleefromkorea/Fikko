@@ -34,7 +34,7 @@ const CLOUD_SPOTS: CSSProperties[] = [
 ];
 
 /** A small drawn rain cloud in the garden's sky tones. */
-function RainCloud({ className, style }: { className?: string; style?: CSSProperties }) {
+export function RainCloud({ className, style }: { className?: string; style?: CSSProperties }) {
   return (
     <svg viewBox="0 0 56 40" className={className} style={style} aria-hidden="true">
       <path

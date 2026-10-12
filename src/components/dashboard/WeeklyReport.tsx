@@ -72,7 +72,7 @@ export default function WeeklyReportCard({ data, biometrics, profile }: Props) {
   );
 }
 
-function ReportDialog({ open, onOpenChange, data, biometrics, profile, history }: Props & {
+export function ReportDialog({ open, onOpenChange, data, biometrics, profile, history }: Props & {
   open: boolean; onOpenChange: (o: boolean) => void; history: number;
 }) {
   const [weeksAgo, setWeeksAgo] = useState(0);

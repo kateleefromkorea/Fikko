@@ -1,19 +1,14 @@
-import { Suspense, lazy, useMemo, type ReactNode } from "react";
+import { Suspense, lazy, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight, LogOut, Settings, Users, type LucideIcon } from "lucide-react";
-import FikkoPlant from "@/components/fikko/FikkoPlant";
 import type { DeviceOutcome } from "@/components/profile/DevicesCard";
 import type { ProfileRow } from "@/hooks/useProfile";
-import { todayKey } from "@/lib/dates";
-import { computeGrowth, seedById, STAGES, type Plan } from "@/lib/fikko";
-import type { HabitData } from "@/types";
 import ScreenTitle from "@/phone/ScreenTitle";
 
-const MyFikkoView = lazy(() => import("@/components/MyFikkoView"));
 const ProfileView = lazy(() => import("@/components/ProfileView"));
 const CommunityView = lazy(() => import("@/components/CommunityView"));
 
-export type YouPage = "garden" | "settings" | "community";
-const PAGE_TITLE: Record<YouPage, string> = { garden: "My Fikko", settings: "Profile & settings", community: "Community" };
+export type YouPage = "settings" | "community";
+const PAGE_TITLE: Record<YouPage, string> = { settings: "Profile & settings", community: "Community" };
 
 /** The website footer's links, at the bottom of You. */
 const LINKS: [string, string][] = [
@@ -27,35 +22,26 @@ const LINKS: [string, string][] = [
 const loading = <p className="py-10 text-center text-sm text-muted-foreground">Loading…</p>;
 
 /**
- * Everything about you: your plant and garden, your profile and settings, and
- * the community. Each opens as its own page with a back button, the way
- * settings work on a phone.
+ * Everything about you, opened from the profile button in the top bar: your
+ * profile and settings, and the community. Each opens as its own page with a
+ * back button, the way settings work on a phone. (Your plant has its own tab.)
  */
 export default function YouScreen({
-  page, onPage, userId, email, data, profile, plan, onUpdateProfile, onSignOut, deviceOutcome = null, onDevicesSynced, onOpenToday, siteOrigin = "",
+  page, onPage, userId, email, profile, onUpdateProfile, onSignOut, deviceOutcome = null, onDevicesSynced, siteOrigin = "",
 }: {
   page: YouPage | null;
   onPage: (p: YouPage | null) => void;
   userId: string;
   email: string;
-  data: HabitData;
   profile: ProfileRow;
-  plan: Plan;
   onUpdateProfile: (patch: Partial<ProfileRow>) => Promise<void>;
   onSignOut: () => void;
   /** How connecting a wearable went, shown in Profile & settings. */
   deviceOutcome?: DeviceOutcome | null;
   onDevicesSynced: () => void;
-  onOpenToday: () => void;
   /** Where the website lives, for the Help, Privacy and Terms links. */
   siteOrigin?: string;
 }) {
-  const seed = seedById(profile.fikko_seed);
-  const growth = useMemo(
-    () => computeGrowth(data, profile.fikko_planted_on ?? todayKey(), profile.water_goal),
-    [data, profile.fikko_planted_on, profile.water_goal],
-  );
-
   if (page) {
     return (
       <div className="screen-in">
@@ -67,9 +53,6 @@ export default function YouScreen({
           <p className="absolute inset-x-24 bottom-3 truncate text-center text-[17px] font-semibold" aria-hidden="true">{PAGE_TITLE[page]}</p>
         </div>
         <Suspense fallback={loading}>
-          {page === "garden" && (
-            <MyFikkoView userId={userId} data={data} profile={profile} onUpdateProfile={onUpdateProfile} plan={plan} onOpenHabits={onOpenToday} />
-          )}
           {page === "settings" && (
             <ProfileView
               email={email}
@@ -102,32 +85,6 @@ export default function YouScreen({
           <p className="truncate text-sm text-muted-foreground">{email}</p>
         </div>
       </div>
-
-      <button
-        onClick={() => onPage("garden")}
-        className="daily-overview press mb-6 flex w-full items-center gap-4 overflow-hidden rounded-[1.5rem] border border-teal/20 p-4 text-left shadow-sm"
-      >
-        <span className="size-20 shrink-0" aria-hidden="true">
-          <FikkoPlant
-            seedId={profile.fikko_seed ?? "sprout"}
-            stage={seed ? growth.stage : 0}
-            health={seed ? growth.health : "growing"}
-            potId={profile.fikko_pot}
-            companionId={profile.fikko_companion}
-            className="size-full"
-          />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-lg font-semibold">{seed ? `Your ${seed.name}` : "Plant a seed"}</span>
-          <span className="block text-sm text-foreground/70">
-            {seed
-              ? `${STAGES[growth.stage].name} · ${growth.completeDays} complete ${growth.completeDays === 1 ? "day" : "days"}`
-              : "It grows every day you finish your habits"}
-          </span>
-          <span className="mt-1 block text-sm font-semibold text-primary-ink">Customise and see your garden</span>
-        </span>
-        <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
-      </button>
 
       <Group>
         <Item icon={Settings} label="Profile & settings" hint="Goals, devices, medications, reminders, privacy" onClick={() => onPage("settings")} />

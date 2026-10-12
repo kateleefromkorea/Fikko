@@ -40,6 +40,7 @@ import YouScreen, { type YouPage } from "@/phone/screens/YouScreen";
 import "./phone.css";
 
 const Dashboard = lazy(() => import("@/components/Dashboard"));
+const MyFikkoView = lazy(() => import("@/components/MyFikkoView"));
 const OnboardingModal = lazy(() => import("@/onboarding/OnboardingModal"));
 const ConsentPrompt = lazy(() => import("@/components/ConsentPrompt"));
 
@@ -216,6 +217,7 @@ function PhoneShell({ viewPrefix, siteOrigin = "", deviceOutcome = null, startOn
   // Same privacy consent gate as the desktop layout (see src/App.tsx).
   const needsConsent = !consent.loading && !hasRequiredConsent(consent.consents);
   const habitsReady = !habitsLoading && !habitsLoadError;
+  const needsHabits = tab === "today" || tab === "progress" || tab === "garden";
   const goals = { calories: profile.calorie_goal, water: profile.water_goal, sleepHours: profile.sleep_goal, weightKg: profile.weight_kg, goalKey: profile.primary_goal };
   const cardProps: HabitCardProps = {
     data, onChange, activeDate, biometrics, medications, userId, profileName: profile.name, goals, trackMacros: tracksMacros(profile.tracking_style),
@@ -226,6 +228,7 @@ function PhoneShell({ viewPrefix, siteOrigin = "", deviceOutcome = null, startOn
   const go = (place: Place) => {
     if (place === "today" || place === "progress") return open(place);
     if (place === "coach" || place === "recipes") { setCoachPane(place); return open("coach"); }
+    if (place === "garden") return open("garden");
     setTab("you");
     setYouPage(place);
     window.scrollTo({ top: 0 });
@@ -260,13 +263,13 @@ function PhoneShell({ viewPrefix, siteOrigin = "", deviceOutcome = null, startOn
             <button onClick={retrySave} className="h-9 font-semibold underline underline-offset-2">Try again</button>
           </div>
         )}
-        {(tab === "today" || tab === "progress") && habitsLoadError && (
+        {needsHabits && habitsLoadError && (
           <div role="alert" className="flex flex-col items-center gap-3 py-16 text-center">
             <p className="text-sm text-muted-foreground">{habitsLoadError}</p>
             <button onClick={() => reloadHabits()} className="h-11 rounded-full bg-button px-5 text-sm font-semibold text-white">Try again</button>
           </div>
         )}
-        {(tab === "today" || tab === "progress") && habitsLoading && !habitsLoadError && loading("your habits")}
+        {needsHabits && habitsLoading && !habitsLoadError && loading("your habits")}
 
         {tab === "today" && habitsReady && (
           <>
@@ -279,7 +282,7 @@ function PhoneShell({ viewPrefix, siteOrigin = "", deviceOutcome = null, startOn
               foodLog={foodLog}
               onLogMeal={setMeal}
               hop={hop}
-              onOpenGarden={() => { setTab("you"); setYouPage("garden"); window.scrollTo({ top: 0 }); }}
+              onOpenGarden={() => open("garden")}
             />
           </>
         )}
@@ -302,20 +305,24 @@ function PhoneShell({ viewPrefix, siteOrigin = "", deviceOutcome = null, startOn
             allergies={profile.allergies ?? []}
           />
         )}
+        {tab === "garden" && habitsReady && (
+          <div className="screen-in pt-4">
+            <Suspense fallback={loading("your garden")}>
+              <MyFikkoView userId={session.user.id} data={data} profile={profile} onUpdateProfile={updateProfile} plan={seedPlan} onOpenHabits={() => open("today")} />
+            </Suspense>
+          </div>
+        )}
         {tab === "you" && (
           <YouScreen
             page={youPage}
             onPage={(p) => { setYouPage(p); window.scrollTo({ top: 0 }); }}
             userId={session.user.id}
             email={email}
-            data={data}
             profile={profile}
-            plan={seedPlan}
             onUpdateProfile={updateProfile}
             onSignOut={signOut}
             deviceOutcome={deviceOutcome}
             onDevicesSynced={() => void reloadBiometrics()}
-            onOpenToday={() => open("today")}
             siteOrigin={siteOrigin}
           />
         )}

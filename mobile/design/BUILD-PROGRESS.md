@@ -15,7 +15,8 @@ Tabs: **Today · Progress · (+) · Coach · Garden** (You opens from the profil
 - (+) Capture sheet: voice check-in (big lead button), meals (opens the full food window: describe, photo, barcode, search), one-tap tiles (water, mood, meds, workout, sleep, custom +1).
 - Progress: the web Dashboard ("Ask coach" jumps to Coach with the question).
 - Coach: segmented Ask Fikko / Recipes.
-- Garden: the web My Fikko page (`MyFikkoView`), also reached by tapping the plant on Today. Icons: Today = Sun, Garden = Sprout.
+- Garden: `MyFikkoView layout="garden"`, led by `GardenScene` (every harvested plant in the meadow, current plant in the front plot, a tree on the hills per complete month). Also reached by tapping the plant on Today. Icons: Today = Sun, Garden = Sprout.
+- Trees (decided 2026-10-12): one real tree per calendar month with every day complete (rain-cloud days count); replaces the old tree-per-bloom. Shown from `treeMonths()` in `src/lib/fikko.ts`; server-side record of trees owed is still TODO.
 - You (from the top-bar profile button): profile header, Profile & settings, Community (pushed pages with a back button), Sign out.
 - All shared dialogs become bottom sheets on the phone (`mobile.css`, `[data-slot="dialog-content"]`).
 

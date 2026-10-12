@@ -16,7 +16,9 @@ interface Props {
   /** Sways gently while growing. Off for small previews. */
   animate?: boolean;
   className?: string;
-  /** Places the plant inside a larger SVG (the share card) instead of filling its container. */
+  /** Planted in the garden's soil instead of a pot (no pot, companion or shadow). */
+  inGround?: boolean;
+  /** Places the plant inside a larger SVG (the share card, the garden) instead of filling its container. */
   box?: { x: number; y: number; width: number; height: number };
 }
 
@@ -24,7 +26,7 @@ const WILT = { leaf: "#A88B4A", leafLight: "#BFA060", flower: "#C9A27A", stem: "
 const DEAD = { leaf: "#8A8F8E", leafLight: "#9DA2A1", flower: "#8A8F8E", stem: "#7A7F7E" };
 
 /** A member's plant, drawn from its seed, stage and health. */
-export default function FikkoPlant({ seedId, stage, health = "growing", potId = "clay", companionId = "none", sceneId = "plain", sunny, animate, className, box }: Props) {
+export default function FikkoPlant({ seedId, stage, health = "growing", potId = "clay", companionId = "none", sceneId = "plain", sunny, animate, className, inGround, box }: Props) {
   const clip = useId();
   const seed = seedById(seedId) ?? seedById("sprout")!;
   const pot = potById(potId);
@@ -125,7 +127,14 @@ export default function FikkoPlant({ seedId, stage, health = "growing", potId = 
           </g>
         </g>
       )}
-      <ellipse cx="100" cy="212" rx="56" ry="5" fill="#001F27" opacity="0.08" />
+      {inGround ? (
+        <>
+          <ellipse cx="100" cy="176" rx="34" ry="8" fill="#7A4E26" />
+          <ellipse cx="100" cy="173" rx="28" ry="5" fill="#9A6B3F" />
+        </>
+      ) : (
+        <ellipse cx="100" cy="212" rx="56" ry="5" fill="#001F27" opacity="0.08" />
+      )}
       <g className={cn(animate && health === "growing" && "fikko-sway")}>
         {stage === 0 ? (
           <ellipse cx="100" cy="166" rx="9" ry="6" fill={alive ? "#9A6B3F" : DEAD.stem} />
@@ -141,10 +150,14 @@ export default function FikkoPlant({ seedId, stage, health = "growing", potId = 
         {leaves}
         {crown}
       </g>
-      <path d="M62 172 h76 l-8 38 h-60Z" fill={pot.body} />
-      <rect x="58" y="166" width="84" height="12" rx="4" fill={pot.rim} />
-      {pot.stripes && <path d="M66 186h68M68 198h64" stroke="#FFFFFF" strokeWidth="3" opacity="0.7" />}
-      {alive && companionId === "ladybug" && (
+      {!inGround && (
+        <>
+          <path d="M62 172 h76 l-8 38 h-60Z" fill={pot.body} />
+          <rect x="58" y="166" width="84" height="12" rx="4" fill={pot.rim} />
+          {pot.stripes && <path d="M66 186h68M68 198h64" stroke="#FFFFFF" strokeWidth="3" opacity="0.7" />}
+        </>
+      )}
+      {alive && !inGround && companionId === "ladybug" && (
         <g transform="translate(128 150)">
           <circle r="7" fill="#E04B4B" />
           <path d="M0 -7V7" stroke="#222" strokeWidth="1.2" />
@@ -153,7 +166,7 @@ export default function FikkoPlant({ seedId, stage, health = "growing", potId = 
           <circle cx="0" cy="-8" r="3" fill="#222" />
         </g>
       )}
-      {alive && companionId === "bee" && (
+      {alive && !inGround && companionId === "bee" && (
         <g transform="translate(150 80)">
           <g className={cn(animate && "fikko-flutter")}>
             <ellipse cx="-2" cy="-8" rx="5" ry="3.5" fill="#FFFFFF" opacity="0.85" />
@@ -163,14 +176,14 @@ export default function FikkoPlant({ seedId, stage, health = "growing", potId = 
           <path d="M-3 -6v12M3 -6v12" stroke="#2A2A2A" strokeWidth="2" />
         </g>
       )}
-      {alive && companionId === "snail" && (
+      {alive && !inGround && companionId === "snail" && (
         <g transform="translate(140 164)">
           <path d="M-12 6h22q4 0 4-4" stroke="#B9A88A" strokeWidth="5" fill="none" strokeLinecap="round" />
           <circle cx="-2" cy="-2" r="8" fill="#C27248" />
           <path d="M-2 -2m-4 0a4 4 0 1 0 4-4" stroke="#8A4B2A" strokeWidth="1.6" fill="none" />
         </g>
       )}
-      {alive && companionId === "butterfly" && (
+      {alive && !inGround && companionId === "butterfly" && (
         <g transform="translate(150 70)">
           <g className={cn(animate && "fikko-flutter")}>
           <ellipse cx="-7" cy="-4" rx="8" ry="10" fill="#1F73C2" transform="rotate(-20)" />

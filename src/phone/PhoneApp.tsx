@@ -310,7 +310,7 @@ function PhoneShell({ viewPrefix, siteOrigin = "", deviceOutcome = null, startOn
         {tab === "garden" && habitsReady && (
           <div className="screen-in pt-4">
             <Suspense fallback={loading("your garden")}>
-              <MyFikkoView userId={session.user.id} data={data} profile={profile} onUpdateProfile={updateProfile} plan={seedPlan} onOpenHabits={() => open("today")} />
+              <MyFikkoView layout="garden" userId={session.user.id} data={data} profile={profile} onUpdateProfile={updateProfile} plan={seedPlan} onOpenHabits={() => open("today")} />
             </Suspense>
           </div>
         )}

@@ -123,7 +123,7 @@ function Preview() {
         {tab === "garden" && (
           <div className="screen-in pt-4">
             <Suspense fallback={null}>
-              <MyFikkoView userId="preview" data={data} profile={profile} plan={seedPlan}
+              <MyFikkoView layout="garden" userId="preview" data={data} profile={profile} plan={seedPlan}
                 onUpdateProfile={async (p) => setProfile((x) => ({ ...x, ...p }))} onOpenHabits={() => setTab("today")} />
             </Suspense>
           </div>

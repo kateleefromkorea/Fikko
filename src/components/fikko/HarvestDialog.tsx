@@ -20,8 +20,8 @@ interface Props {
 }
 
 /**
- * Moving a blooming plant to the garden: pick a free extra, see the real tree
- * it plants, then any bonus seed or Premium month the harvest earned.
+ * Moving a blooming plant to the garden: pick a free extra, then see any bonus
+ * seed or Premium month the harvest earned.
  */
 export default function HarvestDialog({ open, onOpenChange, seedId, potId, companionId, unlocked, onHarvest }: Props) {
   const seed = seedById(seedId);
@@ -105,8 +105,8 @@ export default function HarvestDialog({ open, onOpenChange, seedId, potId, compa
             <p className="flex gap-3 rounded-lg pair-soft p-3 text-sm">
               <TreeDeciduous className="mt-0.5 size-5 shrink-0 text-primary-ink" aria-hidden="true" />
               <span>
-                <span className="block font-medium">A real tree, planted for you</span>
-                Every plant you grow to full bloom plants a real tree with our planting partner.
+                <span className="block font-medium">Real trees come from complete months</span>
+                Complete every habit on every day of a calendar month and Fikko donates and plants a real tree.
               </span>
             </p>
 
@@ -132,13 +132,6 @@ export default function HarvestDialog({ open, onOpenChange, seedId, potId, compa
             <div className="mx-auto w-40">
               <FikkoPlant seedId={bonusSeed?.id ?? seedId} stage={4} potId={potId} companionId={bonusSeed ? "none" : companionId} />
             </div>
-            <p className="flex gap-3 rounded-lg pair-soft p-3 text-sm">
-              <TreeDeciduous className="mt-0.5 size-5 shrink-0 text-primary-ink" aria-hidden="true" />
-              <span>
-                <span className="block font-medium">Your tree is on its way</span>
-                We plant trees in batches with our planting partner. You&apos;ll see it marked as planted in your garden.
-              </span>
-            </p>
             {result.premiumMonth && (
               <p className="flex gap-3 rounded-lg bg-[#FBF1D6] p-3 text-sm text-ink">
                 <Crown className="mt-0.5 size-5 shrink-0 text-[#8A6414]" aria-hidden="true" />

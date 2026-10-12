@@ -296,3 +296,84 @@ html.phone-ui:has(.coach-mobile) { scroll-padding-bottom: calc(var(--mobile-tabb
 }
 .phone-ui .screen-in { animation: screen-in 180ms ease-out; }
 @media (prefers-reduced-motion: reduce) { .phone-ui .screen-in { animation: none; } }
+
+/* ── Day complete (DayComplete.tsx) ──────────────────────────────────────────
+   Each part waits hidden until its beat adds .dc-on. Springy easing for things
+   that land (plant, number, leaf), soft ease-out for light and text. */
+.phone-ui .day-complete { animation: dc-fade 320ms ease-out; }
+@keyframes dc-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* Ring segments draw in one at a time. */
+.phone-ui .dc-arc { transition: stroke-dashoffset 260ms cubic-bezier(0.3, 0.7, 0.3, 1); }
+
+/* The plant pops in, then grows into its next stage with an overshoot. */
+@keyframes dc-plant-in {
+  from { transform: scale(0.6) translateY(16px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+.phone-ui .dc-plant-in { animation: dc-plant-in 520ms cubic-bezier(0.34, 1.56, 0.64, 1) both; transform-origin: 50% 90%; }
+@keyframes dc-plant-grow {
+  0% { transform: scale(0.82); filter: brightness(1.6); }
+  55% { transform: scale(1.1); filter: brightness(1.15); }
+  100% { transform: scale(1); filter: none; }
+}
+.phone-ui .dc-plant-grow { animation: dc-plant-grow 700ms cubic-bezier(0.34, 1.56, 0.64, 1) both; transform-origin: 50% 90%; }
+
+/* The sun comes out behind the plant and its rays turn slowly. */
+.phone-ui .dc-sun { opacity: 0; transform: scale(0.4); transition: opacity 500ms ease-out, transform 700ms cubic-bezier(0.34, 1.4, 0.64, 1); }
+.phone-ui .dc-sun.dc-on { opacity: 1; transform: none; }
+@keyframes dc-rays { to { transform: rotate(360deg); } }
+.phone-ui .dc-rays { animation: dc-rays 24s linear infinite; }
+
+/* Text and cards rise into place. */
+.phone-ui .dc-eyebrow,
+.phone-ui .dc-week,
+.phone-ui .dc-extras,
+.phone-ui .dc-continue {
+  opacity: 0; transform: translateY(10px);
+  transition: opacity 380ms ease-out, transform 480ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+.phone-ui .dc-on.dc-eyebrow,
+.phone-ui .dc-on.dc-week,
+.phone-ui .dc-on.dc-extras,
+.phone-ui .dc-on.dc-continue { opacity: 1; transform: none; }
+
+/* The streak: the flame lights, and the number rolls from yesterday's to today's. */
+.phone-ui .dc-streak .dc-flame { transform: scale(0.3) rotate(-20deg); opacity: 0.25; filter: grayscale(1); transition: transform 520ms cubic-bezier(0.34, 1.8, 0.64, 1), opacity 200ms, filter 300ms; }
+.phone-ui .dc-streak.dc-on .dc-flame { transform: none; opacity: 1; filter: none; animation: dc-flicker 1.6s ease-in-out 600ms infinite; transform-origin: 50% 90%; }
+@keyframes dc-flicker {
+  0%, 100% { transform: scale(1) rotate(0); }
+  30% { transform: scale(1.06, 0.97) rotate(-3deg); }
+  60% { transform: scale(0.97, 1.05) rotate(2deg); }
+}
+.phone-ui .dc-odometer { display: inline-block; height: 1em; overflow: hidden; }
+.phone-ui .dc-odometer-track { display: flex; flex-direction: column; transition: transform 620ms cubic-bezier(0.34, 1.5, 0.64, 1); }
+.phone-ui .dc-odometer-track > span { height: 1em; display: block; text-align: center; }
+.phone-ui .dc-streak .dc-odometer-track > span:first-child { opacity: 0.35; }
+.phone-ui .dc-streak.dc-on .dc-odometer-track { transform: translateY(-1em); }
+
+/* Today's leaf sprouts with a little wave. */
+@keyframes dc-sprout {
+  0% { transform: scale(0) rotate(-60deg); }
+  60% { transform: scale(1.35) rotate(12deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+.phone-ui .dc-sprout { animation: dc-sprout 560ms cubic-bezier(0.34, 1.56, 0.64, 1) both; transform-origin: 30% 90%; }
+
+/* An earned rain cloud flies in from the side and settles beside the plant. */
+.phone-ui .dc-cloud { opacity: 0; transform: translate(80px, -20px) scale(0.6); transition: opacity 300ms, transform 800ms cubic-bezier(0.2, 0.9, 0.3, 1.15); }
+.phone-ui .dc-cloud.dc-on { opacity: 1; transform: none; animation: cloud-bob 4s ease-in-out 900ms infinite; }
+
+/* Reduced motion: everything is already in place, nothing moves. */
+.phone-ui .dc-still,
+.phone-ui .dc-still * { animation: none !important; transition: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .phone-ui .day-complete, .phone-ui .day-complete * { animation: none !important; transition: none !important; }
+}
+
+/* An explanation card rising in above the button when a part is tapped. */
+@keyframes dc-explain {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.phone-ui .dc-explain { animation: dc-explain 260ms cubic-bezier(0.2, 0.9, 0.3, 1.1); }

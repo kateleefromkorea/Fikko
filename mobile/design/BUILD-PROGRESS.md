@@ -48,3 +48,9 @@ app. `mobile/src` keeps only native concerns. See `AGENTS.md` ("Web, phone and m
 - [ ] Haptics on one-tap logs (@capacitor/haptics) once on device
 - [ ] Accessibility pass: VoiceOver order, Dynamic Type, contrast on frosted bars
 - [ ] Commit (not committed yet; Kate to approve)
+
+## Day complete animation (2026-10-12)
+- `src/phone/DayComplete.tsx` + `.dc-*` rules in `phone.css` replace the web confetti on phones (web/desktop unchanged).
+- Sequence: habit ring closes segment by segment → sun + rising seeds → streak number rolls over → today's leaf sprouts on the week strip → extras (rain cloud flies in every 7th day; plant grows into its new stage). Haptic on each beat. Tap skips; reduced motion shows the end state.
+- Preview: `preview.html?celebrate&streak=N` (N full days before today: 0 first day, 2 sprout, 6 rain cloud, 9 sapling, 20 both).
+- [ ] Feel the haptic rhythm on a real iPhone (ticks per segment may be too busy with 8+ habits)

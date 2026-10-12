@@ -4,7 +4,6 @@ import SignInScreen from "@/auth/SignInScreen";
 import SetNewPassword from "@/auth/SetNewPassword";
 import RestoreAccount from "@/auth/RestoreAccount";
 import SetupNeeded from "@/auth/SetupNeeded";
-import Celebration from "@/components/Celebration";
 import { FoundingWelcome } from "@/components/FoundingMember";
 import { MEALS, useDayCompleteCelebration, useToday, type HabitCardProps } from "@/components/HabitsView";
 import type { DeviceOutcome } from "@/components/profile/DevicesCard";
@@ -26,6 +25,7 @@ import { hasDraft } from "@/onboarding/draft";
 import { trackView } from "@/lib/track";
 import type { HabitData, MealKey } from "@/types";
 import CaptureSheet from "@/phone/CaptureSheet";
+import DayComplete from "@/phone/DayComplete";
 import { haptics } from "@/phone/haptics";
 import MealLogger from "@/phone/MealLogger";
 import SearchScreen, { type Place } from "@/phone/SearchScreen";
@@ -360,7 +360,7 @@ function PhoneShell({ viewPrefix, siteOrigin = "", deviceOutcome = null, startOn
         </>
       )}
 
-      {celebrating.show && <Celebration onDone={celebrating.dismiss} />}
+      {celebrating.show && <DayComplete data={data} profile={profile} onDone={celebrating.dismiss} />}
 
       {needsOnboarding && (
         <Suspense fallback={null}>

@@ -10,6 +10,7 @@ import { completion } from "@/lib/completion";
 import { shiftDateKey, todayKey } from "@/lib/dates";
 import { EMPTY_BIOMETRICS, type HabitData, type MealKey } from "@/types";
 import CaptureSheet from "@/phone/CaptureSheet";
+import DayComplete from "@/phone/DayComplete";
 import SearchScreen from "@/phone/SearchScreen";
 import TopBar from "@/phone/TopBar";
 import MealLogger from "@/phone/MealLogger";
@@ -31,14 +32,18 @@ const MyFikkoView = lazy(() => import("@/components/MyFikkoView"));
 /**
  * Dev-only preview of the mobile app's screens with sample data and no
  * sign-in, for checking layouts at phone size (http://localhost:5188/preview.html).
- * Changes stay in memory. Add ?empty for a fresh day with nothing logged.
+ * Changes stay in memory. Add ?empty for a fresh day with nothing logged,
+ * ?celebrate to play the day-complete moment straight away, and ?streak=N for
+ * N full days before today (6 earns a rain cloud today, 9 grows a sapling).
  */
 const today = todayKey();
-const empty = new URLSearchParams(location.search).has("empty");
+const params = new URLSearchParams(location.search);
+const empty = params.has("empty");
+const streakDays = Math.max(0, Number(params.get("streak") ?? 14) || 0);
 const past = (n: number) => shiftDateKey(today, -n);
 
 function sampleData(): HabitData {
-  const days = Array.from({ length: 14 }, (_, i) => past(i + 1));
+  const days = Array.from({ length: streakDays }, (_, i) => past(i + 1));
   return {
     water: [...days.map((date) => ({ date, value: 8 })), ...(empty ? [] : [{ date: today, value: 3 }])],
     food: days.map((date) => ({ date, value: 1800 })),
@@ -61,7 +66,7 @@ function Preview() {
   const base = useProfile(null).profile;
   const [profile, setProfile] = useState<ProfileRow>(() => ({
     ...base, name: "Kate Lee", calorie_goal: 1900, water_goal: 8, sleep_goal: 8,
-    fikko_seed: "sprout", fikko_planted_on: past(14), onboarding_completed_at: past(14),
+    fikko_seed: "sprout", fikko_planted_on: past(streakDays), onboarding_completed_at: past(streakDays),
   }));
   const [logged, setLogged] = useState(sampleData);
   const [tab, setTab] = useState<Tab>("today");
@@ -73,6 +78,7 @@ function Preview() {
   const [coachPane, setCoachPane] = useState<CoachPane>("coach");
   const [coachDraft, setCoachDraft] = useState("");
   const [searching, setSearching] = useState(false);
+  const [celebrating, setCelebrating] = useState(() => params.has("celebrate"));
 
   const data = useMemo(() => ({ ...logged, tracksMedications: true, deviceExercise: [] }), [logged]);
   const onChange = (u: HabitUpdate) => setLogged((prev) => (typeof u === "function" ? u(prev) : u));
@@ -92,6 +98,8 @@ function Preview() {
     onChange(next);
     toast(message, { grew });
     if (grew) setHop((h) => h + 1);
+    const { done, total } = completion(next, activeDate, goals.water);
+    if (grew && activeDate === today && done === total) setCelebrating(true);
   };
 
   return (
@@ -138,6 +146,7 @@ function Preview() {
         }}
         mealLabelFor={(m) => MEALS.find((x) => x.key === m)!.label} />
       <MealLogger meal={meal} onClose={() => setMeal(null)} date={activeDate} userId={null} foodLog={foodLog} showMacros={false} />
+      {celebrating && <DayComplete data={data} profile={profile} onDone={() => setCelebrating(false)} />}
       <TabBar tab={tab} onTab={(t) => { if (t === tab && t === "you") setYouPage(null); setTab(t); window.scrollTo({ top: 0 }); }} onCapture={() => setCapturing(true)} />
     </div>
   );

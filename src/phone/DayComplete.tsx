@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Flame, Leaf, Sprout } from "lucide-react";
+import { CircleHelp, CloudRain, Flame, Leaf, Sprout, X, type LucideIcon } from "lucide-react";
 import FikkoPlant from "@/components/fikko/FikkoPlant";
 import type { ProfileRow } from "@/hooks/useProfile";
 import { completion } from "@/lib/completion";
@@ -27,6 +27,7 @@ const SEGMENT_MS = 170;
 const RING_START = 450;
 
 type DayState = "done" | "today" | "missed" | "future" | "before";
+type Topic = "ring" | "streak" | "week" | "stage" | "cloud";
 
 /** Monday to Sunday of the current week, each with how that day went. */
 function weekOf(data: HabitData, today: string, plantedOn: string, waterGoal: number) {
@@ -90,7 +91,7 @@ export default function DayComplete({ data, profile, onDone }: { data: HabitData
   const cloudsFull = cloudEarned && cloudsBefore >= MAX_RAIN_CLOUDS;
   const segments = Math.max(completion(data, today, profile.water_goal).total, 1);
   const week = useMemo(() => weekOf(data, today, plantedOn, profile.water_goal), [data, today, plantedOn, profile.water_goal]);
-  const seedName = seed?.name.toLowerCase() ?? "plant";
+  const seedName = seed?.name ?? "plant";
   const line = MILESTONES[streak] ?? `Every habit done. Your ${seedName} is soaking up the sun.`;
 
   // The sequence, as beats on a timeline. `filled` counts ring segments drawn so far.
@@ -130,13 +131,52 @@ export default function DayComplete({ data, profile, onDone }: { data: HabitData
     return () => { document.body.style.overflow = overflow; window.removeEventListener("keydown", onKey); };
   }, [onDone]);
 
-  /** A tap before the end skips to it. */
+  /** A tap before the end skips to it; after it, a tap outside closes an open explanation. */
   const skip = () => {
-    if (beat === 5) return;
+    if (beat === 5) { setExplain(null); return; }
     timers.current.forEach(clearTimeout);
     setFilled(segments);
     setBeat(5);
   };
+
+  // Once it has played, each part can be tapped to say what it means.
+  const [explain, setExplain] = useState<Topic | null>(null);
+  const ask = (topic: Topic) => (e: { stopPropagation: () => void }) => {
+    if (beat !== 5) return; // still playing: let the tap skip to the end
+    e.stopPropagation();
+    haptics.tap();
+    setExplain((t) => (t === topic ? null : topic));
+  };
+  const cloudsNow = cloudsFull ? MAX_RAIN_CLOUDS : Math.min(cloudsBefore + (cloudEarned ? 1 : 0), MAX_RAIN_CLOUDS);
+  const nextStage = STAGES[stage + 1];
+  const toNextStage = nextStage ? nextStage.from - completeDays : 0;
+  const toNextCloud = RAIN_CLOUD_EVERY - (streak % RAIN_CLOUD_EVERY);
+  const explanations: Record<Topic, { icon: LucideIcon; tone: string; title: string; body: string }> = {
+    ring: {
+      icon: Leaf, tone: "bg-primary/10 text-primary-ink", title: "Today's habits",
+      body: `Each piece of the ring is one of your ${segments} ${segments === 1 ? "habit" : "habits"}. When every piece fills, the day counts as complete and the sun comes out for your ${seedName}.`,
+    },
+    streak: {
+      icon: Flame, tone: "bg-[#FFF4EA] text-[#E0782F]", title: "Your streak",
+      body: `Days in a row with every habit done. Finish them all again tomorrow to make it ${streak + 1}. Miss a day and a saved rain cloud covers it, so the streak carries on.`,
+    },
+    week: {
+      icon: Leaf, tone: "bg-primary/10 text-primary-ink", title: "This week",
+      body: "A leaf for every full day, Monday to Sunday. Grey circles are days that weren't finished; dashed ones are still to come.",
+    },
+    stage: {
+      icon: Sprout, tone: "bg-primary/10 text-primary-ink", title: "Your plant grew",
+      body: nextStage
+        ? `Every full day helps your ${seedName} grow. It's now at the ${STAGES[stage].name.toLowerCase()} stage. ${toNextStage} more full ${toNextStage === 1 ? "day" : "days"} until ${nextStage.name.toLowerCase()}.`
+        : `Your ${seedName} has reached full bloom. Visit your garden to see it.`,
+    },
+    cloud: {
+      icon: CloudRain, tone: "bg-[#E6F1FC] text-[#1F73C2]", title: "Rain clouds",
+      body: `Every ${RAIN_CLOUD_EVERY} full days in a row earns one, up to ${MAX_RAIN_CLOUDS}. If you miss a day, a cloud waters your plant for you so your streak and plant stay safe. You're holding ${cloudsNow} of ${MAX_RAIN_CLOUDS}${cloudsNow < MAX_RAIN_CLOUDS ? `; the next one comes in ${toNextCloud} full days` : ""}.`,
+    },
+  };
+  const ready = beat === 5;
+  const tappable = ready ? "press rounded-2xl" : "pointer-events-none";
 
   const gap = segments > 1 ? 7 : 0;
   const span = (360 - gap * segments) / segments;
@@ -191,9 +231,22 @@ export default function DayComplete({ data, profile, onDone }: { data: HabitData
             </defs>
           </svg>
           {cloudEarned && !cloudsFull && (
-            <RainCloud className={cn("dc-cloud absolute top-2 right-0 w-20", beat >= 4 && "dc-on")} />
+            <button
+              onClick={ask("cloud")}
+              tabIndex={-1}
+              aria-hidden="true"
+              className={cn("dc-cloud absolute top-2 right-0 z-20 w-20", beat >= 4 && "dc-on", !ready && "pointer-events-none")}
+            >
+              <RainCloud className="w-full" />
+            </button>
           )}
-          <div className="absolute inset-[2.6rem]">
+          <button
+            onClick={ask("ring")}
+            tabIndex={ready ? 0 : -1}
+            aria-label="What does the ring mean?"
+            className={cn("absolute inset-0 z-10 rounded-full", tappable)}
+          />
+          <div className="absolute inset-[2.1rem]">
             <div key={plantStage} className={cn("size-full", beat === 0 ? "dc-plant-in" : grew && "dc-plant-grow")}>
               <FikkoPlant
                 seedId={profile.fikko_seed ?? "sprout"}
@@ -209,7 +262,13 @@ export default function DayComplete({ data, profile, onDone }: { data: HabitData
         </div>
 
         {/* The streak, rolling over from yesterday's number. */}
-        <div className={cn("dc-streak mt-4 flex items-center gap-2", beat >= 2 && "dc-on")}>
+        <button
+          onClick={ask("streak")}
+          tabIndex={ready ? 0 : -1}
+          aria-describedby="day-complete-line"
+          className={cn("mt-4 flex flex-col items-center px-3 py-1", tappable)}
+        >
+        <span className={cn("dc-streak flex items-center gap-2", beat >= 2 && "dc-on")}>
           <Flame className="dc-flame size-11 text-[#E0782F]" fill="#F5B640" strokeWidth={1.75} aria-hidden="true" />
           <span className="dc-odometer text-[4rem] leading-none font-bold tracking-tight tabular-nums" aria-hidden="true">
             <span className="dc-odometer-track">
@@ -217,14 +276,21 @@ export default function DayComplete({ data, profile, onDone }: { data: HabitData
               <span>{streak}</span>
             </span>
           </span>
-        </div>
-        <h2 id="day-complete-title" className="mt-1 text-xl font-semibold">
-          {streak} {streak === 1 ? "day" : "days"} in a row
-        </h2>
+        </span>
+        <span id="day-complete-title" className="mt-1 text-xl font-semibold">
+          {streak === 1 ? "Your streak has started" : `${streak} days in a row`}
+        </span>
+        </button>
         <p id="day-complete-line" className="mt-1.5 max-w-[19rem] text-center text-[15px] text-foreground/75">{line}</p>
 
         {/* This week, with today's leaf sprouting. */}
-        <ol aria-label="This week" className={cn("dc-week mt-5 flex gap-2 rounded-2xl bg-white/80 px-3 py-2.5 shadow-sm", beat >= 2 && "dc-on")}>
+        <button
+          onClick={ask("week")}
+          tabIndex={ready ? 0 : -1}
+          aria-label={`This week: ${week.filter((d) => d.state === "done" || d.state === "today").length} full ${week.filter((d) => d.state === "done" || d.state === "today").length === 1 ? "day" : "days"}. What does this show?`}
+          className={cn("mt-5", tappable)}
+        >
+        <ol aria-hidden="true" className={cn("dc-week flex gap-2 rounded-2xl bg-white/80 px-3 py-2.5 shadow-sm", beat >= 2 && "dc-on")}>
           {week.map((d) => (
             <li key={d.date} className="flex w-8 flex-col items-center gap-1">
               <span className={cn("text-xs font-semibold", d.state === "today" ? "text-primary-ink" : "text-muted-foreground")}>{d.letter}</span>
@@ -236,7 +302,6 @@ export default function DayComplete({ data, profile, onDone }: { data: HabitData
                   d.state === "missed" && "bg-ink/6",
                   (d.state === "future" || d.state === "before") && "border border-dashed border-ink/15",
                 )}
-                aria-label={d.state === "done" || d.state === "today" ? "Every habit done" : d.state === "missed" ? "Not complete" : undefined}
               >
                 {(d.state === "done" || (d.state === "today" && beat >= 3)) && (
                   <Leaf className={cn("size-4", d.state === "today" && "dc-sprout")} strokeWidth={2.25} aria-hidden="true" />
@@ -245,25 +310,43 @@ export default function DayComplete({ data, profile, onDone }: { data: HabitData
             </li>
           ))}
         </ol>
+        </button>
 
         {(grew || cloudEarned) && (
           <div className={cn("dc-extras mt-4 flex flex-wrap justify-center gap-2", beat >= 4 && "dc-on")}>
             {grew && (
-              <span className="flex h-9 items-center gap-1.5 rounded-full bg-white/90 px-3.5 text-sm font-semibold text-primary-ink shadow-sm">
+              <button
+                onClick={ask("stage")}
+                tabIndex={ready ? 0 : -1}
+                className={cn("flex h-9 items-center gap-1.5 rounded-full bg-white/90 px-3.5 text-sm font-semibold text-primary-ink shadow-sm", tappable)}
+              >
                 <Sprout className="size-4" aria-hidden="true" />
-                Grew into a {STAGES[stage].name.toLowerCase()}
-              </span>
+                Reached the {STAGES[stage].name.toLowerCase()} stage
+              </button>
             )}
             {cloudEarned && (
-              <span className="flex h-9 items-center gap-1.5 rounded-full bg-white/90 px-3.5 text-sm font-semibold text-[#1F73C2] shadow-sm">
+              <button
+                onClick={ask("cloud")}
+                tabIndex={ready ? 0 : -1}
+                className={cn("flex h-9 items-center gap-1.5 rounded-full bg-white/90 px-3.5 text-sm font-semibold text-[#1F73C2] shadow-sm", tappable)}
+              >
+                <CloudRain className="size-4" aria-hidden="true" />
                 {cloudsFull ? `Rain clouds full (${MAX_RAIN_CLOUDS} of ${MAX_RAIN_CLOUDS})` : "+1 rain cloud"}
-              </span>
+              </button>
             )}
           </div>
         )}
       </div>
 
-      <div className="px-5 pb-[max(env(safe-area-inset-bottom),1.25rem)]">
+      <div className="relative z-10 px-5 pb-[max(env(safe-area-inset-bottom),1.25rem)]">
+        {explain ? (
+          <Explanation key={explain} {...explanations[explain]} onClose={() => setExplain(null)} />
+        ) : (
+          <p className={cn("dc-continue mb-3 flex items-center justify-center gap-1.5 text-sm text-foreground/60", ready && "dc-on")} aria-hidden={!ready}>
+            <CircleHelp className="size-4" aria-hidden="true" />
+            Tap anything above to see what it means
+          </p>
+        )}
         <button
           ref={buttonRef}
           onClick={(e) => { e.stopPropagation(); haptics.tap(); onDone(); }}
@@ -275,6 +358,30 @@ export default function DayComplete({ data, profile, onDone }: { data: HabitData
         </button>
       </div>
     </div>
+  );
+}
+
+/** A short explanation of the part that was tapped, above the button. */
+function Explanation({ icon: Icon, tone, title, body, onClose }: {
+  icon: LucideIcon; tone: string; title: string; body: string; onClose: () => void;
+}) {
+  return (
+    <section
+      role="status"
+      onClick={(e) => e.stopPropagation()}
+      className="dc-explain mb-3 flex gap-3 rounded-2xl bg-white p-4 shadow-lg ring-1 ring-ink/5"
+    >
+      <span className={cn("grid size-10 shrink-0 place-items-center rounded-xl", tone)} aria-hidden="true">
+        <Icon className="size-5" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <h3 className="text-[15px] font-semibold">{title}</h3>
+        <p className="mt-0.5 text-sm text-foreground/75">{body}</p>
+      </div>
+      <button onClick={onClose} aria-label="Close explanation" className="press -mt-1 -mr-1 grid size-8 shrink-0 place-items-center rounded-full text-foreground/50">
+        <X className="size-4" />
+      </button>
+    </section>
   );
 }
 

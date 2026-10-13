@@ -74,10 +74,6 @@
     {
       "path": "/api/coach-checkin",
       "schedule": "5 * * * *"
-    },
-    {
-      "path": "/api/trees",
-      "schedule": "15 3 * * *"
     }
   ],
   "functions": {
@@ -85,9 +81,6 @@
       "maxDuration": 300
     },
     "api/coach-checkin.ts": {
-      "maxDuration": 300
-    },
-    "api/trees.ts": {
       "maxDuration": 300
     }
   }

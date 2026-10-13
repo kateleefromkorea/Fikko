@@ -9,7 +9,7 @@ import ShareGardenDialog from "./fikko/ShareGardenDialog";
 import GardenScene from "./fikko/GardenScene";
 import { usePlan } from "../hooks/usePlan";
 import { PLANS_URL } from "../lib/plan";
-import { useFikkoGarden, type GardenPlant, type MonthTree } from "../hooks/useFikkoGarden";
+import { useFikkoGarden, type GardenPlant } from "../hooks/useFikkoGarden";
 import type { ProfileRow } from "../hooks/useProfile";
 import type { HabitData } from "../types";
 import { completion } from "../lib/completion";
@@ -18,7 +18,6 @@ import {
   BLOOM_DAYS, COMPANIONS, DIE_AFTER, GARDENER_SEEDS, MAX_RAIN_CLOUDS, POTS, PREMIUM_EVERY, RAIN_CLOUD_EVERY, SCENES, STAGES, WITHER_AFTER,
   computeGrowth, lockedReason, owns, seedById, unlockedItems, type Growth, type Plan,
 } from "../lib/fikko";
-import { monthStatus, previousMonth, type MonthStatus } from "../lib/treeRules";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,7 +41,7 @@ interface Props {
 const HEALTH_LABEL = { growing: "Growing", withering: "Withering", dead: "Wilted away" } as const;
 
 export default function MyFikkoView({ userId, data, profile, onUpdateProfile, plan, onOpenHabits, layout = "page" }: Props) {
-  const { garden, trees: recorded, harvest } = useFikkoGarden(userId);
+  const { garden, harvest } = useFikkoGarden(userId);
   const unlocked = useMemo(() => unlockedItems(garden), [garden]);
   const [harvesting, setHarvesting] = useState(false);
   const seed = seedById(profile.fikko_seed);
@@ -51,17 +50,11 @@ export default function MyFikkoView({ userId, data, profile, onUpdateProfile, pl
     () => computeGrowth(data, plantedOn, profile.water_goal),
     [data, plantedOn, profile.water_goal],
   );
-  const today = todayKey();
-  const thisMonth = useMemo(() => monthStatus(data, today.slice(0, 7), today, profile.water_goal), [data, today, profile.water_goal]);
-  const lastMonth = useMemo(() => monthStatus(data, previousMonth(today.slice(0, 7)), today, profile.water_goal), [data, today, profile.water_goal]);
-  // Every completed month is a tree in the garden; members on Max also get a real one planted.
-  // The member's real plan, not the Free-until-enforced display plan: the server decides the same way.
+  // Every plant grown to full bloom donates a real tree for members on Max. The member's real
+  // plan, not the Free-until-enforced display plan: the server decides the same way.
   const { plan: truePlan } = usePlan();
   const onMax = truePlan === "max";
-  // Last month's tree is recorded in the first days of this month; count it in the meantime.
-  const waiting = lastMonth.complete && !recorded.some((t) => t.month === lastMonth.month) ? 1 : 0;
-  const treeCount = recorded.length + waiting;
-  const realTrees = recorded.filter((t) => t.status !== "none").length + (onMax ? waiting : 0);
+  const realTrees = garden.filter((p) => p.treeStatus !== "none").length;
   const gardenFirst = layout === "garden";
 
   // Nothing planted: just harvested, joined before My Fikko existed, or the
@@ -77,7 +70,7 @@ export default function MyFikkoView({ userId, data, profile, onUpdateProfile, pl
             ? `Your garden has ${garden.length} ${garden.length === 1 ? "plant" : "plants"}. What will you grow next?`
             : "Every day you complete your habits, your Fikko grows a little more."}
         />
-        {gardenFirst && <GardenScene garden={garden} current={null} trees={treeCount} />}
+        {gardenFirst && <GardenScene garden={garden} current={null} trees={realTrees} />}
         <div className="max-w-3xl">
           <PlantSeedCard
             plan={plan}
@@ -88,8 +81,8 @@ export default function MyFikkoView({ userId, data, profile, onUpdateProfile, pl
             onPlant={(id) => onUpdateProfile({ fikko_seed: id, fikko_planted_on: todayKey() })}
           />
         </div>
-        <TreeCard month={thisMonth} earned={treeCount} real={realTrees} recorded={recorded} onMax={onMax} />
-        {next && <Garden garden={garden} trees={treeCount} realTrees={realTrees} showScene={!gardenFirst} />}
+        <TreeCard garden={garden} growth={null} seedName={null} onMax={onMax} />
+        {next && <Garden garden={garden} realTrees={realTrees} onMax={onMax} showScene={!gardenFirst} />}
       </div>
     );
   }
@@ -108,7 +101,7 @@ export default function MyFikkoView({ userId, data, profile, onUpdateProfile, pl
         eyebrow={gardenFirst ? "Your garden" : "My Fikko"}
         title={title}
         subtitle={gardenFirst
-          ? "Every plant you grow to full bloom gets a place here, and every month you complete adds a tree to the hills."
+          ? "Every plant you grow to full bloom gets a place here, and on Max it plants a real tree on the hills."
           : "Every day you complete all your habits, your Fikko grows."}
       />
 
@@ -116,7 +109,7 @@ export default function MyFikkoView({ userId, data, profile, onUpdateProfile, pl
         <GardenScene
           garden={garden}
           current={{ seedId: seed.id, stage: growth.stage, health: growth.health }}
-          trees={treeCount}
+          trees={realTrees}
           sunny={growth.sunny}
         />
       )}
@@ -144,6 +137,7 @@ export default function MyFikkoView({ userId, data, profile, onUpdateProfile, pl
                     <p className="font-semibold">Ready to harvest</p>
                     <p className="text-sm text-muted-foreground">
                       Move your {seed.name} to your garden to keep it forever and pick a free reward.
+                      {onMax ? " Fikko also plants a real tree for it." : " Max members also get a real tree planted."}
                       No rush: a plant in full bloom never dies.
                     </p>
                   </div>
@@ -174,11 +168,11 @@ export default function MyFikkoView({ userId, data, profile, onUpdateProfile, pl
         </div>
       </div>
 
-      <TreeCard month={thisMonth} earned={treeCount} real={realTrees} recorded={recorded} onMax={onMax} />
+      <TreeCard garden={garden} growth={growth} seedName={seed.name} onMax={onMax} />
 
       <Customise profile={profile} plan={plan} unlocked={unlocked} stage={growth.health === "dead" ? 4 : Math.max(growth.stage, 2)} growth={growth} onUpdateProfile={onUpdateProfile} />
 
-      <Garden garden={garden} trees={treeCount} realTrees={realTrees} showScene={!gardenFirst} />
+      <Garden garden={garden} realTrees={realTrees} onMax={onMax} showScene={!gardenFirst} />
 
       <HowItWorks />
 
@@ -189,6 +183,7 @@ export default function MyFikkoView({ userId, data, profile, onUpdateProfile, pl
         potId={profile.fikko_pot}
         companionId={profile.fikko_companion}
         unlocked={unlocked}
+        onMax={onMax}
         onHarvest={async (reward) => {
           const result = await harvest(growth.completeDays, reward);
           // The database emptied the pot; mirror it here so the page moves on.
@@ -201,7 +196,7 @@ export default function MyFikkoView({ userId, data, profile, onUpdateProfile, pl
 }
 
 /** Every plant grown to full bloom, what the garden has achieved, and a way to share it. */
-function Garden({ garden, trees, realTrees, showScene }: { garden: GardenPlant[]; trees: number; realTrees: number; showScene: boolean }) {
+function Garden({ garden, realTrees, onMax, showScene }: { garden: GardenPlant[]; realTrees: number; onMax: boolean; showScene: boolean }) {
   const [sharing, setSharing] = useState(false);
   const days = garden.reduce((sum, p) => sum + p.completeDays, 0);
   const months = garden.filter((p) => p.premiumMonth).length;
@@ -221,15 +216,15 @@ function Garden({ garden, trees, realTrees, showScene }: { garden: GardenPlant[]
         My garden
       </SectionLabel>
 
-      {showScene && <GardenScene garden={garden} current={null} trees={trees} className="max-w-3xl" />}
+      {showScene && <GardenScene garden={garden} current={null} trees={realTrees} className="max-w-3xl" />}
 
       <div className="grid gap-3 sm:grid-cols-3">
         <Stat icon={Sprout} value={days} label="complete days grown" />
-        <Stat
-          icon={TreeDeciduous}
-          value={trees}
-          label={`${trees === 1 ? "tree" : "trees"} from complete months${realTrees > 0 ? ` · ${realTrees} real` : ""}`}
-        />
+        {onMax || realTrees > 0 ? (
+          <Stat icon={TreeDeciduous} value={realTrees} label={`real ${realTrees === 1 ? "tree" : "trees"} from full blooms`} />
+        ) : (
+          <Stat icon={Star} value={garden.length} label={garden.length === 1 ? "plant in full bloom" : "plants in full bloom"} />
+        )}
         <Stat icon={Crown} value={months} label={months === 1 ? "Premium month earned" : "Premium months earned"} />
       </div>
 
@@ -256,7 +251,7 @@ function Garden({ garden, trees, realTrees, showScene }: { garden: GardenPlant[]
         Every {PREMIUM_EVERY === 3 ? "third" : `${PREMIUM_EVERY}th`} bloom earns a free month of Premium ({toPremium} to go, up to one a year).
       </p>
 
-      <ShareGardenDialog open={sharing} onOpenChange={setSharing} garden={garden} trees={trees} realTrees={realTrees} />
+      <ShareGardenDialog open={sharing} onOpenChange={setSharing} garden={garden} realTrees={realTrees} />
     </section>
   );
 }
@@ -315,55 +310,49 @@ function PlantHero({ growth, profile, seedName }: { growth: Growth; profile: Pro
   );
 }
 
-/** The monthly tree: what earns it, and how this month is going. */
-function TreeCard({ month: status, earned, real, recorded, onMax }: { month: MonthStatus; earned: number; real: number; recorded: MonthTree[]; onMax: boolean }) {
-  const { days, completeDays, onTrack } = status;
-  const month = new Date(status.month + "-15T12:00:00").toLocaleDateString(undefined, { month: "long" });
-  const left = days.filter((d) => d !== "done" && d !== "missed").length;
-  const planted = recorded.filter((t) => t.status === "planted").length;
+/** The tree promise: every full bloom plants a real tree for Max members, and how far the current plant has to go. */
+function TreeCard({ garden, growth, seedName, onMax }: { garden: GardenPlant[]; growth: Growth | null; seedName: string | null; onMax: boolean }) {
+  const real = garden.filter((p) => p.treeStatus !== "none");
+  const planted = real.filter((p) => p.treeStatus === "planted").length;
+  const growing = growth && growth.health !== "dead";
+  const days = growth ? Math.min(growth.completeDays, BLOOM_DAYS) : 0;
+  const left = BLOOM_DAYS - days;
   return (
-    <section aria-label="A tree for every complete month" className="rounded-2xl pair-soft p-4 sm:p-5">
+    <section aria-label="A real tree for every full bloom" className="rounded-2xl pair-soft p-4 sm:p-5">
       <div className="flex gap-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white/80 text-primary-ink" aria-hidden="true">
           <TreeDeciduous className="size-5" />
         </span>
         <div className="min-w-0">
-          <p className="font-semibold">{onMax ? "A real tree for every complete month" : "A tree for every complete month"}</p>
+          <p className="font-semibold">{onMax ? "A real tree for every full bloom" : "Grow to full bloom, plant a tree on Max"}</p>
           <p className="text-sm text-foreground/75">
             {onMax
-              ? "Complete every habit on every day of a calendar month, and Fikko donates and plants a real tree with our planting partner. It joins your garden too."
-              : "Complete every habit on every day of a calendar month, and a tree grows in your garden. Max members also get a real tree planted by Fikko."}
-            {" "}Days saved by a rain cloud still count.
+              ? `Grow a plant to full bloom, about ${BLOOM_DAYS} complete days, and Fikko donates and plants a real tree with our planting partner. The plant stays in your garden for good.`
+              : `Every plant you grow to full bloom, about ${BLOOM_DAYS} complete days, stays in your garden for good. Max members also get a real tree donated and planted by Fikko for it.`}
             {!onMax && <> <a href={PLANS_URL} className="font-medium text-primary-ink underline underline-offset-2">See Max</a></>}
           </p>
         </div>
       </div>
 
-      <div className="mt-4">
-        <div className="flex items-baseline justify-between gap-3 text-sm">
-          <span className="font-medium">{month}</span>
-          <span className="text-foreground/70 tabular-nums">{completeDays} of {days.length} days complete</span>
+      {growing && (
+        <div className="mt-4">
+          <div className="flex items-baseline justify-between gap-3 text-sm">
+            <span className="font-medium">Your {seedName}</span>
+            <span className="text-foreground/70 tabular-nums">{days} of {BLOOM_DAYS} complete days</span>
+          </div>
+          <Progress value={Math.round((days / BLOOM_DAYS) * 100)} className="mt-2 h-2" aria-label="Progress to full bloom" />
+          <p className="mt-2 text-sm text-foreground/75">
+            {left === 0
+              ? `In full bloom. Move it to your garden${onMax ? " to plant its tree" : ""}.`
+              : `${left} more complete ${left === 1 ? "day" : "days"} to full bloom${onMax ? " and your next tree" : ""}.`}
+          </p>
         </div>
-        <div className="mt-2 flex gap-[3px]" aria-hidden="true">
-          {days.map((d, i) => (
-            <span
-              key={i}
-              className={cn(
-                "h-2.5 flex-1 rounded-full",
-                d === "done" ? "bg-primary" : d === "missed" ? "bg-foreground/25" : d === "today" ? "bg-primary/35" : "bg-white/80",
-              )}
-            />
-          ))}
-        </div>
-        <p className="mt-2 text-sm text-foreground/75">
-          {!onTrack
-            ? `A day was missed in ${month}, so this month's tree is out of reach. Next month is a fresh start.`
-            : left === 0
-              ? `${month} is complete. ${onMax ? "Your real tree is on its way." : "Your tree is in your garden."}`
-              : `On track. ${left} more ${left === 1 ? "day" : "days"} to plant ${month}'s tree.`}
-          {earned > 0 && ` ${earned} ${earned === 1 ? "tree" : "trees"} earned so far${real > 0 ? `, ${planted} of ${real} real ${real === 1 ? "tree" : "trees"} planted` : ""}.`}
+      )}
+      {real.length > 0 && (
+        <p className="mt-3 text-sm text-foreground/75">
+          {real.length} real {real.length === 1 ? "tree" : "trees"} so far, {planted} planted.
         </p>
-      </div>
+      )}
     </section>
   );
 }
@@ -655,13 +644,12 @@ function HowItWorks() {
     { title: "Wither", body: `After more than ${WITHER_AFTER} days with nothing logged, it starts to droop. Log a day to revive it.` },
     { title: "Rain clouds", body: `Every ${RAIN_CLOUD_EVERY} complete days in a row earn a rain cloud, which covers a missed day for you. Hold up to ${MAX_RAIN_CLOUDS}.` },
     { title: "Wilt away", body: `After more than ${DIE_AFTER} days, it dies and you plant a new seed. Unlocked items are kept.` },
-    { title: "Harvest", body: `At ${BLOOM_DAYS} complete days it blooms. Move it to your garden for a free reward.` },
-    { title: "Plant a tree", body: "Complete every habit on every day of a calendar month and a tree grows in your garden. On Max, Fikko also donates and plants a real tree." },
+    { title: "Harvest", body: `At ${BLOOM_DAYS} complete days it blooms. Move it to your garden for a free reward. On Max, Fikko also plants a real tree for it.` },
   ];
   return (
     <section className="space-y-4">
       <SectionLabel>How growing works</SectionLabel>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {rules.map((r) => (
           <div key={r.title} className="rounded-xl bg-foreground/[0.035] p-4">
             <p className="text-sm font-semibold">{r.title}</p>

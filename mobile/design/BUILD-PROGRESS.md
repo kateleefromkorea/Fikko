@@ -23,7 +23,7 @@ Tabs: **Today · Progress · (+) · Coach · Garden** (You opens from the profil
 - Progress: the web Dashboard ("Ask coach" jumps to Coach with the question).
 - Coach: segmented Ask Fikko / Recipes.
 - Garden: `MyFikkoView layout="garden"`, led by `GardenScene` (every harvested plant in the meadow, current plant in the front plot, a tree on the hills per complete month). Also reached by tapping the plant on Today. Icons: Today = Sun, Garden = Sprout.
-- Trees (decided 2026-10-12): one real tree per calendar month with every day complete (rain-cloud days count); replaces the old tree-per-bloom. Rule in `src/lib/treeRules.ts` (shared by app and server); `api/trees.ts` daily cron records trees owed in `fikko_trees` (migration 037) on the 2nd–8th of each month.
+- Trees (decided 2026-10-12): one real tree per full bloom (40 complete days, at harvest), for members on Max only; recorded by `harvest_fikko()` (migration 039) as `fikko_garden.tree_status`. Replaces the monthly rule; the hills in the garden show one tree per real tree.
 - You (from the top-bar profile button): profile header, Profile & settings, Community (pushed pages with a back button), Sign out.
 - All shared dialogs become bottom sheets on the phone (`mobile.css`, `[data-slot="dialog-content"]`).
 

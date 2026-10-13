@@ -2,7 +2,6 @@ import type { HabitData } from "../types";
 import { completion } from "./completion";
 import { loggedOn } from "./dashboardStats";
 import { shiftDateKey, todayKey } from "./dates";
-import { MAX_RAIN_CLOUDS, RAIN_CLOUD_EVERY } from "./treeRules";
 
 // My Fikko: the plant a member grows by completing their habits (migration 025).
 // Only the seed, planting day and cosmetics are stored; growth and health are
@@ -79,9 +78,10 @@ export const SCENES: Scene[] = [
   { id: "night", name: "Night sky", tier: "max", blurb: "Moon and stars" },
 ];
 
-// Every RAIN_CLOUD_EVERY complete days in a row earns a rain cloud; a member
-// holds up to MAX_RAIN_CLOUDS. Defined with the monthly tree rule, which shares them.
-export { MAX_RAIN_CLOUDS, RAIN_CLOUD_EVERY } from "./treeRules";
+/** Every this many complete days in a row earns a rain cloud. */
+export const RAIN_CLOUD_EVERY = 7;
+/** Rain clouds a member can hold at once. */
+export const MAX_RAIN_CLOUDS = 3;
 
 /** The free extras a member picks one of at each harvest (matches harvest_fikko in migration 026). */
 export const HARVEST_REWARDS = ["mint", "stripe", "bee", "snail"] as const;

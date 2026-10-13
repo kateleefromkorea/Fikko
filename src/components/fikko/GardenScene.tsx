@@ -23,12 +23,12 @@ type Plot =
  * The member's garden as a landscape: every plant grown to full bloom stands in
  * the meadow (newest nearest the front), the plant growing now has the front
  * plot, an empty plot waits for the next bloom, and a tree joins the hills for
- * every fully completed month.
+ * every real tree Fikko plants for a harvested plant (Max members).
  */
 export default function GardenScene({ garden, current, trees, sunny, className }: {
   garden: GardenPlant[];
   current: { seedId: string; stage: number; health: Health } | null;
-  /** Fully completed months, each a tree on the hills (a real one too, on Max). */
+  /** Real trees donated for harvested plants, each a tree on the hills. */
   trees: number;
   sunny?: boolean;
   className?: string;
@@ -153,7 +153,7 @@ function Tag({ x, y, text, muted }: { x: number; y: number; text: string; muted?
   );
 }
 
-/** A tree for a completed month. */
+/** A real tree, planted for a full bloom. */
 function Tree({ x, y, scale }: { x: number; y: number; scale: number }) {
   return (
     <g transform={`translate(${x} ${y}) scale(${scale})`}>

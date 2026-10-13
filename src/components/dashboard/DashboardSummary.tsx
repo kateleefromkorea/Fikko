@@ -1,7 +1,5 @@
 import type { ReactNode } from "react";
-import { CalendarCheck, Flame, Sparkles, Trophy } from "lucide-react";
 import ProgressRing from "../ProgressRing";
-import { cn } from "@/lib/utils";
 import { HabitIcon } from "../HabitCard";
 import { avgOf, currentStreak, loggedOn, longestStreak, parseJSON, sleepHours, valuesIn } from "../../lib/dashboardStats";
 import type { SleepNote } from "../HabitsView";
@@ -21,10 +19,10 @@ export function headline(rate: number, logged: number, noun: string) {
 }
 
 /**
- * The top of the dashboard, and its page header: how the period went overall,
- * in one ring, one headline and a figure for every habit, with the weekly
- * report underneath. Laid out like the Habits page's Today card, with the
- * period toggle where Habits has its date navigator.
+ * The top of the dashboard, and its page header, kept to a slim band: how the
+ * period went overall in one ring, one headline and one line, the four day
+ * counts beside it, a single strip with a figure for every habit (hover for
+ * the detail), and the weekly report as one row underneath.
  */
 export default function DashboardSummary({ ctx, report, toggle, note }: {
   ctx: DashCtx;
@@ -45,13 +43,14 @@ export default function DashboardSummary({ ctx, report, toggle, note }: {
   const top = ranked[0];
   const low = ranked[ranked.length - 1];
 
+  // One short line: the detail is in the habit figures below and the sections after.
   let sentence: string;
   if (ov.logged === 0) {
     sentence = `You haven't logged anything in ${PERIOD_PHRASE[period]}. Check in and this summary fills in as you go.`;
   } else {
-    sentence = `You logged ${ov.logged} of ${ov.days} days and completed ${pct(ov.rate)} of your habits.`;
-    if (top && top.rate > 0) sentence += ` ${habitLabel(top)} was your most consistent habit`;
-    if (low && top && low !== top && low.rate < top.rate) sentence += `, and ${habitLabel(low).toLowerCase()} needs the most attention.`;
+    sentence = `Logged ${ov.logged} of ${ov.days} days.`;
+    if (top && top.rate > 0) sentence += ` ${habitLabel(top)} is your steadiest habit`;
+    if (low && top && low !== top && low.rate < top.rate) sentence += `; ${habitLabel(low).toLowerCase()} needs attention.`;
     else if (top && top.rate > 0) sentence += ".";
   }
 
@@ -109,15 +108,15 @@ export default function DashboardSummary({ ctx, report, toggle, note }: {
   ].filter((g) => g.key !== "medication" || data.tracksMedications !== false);
 
   const tiles = [
-    { icon: CalendarCheck, label: "Days logged", value: `${ov.logged}/${ov.days}` },
-    { icon: Trophy, label: "Perfect days", value: ov.perfect.toLocaleString() },
-    { icon: Flame, label: "Current streak", value: plural(streak, "day") },
-    { icon: Sparkles, label: "Best streak", value: plural(best, "day") },
+    { label: "Days logged", value: `${ov.logged}/${ov.days}` },
+    { label: "Perfect days", value: ov.perfect.toLocaleString() },
+    { label: "Streak", value: plural(streak, "day") },
+    { label: "Best streak", value: plural(best, "day") },
   ];
 
   return (
-    <section aria-labelledby="summary-title" className="daily-overview overflow-hidden rounded-2xl border border-teal/20 p-6 shadow-sm sm:p-8">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+    <section aria-labelledby="summary-title" className="daily-overview overflow-hidden rounded-2xl border border-teal/20 px-5 py-4 shadow-sm sm:px-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs font-semibold tracking-wider text-primary-ink uppercase">
           {dashboardEyebrow(period)}
           {dates.length > 0 && ` · ${weekLabel({ from: dates[0], to: dates[dates.length - 1] })}`}
@@ -125,64 +124,56 @@ export default function DashboardSummary({ ctx, report, toggle, note }: {
         {toggle}
       </div>
 
-      <div className="mt-6 grid items-center gap-8 md:grid-cols-[auto_1fr]">
-        <ProgressRing value={ov.rate} size={148} stroke={12} label={`${pct(ov.rate)} of habits completed`} className="mx-auto md:mx-0">
-          <div>
-            <p className="text-3xl font-semibold tracking-tight tabular-nums">{pct(ov.rate)}</p>
-            <p className="text-xs text-foreground/60">consistency</p>
-          </div>
+      <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-3">
+        <ProgressRing value={ov.rate} size={64} stroke={7} label={`${pct(ov.rate)} of habits completed`}>
+          <p className="text-base font-semibold tabular-nums">{pct(ov.rate)}</p>
         </ProgressRing>
 
-        <div className="min-w-0">
-          <h1 id="summary-title" className="text-4xl font-semibold tracking-tight sm:text-5xl">{headline(ov.rate, ov.logged, noun)}</h1>
-          <p className="mt-3 max-w-2xl text-lg text-foreground/70">{sentence}</p>
-          {(prevOv || comparison || note) && (
-            <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-foreground/60">
-              {prevOv && (
-                <>
-                  <Delta value={(ov.rate - prevOv.rate) * 100} suffix=" pts" className="text-sm font-medium" />
-                  <span>vs {PREV_PHRASE[period]} ({pct(prevOv.rate)}).</span>
-                </>
-              )}
-              {comparison && <span>{comparison}</span>}
-              {note && <span>{note}</span>}
-            </p>
-          )}
+        <div className="min-w-0 flex-1 basis-64">
+          <h1 id="summary-title" className="flex flex-wrap items-baseline gap-x-3 text-2xl font-semibold tracking-tight sm:text-[1.75rem]">
+            {headline(ov.rate, ov.logged, noun)}
+            {prevOv && (
+              <span className="text-sm tracking-normal">
+                <Delta value={(ov.rate - prevOv.rate) * 100} suffix=" pts" className="text-sm font-medium" />
+                <span className="sr-only"> vs {PREV_PHRASE[period]} ({pct(prevOv.rate)})</span>
+              </span>
+            )}
+          </h1>
+          <p className="mt-1 text-sm text-foreground/70">
+            {sentence}
+            {comparison && ` ${comparison}`}
+            {note && ` ${note}`}
+          </p>
         </div>
+
+        <dl className="grid shrink-0 grid-cols-2 gap-x-6 gap-y-0.5 text-sm">
+          {tiles.map(({ label, value }) => (
+            <div key={label} className="flex items-baseline gap-1.5">
+              <dt className="text-foreground/60">{label}</dt>
+              <dd className="font-semibold tabular-nums">{value}</dd>
+            </div>
+          ))}
+        </dl>
       </div>
 
-      <ul className="mt-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {tiles.map(({ icon: Icon, label, value }) => (
-          <li key={label} className="flex items-center gap-3 rounded-xl bg-white/70 px-4 py-3 ring-1 ring-foreground/5">
-            <Icon className="size-5 shrink-0 text-primary-ink" aria-hidden="true" />
-            <div className="min-w-0">
-              <p className="text-xs text-muted-foreground">{label}</p>
-              <p className="text-lg font-semibold tabular-nums">{value}</p>
-            </div>
-          </li>
-        ))}
-      </ul>
-
-      <div className={cn("mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3", glance.length === 6 ? "xl:grid-cols-6" : "xl:grid-cols-5")}>
+      <ul className="mt-3 flex flex-wrap items-center justify-around gap-x-5 gap-y-2.5 rounded-xl bg-white/70 px-4 py-2.5 ring-1 ring-foreground/5">
         {glance.map((g) => {
           const info = HABIT_INFO[g.key];
           return (
-            <div key={g.key} className="rounded-xl bg-white/70 p-4 ring-1 ring-foreground/5">
-              <div className="flex items-center gap-2">
-                <HabitIcon icon={info.icon} hue={info.hue} className="size-7 [&>svg]:size-4" />
-                <p className="text-sm text-muted-foreground">{info.label}</p>
-              </div>
-              <p className="mt-3 text-xl font-semibold tracking-tight tabular-nums">
+            <li key={g.key} className="flex items-center gap-2" title={`${info.label}: ${g.sub}`}>
+              <HabitIcon icon={info.icon} hue={info.hue} className="size-6 rounded-lg [&>svg]:size-3.5" />
+              <span className="sr-only">{info.label}: </span>
+              <span className="font-semibold tabular-nums">
                 {g.value}
-                {g.unit && <span className="ml-1 text-sm font-normal tracking-normal text-muted-foreground">{g.unit}</span>}
-              </p>
-              <p className="mt-0.5 text-xs text-muted-foreground">{g.sub}</p>
-            </div>
+                {g.unit && <span className="ml-1 text-xs font-normal text-muted-foreground">{g.unit}</span>}
+              </span>
+              <span className="sr-only">, {g.sub}</span>
+            </li>
           );
         })}
-      </div>
+      </ul>
 
-      {report && <div className="mt-3">{report}</div>}
+      {report && <div className="mt-2">{report}</div>}
     </section>
   );
 }

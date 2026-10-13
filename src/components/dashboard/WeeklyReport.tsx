@@ -26,45 +26,35 @@ export default function WeeklyReportCard({ data, biometrics, profile }: Props) {
   // Brand new: nothing logged before this week, so there's no report yet.
   if (history === 0) {
     return (
-      <div className="flex items-start gap-3 rounded-xl bg-white/70 p-4 ring-1 ring-foreground/5">
-        <FileText className="mt-0.5 size-5 shrink-0 text-primary-ink" aria-hidden="true" />
-        <div className="min-w-0">
-          <p className="text-sm font-semibold">Your first weekly report arrives on {longDate(nextReportDate())}</p>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            Every Monday, Fikko looks back at your week: what went well, what slipped, the patterns in your data and one thing to focus on next.
-          </p>
-        </div>
-      </div>
+      <p className="flex items-center gap-2 px-1 text-sm">
+        <FileText className="size-4 shrink-0 text-primary-ink" aria-hidden="true" />
+        <span className="min-w-0">
+          <span className="font-medium">Your first weekly report arrives on {longDate(nextReportDate())}.</span>{" "}
+          <span className="text-muted-foreground">Every Monday Fikko looks back at your week and picks one thing to focus on.</span>
+        </span>
+      </p>
     );
   }
 
   return (
-    <div className="flex flex-col gap-4 rounded-xl bg-white/70 p-4 ring-1 ring-foreground/5 md:flex-row md:items-center">
-      <FileText className="hidden size-5 shrink-0 text-primary-ink md:block" aria-hidden="true" />
-      <div className="min-w-0 flex-1">
-        <p className="flex flex-wrap items-baseline gap-x-2 text-sm">
-          <span className="font-semibold">Weekly report · {report.label}</span>
-          {report.logged > 0 && (
-            <>
-              <span className="text-muted-foreground">{pct(report.rate)} consistency</span>
-              {report.prevRate != null && (
-                <Delta value={(report.rate - report.prevRate) * 100} suffix=" pts vs the week before" className="text-sm" />
-              )}
-            </>
-          )}
-        </p>
-        {report.focus && report.logged > 0 ? (
-          <p className="mt-1 flex items-start gap-2 text-sm text-foreground/80">
-            <Target className="mt-0.5 size-4 shrink-0 text-primary-ink" aria-hidden="true" />
-            <span><span className="font-medium">Next week:</span> {report.focus.text}</span>
-          </p>
-        ) : report.logged === 0 && (
-          <p className="mt-1 text-sm text-muted-foreground">Nothing logged that week.</p>
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-1">
+      <FileText className="size-4 shrink-0 text-primary-ink" aria-hidden="true" />
+      <p className="flex min-w-0 flex-wrap items-baseline gap-x-2 text-sm">
+        <span className="font-medium">Weekly report · {report.label}</span>
+        {report.logged > 0 ? (
+          <>
+            <span className="text-muted-foreground">{pct(report.rate)}</span>
+            {report.prevRate != null && (
+              <Delta value={(report.rate - report.prevRate) * 100} suffix=" pts" className="text-sm" />
+            )}
+          </>
+        ) : (
+          <span className="text-muted-foreground">Nothing logged that week.</span>
         )}
-      </div>
-      <Button onClick={() => setOpen(true)} className="h-10 shrink-0 px-5">
-        <FileText />
+      </p>
+      <Button variant="ghost" size="sm" onClick={() => setOpen(true)} className="ml-auto h-8 gap-1 px-2 font-semibold text-primary-ink hover:bg-white/60 hover:text-primary-ink">
         {report.logged > 0 ? "Read your weekly report" : "See past reports"}
+        <ChevronRight />
       </Button>
 
       <ReportDialog open={open} onOpenChange={setOpen} data={data} biometrics={biometrics} profile={profile} history={history} />

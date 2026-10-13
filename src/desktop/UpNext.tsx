@@ -67,14 +67,14 @@ export default function UpNext({ data, activeDate, goals, medications, foodLog, 
         );
       case "mood":
         return (
-          <Row key={key} {...common} sub={mood ? `Feeling ${mood.label.toLowerCase()}` : "How are you feeling?"}
-            below={!isDone && (
-              <div className="mt-3 grid grid-cols-5 gap-1.5" role="group" aria-label="Mood">
+          <Row key={key} {...common} wide={!isDone} sub={mood ? `Feeling ${mood.label.toLowerCase()}` : "How are you feeling?"}
+            action={(
+              <div className="flex shrink-0 gap-1.5" role="group" aria-label="Mood">
                 {QUICK_MOODS.map((m) => (
                   <button
                     key={m.key}
                     onClick={() => onQuick((d) => setMood(d, activeDate, m.key), `Feeling ${m.label.toLowerCase()}, saved`)}
-                    className="flex h-12 flex-col items-center justify-center gap-0.5 rounded-lg bg-foreground/[0.04] text-[11px] font-medium text-foreground/75 transition-colors hover:bg-[var(--mood)] hover:text-[var(--mood-fg)]"
+                    className="inline-flex h-9 items-center gap-1.5 rounded-full bg-foreground/[0.04] px-3 text-sm font-medium text-foreground/80 transition-colors hover:bg-[var(--mood)] hover:text-[var(--mood-fg)]"
                   >
                     <m.icon className="size-4 text-[var(--mood-fg)]" aria-hidden="true" />
                     {m.label}
@@ -133,7 +133,14 @@ export default function UpNext({ data, activeDate, goals, medications, foodLog, 
     );
   };
 
-  const upNext = [...core.filter((c) => !c.done).map((c) => row(c.key, false)), ...custom.filter((c) => !c.done).map(customRow)];
+  // Mood has five choices to show, so it takes a full-width row of its own at the end;
+  // every other row is the same height, so the cards line up.
+  const open = core.filter((c) => !c.done);
+  const upNext = [
+    ...open.filter((c) => c.key !== "mood").map((c) => row(c.key, false)),
+    ...custom.filter((c) => !c.done).map(customRow),
+    ...open.filter((c) => c.key === "mood").map((c) => row(c.key, false)),
+  ];
   const finished = [...core.filter((c) => c.done).map((c) => row(c.key, true)), ...custom.filter((c) => c.done).map(customRow)];
   const left = total - done;
 
@@ -144,7 +151,7 @@ export default function UpNext({ data, activeDate, goals, medications, foodLog, 
       </SectionLabel>
 
       {upNext.length > 0 ? (
-        <ul className="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-3">{upNext}</ul>
+        <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{upNext}</ul>
       ) : (
         <div className={cn("flex items-center gap-3 rounded-2xl bg-white p-4", softCardCls)}>
           <span className="grid size-10 shrink-0 place-items-center rounded-full bg-button text-white" aria-hidden="true"><Check className="size-5" strokeWidth={3} /></span>
@@ -165,7 +172,7 @@ export default function UpNext({ data, activeDate, goals, medications, foodLog, 
             Done ({finished.length})
             <ChevronDown className={cn("size-4 transition-transform", showDone && "rotate-180")} aria-hidden="true" />
           </button>
-          {showDone && <ul className="mt-2 grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-3">{finished}</ul>}
+          {showDone && <ul className="mt-2 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{finished}</ul>}
         </div>
       )}
     </section>
@@ -173,12 +180,14 @@ export default function UpNext({ data, activeDate, goals, medications, foodLog, 
 }
 
 /** One habit: its icon, name and progress (click to jump to its card), and the quick action on the right. */
-function Row({ icon, hue, title, sub, done, onOpen, action, below }: {
+function Row({ icon, hue, title, sub, done, onOpen, action, below, wide }: {
   icon: LucideIcon; hue: HabitHue; title: string; sub: string; done: boolean; onOpen: () => void;
   action?: ReactNode; below?: ReactNode;
+  /** Spans the whole row, for an action too wide to share it. */
+  wide?: boolean;
 }) {
   return (
-    <li className={cn("rounded-2xl bg-white px-4 py-3", softCardCls)}>
+    <li className={cn("rounded-2xl bg-white px-4 py-3", wide && "sm:col-span-full", softCardCls)}>
       <div className="flex min-h-11 items-center gap-3">
         <button onClick={onOpen} className="group flex min-w-0 flex-1 items-center gap-3 text-left" aria-label={`${title}: ${sub}${done ? ", done" : ""}. Go to the ${title} card`}>
           <span className="relative">

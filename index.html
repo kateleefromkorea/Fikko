@@ -34,7 +34,15 @@
     <meta name="apple-mobile-web-app-title" content="Fikko" />
   </head>
   <body>
-    <div id="root"></div>
+    <!-- Shown until the app has loaded and checked sign-in; the app draws the same thing (components/Splash.tsx). -->
+    <style>
+      .splash { display: grid; min-height: 100dvh; place-items: center; padding: 0 24px; text-align: center; background: #fafafa; font: 14px/1.5 Inter, system-ui, -apple-system, "Segoe UI", sans-serif; color: #5f6368; }
+      .splash > div { display: flex; flex-direction: column; align-items: center; }
+      .splash img { width: 56px; height: 56px; }
+      .splash p { max-width: 256px; margin: 16px 0 0; opacity: 0; animation: splash-hint-in 0.4s 7s forwards; }
+      @keyframes splash-hint-in { to { opacity: 1; } }
+    </style>
+    <div id="root"><div class="splash" role="status"><div><img src="/favicon.svg" alt="" /><span style="position:absolute;left:-9999px">Loading Fikko</span><p>Taking longer than usual. Check your connection, and refresh if it doesn&rsquo;t load.</p></div></div></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

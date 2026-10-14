@@ -352,3 +352,7 @@
 @media (prefers-reduced-motion: reduce) {
   .fikko-sway, .fikko-flutter, .fikko-sun, .fikko-sun-glow, .fikko-sun-rays { animation: none; }
 }
+
+/* The loading hint (components/Splash.tsx, and the same in index.html) appears only if loading drags. */
+.splash-hint { opacity: 0; animation: splash-hint-in 0.4s 7s forwards; }
+@keyframes splash-hint-in { to { opacity: 1; } }

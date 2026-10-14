@@ -3,6 +3,7 @@ import { useAiCredits } from "./hooks/useAiCredits";
 import { ChartNoAxesColumn, Loader2, ChefHat, LogOut, Plus, Search, Sparkles, Sprout, Sun, UserRound, Users, type LucideIcon } from "lucide-react";
 import { completion } from "./lib/completion";
 import ScrollToTop from "./components/ScrollToTop";
+import Splash from "./components/Splash";
 import InstallCard from "./components/InstallCard";
 import { FoundingWelcome } from "./components/FoundingMember";
 import { syncReminderTimeZone } from "./lib/reminders";
@@ -129,7 +130,7 @@ export default function App() {
 
   if (phone && !isAdminPage) {
     return (
-      <Suspense fallback={<div className="min-h-dvh bg-background" />}>
+      <Suspense fallback={<Splash />}>
         <PhoneApp viewPrefix="/phone" deviceOutcome={deviceOutcome} startOnSettings={openProfile} todayExtra={<InstallCard />} />
       </Suspense>
     );
@@ -275,7 +276,7 @@ function DesktopApp({ deviceOutcome, openProfile }: { deviceOutcome: DeviceOutco
   }
 
   if (loading) {
-    return <div className="min-h-screen bg-background" />;
+    return <Splash />;
   }
 
   if (!session) {
@@ -288,7 +289,7 @@ function DesktopApp({ deviceOutcome, openProfile }: { deviceOutcome: DeviceOutco
 
   if (isAdminPage) {
     return (
-      <Suspense fallback={<div className="min-h-screen bg-background" />}>
+      <Suspense fallback={<Splash />}>
         <AdminView />
       </Suspense>
     );

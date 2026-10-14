@@ -190,17 +190,28 @@ export default function DayComplete({ data, profile, onDone }: { data: HabitData
       aria-labelledby="day-complete-title"
       aria-describedby="day-complete-line"
       onClick={skip}
-      className={cn("daily-overview day-complete fixed inset-0 z-[70] flex flex-col overflow-hidden", reduced && "dc-still")}
+      className={cn("daily-overview day-complete fixed inset-0 z-[70] flex h-dvh flex-col overflow-hidden", reduced && "dc-still")}
     >
       {!reduced && beat >= 1 && <RisingSeeds />}
 
-      <div className="flex flex-1 flex-col items-center justify-center px-6 pt-[max(env(safe-area-inset-top),1.5rem)]">
+      {/* A way out that's always there, in case the button below is hard to reach. */}
+      <button
+        onClick={(e) => { e.stopPropagation(); onDone(); }}
+        aria-label="Close"
+        className="press absolute top-[max(env(safe-area-inset-top),0.5rem)] right-3 z-20 grid size-11 place-items-center rounded-full bg-white/60 text-foreground/60"
+      >
+        <X className="size-5" />
+      </button>
+
+      {/* Scrolls on a short screen, so the button below is never pushed off it. */}
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pt-[max(env(safe-area-inset-top),1.5rem)]">
+      <div className="m-auto flex w-full flex-col items-center px-6 py-3">
         <p className={cn("dc-eyebrow text-sm font-semibold tracking-wide text-primary-ink uppercase", beat >= 1 && "dc-on")}>
           Day complete
         </p>
 
         {/* The plant inside the ring of today's habits, with the sun behind it. */}
-        <div className="relative mt-2 size-[17.5rem] shrink-0">
+        <div className="relative mt-2 size-[min(17.5rem,30dvh)] shrink-0">
           <SunRays on={sunny} />
           <svg viewBox="0 0 300 300" className="absolute inset-0 size-full" aria-hidden="true">
             {Array.from({ length: segments }, (_, i) => {
@@ -337,8 +348,9 @@ export default function DayComplete({ data, profile, onDone }: { data: HabitData
           </div>
         )}
       </div>
+      </div>
 
-      <div className="relative z-10 px-5 pb-[max(env(safe-area-inset-bottom),1.25rem)]">
+      <div className="relative z-10 shrink-0 px-5 pb-[max(env(safe-area-inset-bottom),1.25rem)]">
         {/* Floats over the lower part of the screen so the button never moves. */}
         {explain && <Explanation key={explain} {...explanations[explain]} onClose={() => setExplain(null)} />}
         <p

@@ -233,6 +233,7 @@ export function useHabitData(userId: string | null) {
         latest.current = fetched;
         remember(fetched);
         loaded.current = true;
+        lastFetch.current = Date.now();
         setDataState(fetched);
         setLoading(false);
       })
@@ -257,6 +258,47 @@ export function useHabitData(userId: string | null) {
       document.removeEventListener("visibilitychange", retry);
     };
   }, [flush]);
+
+  // Picks up what was logged on another device (finishing the day on a computer,
+  // say) when the member comes back to this one, and once a minute while it's
+  // open. It never overwrites anything that hasn't saved yet.
+  const refreshing = useRef(false);
+  const lastFetch = useRef(0);
+  const refresh = useCallback(async () => {
+    const uid = userRef.current;
+    if (!uid || !loaded.current || refreshing.current || Date.now() - lastFetch.current < 3000) return;
+    if (saving.current || dirty.current.size > 0) return;
+    refreshing.current = true;
+    const startedAt = version.current;
+    try {
+      const fetched = await fetchHabitData(uid);
+      // Skip it if the member changed something here meanwhile, or someone else signed in.
+      if (userRef.current !== uid || !loaded.current || version.current !== startedAt || saving.current || dirty.current.size > 0) return;
+      if (JSON.stringify(latest.current) === JSON.stringify(fetched)) return;
+      latest.current = fetched;
+      remember(fetched);
+      setDataState(fetched);
+    } catch {
+      // Offline or a blip: the next visit tries again.
+    } finally {
+      lastFetch.current = Date.now();
+      refreshing.current = false;
+    }
+  }, []);
+
+  useEffect(() => {
+    const check = () => { if (document.visibilityState === "visible") void refresh(); };
+    window.addEventListener("focus", check);
+    window.addEventListener("online", check);
+    document.addEventListener("visibilitychange", check);
+    const timer = window.setInterval(check, 60_000);
+    return () => {
+      window.removeEventListener("focus", check);
+      window.removeEventListener("online", check);
+      document.removeEventListener("visibilitychange", check);
+      window.clearInterval(timer);
+    };
+  }, [refresh]);
 
   /**
    * Applies a change and saves it. Pass a function to build on the very latest

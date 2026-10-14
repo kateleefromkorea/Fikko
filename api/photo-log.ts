@@ -28,6 +28,7 @@ Rules:
 - List each distinct food or dish you can actually see, one entry each. A mixed dish (a burrito bowl, a stir fry) is one entry unless the parts are clearly separate on the plate. Ignore plates, cutlery, packaging and the background.
 - "name" is a plain, friendly name ("Grilled chicken breast", "Steamed rice"). "search_term" is a short generic name a nutrition database would know ("chicken breast grilled", "rice white cooked").
 - Estimate the grams of each food as served, using the plate, bowl, hands, utensils and typical portion sizes for scale. "kcal" is your best estimate of the calories for that portion. Include visible oils, sauces and toppings in the food they are on.
+- "protein_g", "carbs_g" and "fat_g" are your best estimates of the grams of each in that portion. They should roughly add up to the calories (protein and carbs are 4 kcal a gram, fat 9). Use 0 for a drink with none.
 - Drinks count only when you can see them; estimate millilitres as grams.
 - If the photo has no food in it, or you can't tell what it is, return no foods and say briefly why in not_understood. Never invent food that isn't visible.
 - If the photo shows a packaged product, use its name from the label when it is readable, otherwise treat it as unknown.
@@ -48,8 +49,11 @@ const TOOL: Anthropic.Tool = {
             search_term: { type: "string" },
             grams: { type: "number" },
             kcal: { type: "number" },
+            protein_g: { type: "number" },
+            carbs_g: { type: "number" },
+            fat_g: { type: "number" },
           },
-          required: ["name", "search_term", "grams", "kcal"],
+          required: ["name", "search_term", "grams", "kcal", "protein_g", "carbs_g", "fat_g"],
         },
       },
       not_understood: { type: ["string", "null"] },

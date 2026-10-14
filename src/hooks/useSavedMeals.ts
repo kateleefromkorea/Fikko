@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { SAVED_FOODS_CHANGED } from "../lib/foodMacros";
 import type { MacrosPer100g } from "../types";
 
 /** One food inside a saved meal: everything needed to log it again. */
@@ -21,6 +22,13 @@ export const savedMealCalories = (meal: SavedMeal) =>
 /** The member's saved meals ("My usual breakfast"), logged together in one tap. */
 export function useSavedMeals(userId: string | null) {
   const [meals, setMeals] = useState<SavedMeal[]>([]);
+  // Reload after "Estimate with AI" fills in macros for the foods in saved meals.
+  const [reloadKey, setReloadKey] = useState(0);
+  useEffect(() => {
+    const reload = () => setReloadKey((k) => k + 1);
+    window.addEventListener(SAVED_FOODS_CHANGED, reload);
+    return () => window.removeEventListener(SAVED_FOODS_CHANGED, reload);
+  }, []);
 
   useEffect(() => {
     if (!userId) {
@@ -33,7 +41,7 @@ export function useSavedMeals(userId: string | null) {
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .then(({ data }) => setMeals((data ?? []) as SavedMeal[]));
-  }, [userId]);
+  }, [userId, reloadKey]);
 
   async function saveMeal(name: string, items: SavedMealItem[]) {
     if (!userId) return;

@@ -1,10 +1,18 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { SAVED_FOODS_CHANGED } from "../lib/foodMacros";
 import type { FoodResult } from "../lib/usdaFoodSearch";
 import type { MacrosPer100g } from "../types";
 
 export function useCustomFoods(userId: string | null) {
   const [foods, setFoods] = useState<FoodResult[]>([]);
+  // Reload after "Estimate with AI" fills in macros for saved foods.
+  const [reloadKey, setReloadKey] = useState(0);
+  useEffect(() => {
+    const reload = () => setReloadKey((k) => k + 1);
+    window.addEventListener(SAVED_FOODS_CHANGED, reload);
+    return () => window.removeEventListener(SAVED_FOODS_CHANGED, reload);
+  }, []);
 
   useEffect(() => {
     if (!userId) {
@@ -29,7 +37,7 @@ export function useCustomFoods(userId: string | null) {
           })),
         );
       });
-  }, [userId]);
+  }, [userId, reloadKey]);
 
   // Called after a manual entry so the same food can be picked from search later.
   // A barcode, when given, lets a scan of the same product find this food next time.

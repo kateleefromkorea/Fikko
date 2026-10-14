@@ -62,10 +62,10 @@ function bestMatch(term: string, grams: number, kcalEstimate: number, hits: Food
 }
 
 /**
- * Per-100g protein, carbs and fat from Claude's gram estimates for the portion. They're kept
- * consistent with its calorie estimate (4 kcal a gram for protein and carbs, 9 for fat): if they
- * disagree by more than a quarter they're scaled to match it, and they can't add up to more than
- * the food weighs. Null when Claude didn't give all three.
+ * Per-100g protein, carbs and fat from Claude's gram estimates for the portion. The calories are
+ * what the member sees, so the macros are scaled to add up to exactly them (4 kcal a gram for
+ * protein and carbs, 9 for fat), and can't weigh more than the food does. Null when Claude didn't
+ * give all three.
  */
 export function estimatedMacros(f: Pick<ClaudeFood, "protein_g" | "carbs_g" | "fat_g">, grams: number, kcal: number) {
   const p = clampNum(f.protein_g, 0, grams), c = clampNum(f.carbs_g, 0, grams), fat = clampNum(f.fat_g, 0, grams);
@@ -75,8 +75,7 @@ export function estimatedMacros(f: Pick<ClaudeFood, "protein_g" | "carbs_g" | "f
   // Black coffee, water, diet drinks: nothing to report, and that's a real answer.
   if (kcal <= 10 && energy <= 15) return { proteinPer100g: 0, carbsPer100g: 0, fatPer100g: 0 };
   if (energy <= 0 || kcal <= 0) return null;
-  const ratio = energy / kcal;
-  let scale = ratio < 0.75 || ratio > 1.25 ? 1 / ratio : 1;
+  let scale = kcal / energy;
   if ((p + c + fat) * scale > grams) scale = grams / (p + c + fat);
   return { proteinPer100g: per100(p * scale), carbsPer100g: per100(c * scale), fatPer100g: per100(fat * scale) };
 }

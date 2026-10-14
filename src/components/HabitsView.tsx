@@ -46,6 +46,7 @@ import { dayRange, sleepHours } from "../lib/dashboardStats";
 import { macroTargets, sumMacros } from "../lib/macros";
 import MacroBars from "./MacroBars";
 import { dayBurn } from "../lib/activities";
+import MissingMacrosNote from "./MissingMacrosNote";
 import ActivityCard from "./activity/ActivityCard";
 
 function timeGreeting() {
@@ -599,11 +600,7 @@ function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog, biome
       {/* Shown for every member, whatever their goal or tracking style; 0 g until something's logged. */}
       <div className="mt-6 border-t pt-5">
         <MacroBars eaten={macrosEaten} target={macroTarget} />
-        {missing > 0 && (
-          <p className="mt-3 text-xs text-muted-foreground">
-            {missing} item{missing === 1 ? "" : "s"} without macro data {missing === 1 ? "isn't" : "aren't"} counted in these bars.
-          </p>
-        )}
+        <MissingMacrosNote missing={missing} onFilled={foodLog.reload} />
       </div>
 
       {foodLog.loadError && (

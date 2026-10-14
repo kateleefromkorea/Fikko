@@ -8,12 +8,14 @@ import { CUSTOM_ICONS, HabitIcon, type HabitHue } from "@/components/HabitCard";
 import type { useFoodLog } from "@/hooks/useFoodLog";
 import type { ProfileRow } from "@/hooks/useProfile";
 import { activityMinutes, completion, EXERCISE_TARGET_MIN, type CoreHabit } from "@/lib/completion";
+import { shiftDateKey, todayKey } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 import type { HabitData, MealKey } from "@/types";
+import MealPicker from "@/phone/MealPicker";
 import PlantHero from "@/phone/PlantHero";
 import Sheet from "@/phone/Sheet";
 import StickyDateBar from "@/phone/StickyDateBar";
-import { addGlass, bumpCustom, mealForNow, medsTaken, QUICK_MOODS, setMood, takeAllMeds } from "@/phone/quickLog";
+import { addGlass, bumpCustom, medsTaken, QUICK_MOODS, setMood, takeAllMeds } from "@/phone/quickLog";
 
 type Detail = CoreHabit | "custom";
 
@@ -48,6 +50,7 @@ export default function TodayScreen(props: Props) {
   const { data, onChange, onQuick, activeDate, onDateChange, profile, medications, goals, foodLog, onLogMeal, hop, onOpenGarden } = props;
   const [detail, setDetail] = useState<Detail | null>(null);
   const [showDone, setShowDone] = useState(false);
+  const [choosingMeal, setChoosingMeal] = useState(false);
   const { core, custom, done, total } = completion(data, activeDate, goals.water);
   const cardProps: HabitCardProps = { ...props, onChange };
 
@@ -70,7 +73,7 @@ export default function TodayScreen(props: Props) {
       case "food":
         return (
           <HabitRow key={key} {...common} sub={eaten ? `${eaten.toLocaleString()} of ${Math.round(goals.calories).toLocaleString()} kcal` : "Nothing logged yet"}
-            action={<Pill onClick={() => onLogMeal(mealForNow())}>Log</Pill>}
+            action={<Pill onClick={() => setChoosingMeal(true)}>Log</Pill>}
           />
         );
       case "water":
@@ -210,6 +213,13 @@ export default function TodayScreen(props: Props) {
           Add a habit
         </button>
       </div>
+
+      <MealPicker
+        open={choosingMeal}
+        onClose={() => setChoosingMeal(false)}
+        onPick={onLogMeal}
+        date={activeDate === todayKey() ? undefined : activeDate === shiftDateKey(todayKey(), -1) ? "yesterday" : new Date(activeDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "long" })}
+      />
 
       <Sheet open={detail !== null} onClose={() => setDetail(null)} title={detail ? TITLE[detail] : ""} className="sheet-card" hideTitle={detail !== "custom"}>
         {detail === "food" && <FoodCard {...cardProps} foodLog={foodLog} />}

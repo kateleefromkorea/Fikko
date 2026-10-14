@@ -1,5 +1,6 @@
 // HabitsView first: quickLog reads its mood options as it loads.
-import { CORE_META, REST_SCALE, moodOption, scrollToCard, type HabitCardProps } from "@/components/HabitsView";
+import { CORE_META, MEALS, REST_SCALE, moodOption, scrollToCard, type HabitCardProps } from "@/components/HabitsView";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useState, type ReactNode } from "react";
 import { Check, ChevronDown, ChevronRight, Plus, Sparkles, type LucideIcon } from "lucide-react";
 import { CUSTOM_ICONS, HabitIcon, SectionLabel, softCardCls, type HabitHue } from "@/components/HabitCard";
@@ -52,7 +53,7 @@ export default function UpNext({ data, activeDate, goals, medications, foodLog, 
       case "food":
         return (
           <Row key={key} {...common} sub={eaten ? `${eaten.toLocaleString()} of ${Math.round(goals.calories).toLocaleString()} kcal` : "Nothing logged yet"}
-            action={<Action onClick={() => onLogMeal(mealForNow())}>Log meal</Action>}
+            action={<MealMenu onPick={onLogMeal} />}
           />
         );
       case "water":
@@ -67,17 +68,18 @@ export default function UpNext({ data, activeDate, goals, medications, foodLog, 
         );
       case "mood":
         return (
-          <Row key={key} {...common} wide={!isDone} sub={mood ? `Feeling ${mood.label.toLowerCase()}` : "How are you feeling?"}
+          <Row key={key} {...common} sub={mood ? `Feeling ${mood.label.toLowerCase()}` : "How are you feeling?"}
             action={(
-              <div className="flex shrink-0 gap-1.5" role="group" aria-label="Mood">
+              <div className="flex shrink-0 gap-1" role="group" aria-label="Mood">
                 {QUICK_MOODS.map((m) => (
                   <button
                     key={m.key}
                     onClick={() => onQuick((d) => setMood(d, activeDate, m.key), `Feeling ${m.label.toLowerCase()}, saved`)}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-full bg-foreground/[0.04] px-3 text-sm font-medium text-foreground/80 transition-colors hover:bg-[var(--mood)] hover:text-[var(--mood-fg)]"
+                    aria-label={m.label}
+                    title={m.label}
+                    className="grid size-8 place-items-center rounded-full bg-foreground/[0.05] text-[var(--mood-fg)] transition-colors hover:bg-[var(--mood)]"
                   >
-                    <m.icon className="size-4 text-[var(--mood-fg)]" aria-hidden="true" />
-                    {m.label}
+                    <m.icon className="size-[1.125rem]" aria-hidden="true" />
                   </button>
                 ))}
               </div>
@@ -133,14 +135,7 @@ export default function UpNext({ data, activeDate, goals, medications, foodLog, 
     );
   };
 
-  // Mood has five choices to show, so it takes a full-width row of its own at the end;
-  // every other row is the same height, so the cards line up.
-  const open = core.filter((c) => !c.done);
-  const upNext = [
-    ...open.filter((c) => c.key !== "mood").map((c) => row(c.key, false)),
-    ...custom.filter((c) => !c.done).map(customRow),
-    ...open.filter((c) => c.key === "mood").map((c) => row(c.key, false)),
-  ];
+  const upNext = [...core.filter((c) => !c.done).map((c) => row(c.key, false)), ...custom.filter((c) => !c.done).map(customRow)];
   const finished = [...core.filter((c) => c.done).map((c) => row(c.key, true)), ...custom.filter((c) => c.done).map(customRow)];
   const left = total - done;
 
@@ -151,7 +146,7 @@ export default function UpNext({ data, activeDate, goals, medications, foodLog, 
       </SectionLabel>
 
       {upNext.length > 0 ? (
-        <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{upNext}</ul>
+        <RowList>{upNext}</RowList>
       ) : (
         <div className={cn("flex items-center gap-3 rounded-2xl bg-white p-4", softCardCls)}>
           <span className="grid size-10 shrink-0 place-items-center rounded-full bg-button text-white" aria-hidden="true"><Check className="size-5" strokeWidth={3} /></span>
@@ -172,7 +167,7 @@ export default function UpNext({ data, activeDate, goals, medications, foodLog, 
             Done ({finished.length})
             <ChevronDown className={cn("size-4 transition-transform", showDone && "rotate-180")} aria-hidden="true" />
           </button>
-          {showDone && <ul className="mt-2 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{finished}</ul>}
+          {showDone && <RowList className="mt-2">{finished}</RowList>}
         </div>
       )}
     </section>
@@ -180,14 +175,12 @@ export default function UpNext({ data, activeDate, goals, medications, foodLog, 
 }
 
 /** One habit: its icon, name and progress (click to jump to its card), and the quick action on the right. */
-function Row({ icon, hue, title, sub, done, onOpen, action, below, wide }: {
+function Row({ icon, hue, title, sub, done, onOpen, action }: {
   icon: LucideIcon; hue: HabitHue; title: string; sub: string; done: boolean; onOpen: () => void;
-  action?: ReactNode; below?: ReactNode;
-  /** Spans the whole row, for an action too wide to share it. */
-  wide?: boolean;
+  action?: ReactNode;
 }) {
   return (
-    <li className={cn("rounded-2xl bg-white px-4 py-3", wide && "sm:col-span-full", softCardCls)}>
+    <li className="bg-white px-4 py-3">
       <div className="flex min-h-11 items-center gap-3">
         <button onClick={onOpen} className="group flex min-w-0 flex-1 items-center gap-3 text-left" aria-label={`${title}: ${sub}${done ? ", done" : ""}. Go to the ${title} card`}>
           <span className="relative">
@@ -202,12 +195,50 @@ function Row({ icon, hue, title, sub, done, onOpen, action, below, wide }: {
             <span className={cn("block truncate font-semibold group-hover:underline", done && "text-foreground/70")}>{title}</span>
             <span className="block truncate text-sm text-muted-foreground">{sub}</span>
           </span>
-          {(done || (!action && !below)) && <ChevronRight className="size-4 shrink-0 text-muted-foreground/60" aria-hidden="true" />}
+          {(done || !action) && <ChevronRight className="size-4 shrink-0 text-muted-foreground/60" aria-hidden="true" />}
         </button>
         {!done && action}
       </div>
-      {below}
     </li>
+  );
+}
+
+/**
+ * The habits as one white card: two columns of rows split by hairlines (the
+ * gap shows the grey behind them). An odd one out is padded with a blank cell
+ * so the card stays a clean rectangle.
+ */
+function RowList({ children, className }: { children: ReactNode[]; className?: string }) {
+  return (
+    <ul className={cn("grid gap-px overflow-hidden rounded-2xl bg-foreground/[0.08] sm:grid-cols-2", softCardCls, className)}>
+      {children}
+      {children.length % 2 === 1 && <li aria-hidden="true" className="hidden bg-white sm:block" />}
+    </ul>
+  );
+}
+
+/** "Log meal": a menu of the four meals, so food can go to any of them whatever the time (the one around now is marked). */
+function MealMenu({ onPick }: { onPick: (meal: MealKey) => void }) {
+  const now = mealForNow();
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button className="inline-flex h-9 shrink-0 items-center gap-1 rounded-full bg-[#DDF5F1] px-3.5 text-sm font-semibold text-[#0A6E63] transition-colors hover:bg-[#CDEFE9] data-[state=open]:bg-[#CDEFE9]">
+          Log meal
+          <ChevronDown className="size-4" aria-hidden="true" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-44">
+        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Which meal?</DropdownMenuLabel>
+        {MEALS.map((m) => (
+          <DropdownMenuItem key={m.key} onSelect={() => onPick(m.key)}>
+            <m.icon style={{ color: m.color }} />
+            {m.label}
+            {m.key === now && <span className="ml-auto text-xs text-muted-foreground">Now</span>}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

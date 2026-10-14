@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { friendlyError } from "../../lib/errors";
 import { usePlan } from "../../hooks/usePlan";
+import { useUpgrade } from "../../hooks/useUpgrade";
 
 const PERIODS: { key: Period | "all"; label: string; pick?: string }[] = [
   { key: "day", label: "Day", pick: "Which day?" },
@@ -37,6 +38,7 @@ interface Props {
 
 export default function ExportDialog({ userId, onClose }: Props) {
   const { limits } = usePlan();
+  const openUpgrade = useUpgrade();
   const [period, setPeriod] = useState<Period | "all">("month");
   const [day, setDay] = useState(todayKey());
   const [format, setFormat] = useState<Choice>("pdf");
@@ -156,6 +158,14 @@ export default function ExportDialog({ userId, onClose }: Props) {
           </p>
         )}
 
+        {openUpgrade && (!limits.csvExport || !limits.deepDiveReports) && (
+          <p className="text-xs text-muted-foreground">
+            Spreadsheets and reports come with Max.{" "}
+            <button type="button" onClick={() => { onClose(); openUpgrade(limits.csvExport ? "reports" : "export"); }} className="font-medium text-primary-ink underline underline-offset-2">
+              See Max
+            </button>
+          </p>
+        )}
         {error && <p className="text-sm text-destructive">{error}</p>}
 
         <DialogFooter className="gap-2">

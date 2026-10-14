@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
-import { Footprints, Trophy, Utensils, X, type LucideIcon } from "lucide-react";
+import { Footprints, Lock, Trophy, Utensils, X, type LucideIcon } from "lucide-react";
 import type { BiometricData, HabitData } from "../types";
-import { DEMO_INSIGHTS, pickInsights, type Insight } from "../lib/insights";
+import { DEMO_INSIGHTS, lockPatterns, pickInsights, type Insight } from "../lib/insights";
+import { usePlan } from "../hooks/usePlan";
+import { useUpgrade } from "../hooks/useUpgrade";
 import { todayKey } from "../lib/dates";
 
 const SECTION_ICON: Record<Insight["section"], LucideIcon> = { nutrition: Utensils, movement: Footprints };
@@ -30,13 +32,20 @@ export function useInsights({ data, biometrics, userId, activeDate, calorieTarge
   const [dismissed, setDismissed] = useState(() => readDismissed(userId));
   const demo = useMemo(() => new URLSearchParams(window.location.search).get("insights") === "demo", []);
   const today = todayKey();
+  const { limits } = usePlan();
+  const openUpgrade = useUpgrade();
+  // Locked cards only where there's somewhere to upgrade; otherwise patterns are left out.
+  const lock = !limits.patternInsights;
 
   const insights = useMemo(() => {
     if (activeDate !== today) return [];
     const hidden = new Set(Object.keys(dismissed));
-    if (demo) return DEMO_INSIGHTS.filter((i) => !hidden.has(i.id));
-    return pickInsights({ data, biometrics, today, hour: new Date().getHours(), calorieTarget }, hidden);
-  }, [data, biometrics, today, activeDate, calorieTarget, dismissed, demo]);
+    const picked = demo
+      ? DEMO_INSIGHTS.filter((i) => !hidden.has(i.id))
+      : pickInsights({ data, biometrics, today, hour: new Date().getHours(), calorieTarget }, hidden);
+    if (!lock) return picked;
+    return openUpgrade ? lockPatterns(picked) : picked.filter((i) => i.kind !== "pattern");
+  }, [data, biometrics, today, activeDate, calorieTarget, dismissed, demo, lock, openUpgrade]);
 
   const dismiss = (id: string) => {
     const next = { ...dismissed, [id]: Date.now() };
@@ -53,7 +62,9 @@ export default function InsightCard({ insight, onDismiss, onAction }: {
   onDismiss: () => void;
   onAction: (cardId: string) => void;
 }) {
-  const Icon = insight.kind === "streak" ? Trophy : SECTION_ICON[insight.section];
+  const openUpgrade = useUpgrade();
+  const { trialAvailable } = usePlan();
+  const Icon = insight.locked ? Lock : insight.kind === "streak" ? Trophy : SECTION_ICON[insight.section];
   return (
     <aside
       aria-label={`Insight: ${insight.headline}`}
@@ -65,9 +76,18 @@ export default function InsightCard({ insight, onDismiss, onAction }: {
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium">{insight.headline}</p>
         <p className="mt-0.5 text-sm text-muted-foreground">{insight.body}</p>
-        {(insight.cta || insight.evidence) && (
+        {(insight.cta || insight.evidence || insight.locked) && (
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-            {insight.cta && (
+            {insight.locked && openUpgrade && (
+              <button
+                type="button"
+                onClick={() => openUpgrade("insights")}
+                className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+              >
+                {trialAvailable ? "Try Premium free" : "See plans"}
+              </button>
+            )}
+            {insight.cta && !insight.locked && (
               <button
                 type="button"
                 onClick={() => onAction(insight.cta!.cardId)}

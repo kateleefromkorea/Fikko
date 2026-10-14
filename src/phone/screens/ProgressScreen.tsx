@@ -3,6 +3,8 @@ import { ChevronRight, FileText, MessageCircle, Target, Watch } from "lucide-rea
 import type { BiometricData, HabitData } from "@/types";
 import type { ProfileRow } from "@/hooks/useProfile";
 import { usePlan } from "@/hooks/usePlan";
+import { useUpgrade } from "@/hooks/useUpgrade";
+import HistoryNote from "@/components/HistoryNote";
 import { withDeviceActivity, type CoreHabit } from "@/lib/completion";
 import { goalProgress, type GoalLine, type GoalStatus } from "@/lib/goalProgress";
 import {
@@ -72,21 +74,26 @@ export default function ProgressScreen({ data: logged, biometrics, profile, onAs
   const hasWearable = hasWearableData(biometrics);
   const history = useMemo(() => weeksWithHistory(data), [data]);
 
+  const openUpgrade = useUpgrade();
+  const isLocked = (id: Period) => limits.historyDays != null && PERIOD_DAYS[id] > limits.historyDays;
+  // Where upgrading is offered, a locked period opens the upgrade window instead.
   const options = PERIODS.map((p) => {
-    const locked = limits.historyDays != null && PERIOD_DAYS[p.id] > limits.historyDays;
-    return { ...p, disabled: locked, note: locked ? `Your plan shows the last ${limits.historyDays} days.` : undefined };
+    const locked = isLocked(p.id);
+    return { ...p, disabled: locked && !openUpgrade, note: locked ? `Your plan shows the last ${limits.historyDays} days.` : undefined };
   });
+  const choosePeriod = (p: Period) => (isLocked(p) ? openUpgrade?.("history") : setPeriod(p));
 
   return (
     <div className="screen-in">
       <ScreenTitle>Progress</ScreenTitle>
       {/* Stays pinned under the top bar, so the period is always in view. */}
       <div className="sticky top-(--mobile-header-h) z-30 -mx-4 bg-[#F6F7F8]/90 px-4 py-2 backdrop-blur">
-        <Segmented value={period} options={options} onChange={setPeriod} label="Period" className="mb-0" />
+        <Segmented value={period} options={options} onChange={choosePeriod} label="Period" className="mb-0" />
       </div>
 
       <div className="space-y-6 pt-2">
         <Summary ctx={ctx} />
+        <HistoryNote data={logged} />
         <Patterns ctx={ctx} biometrics={biometrics} onAskCoach={onAskCoach} />
         <Consistency ctx={ctx} onOpen={() => setDetail({ kind: "consistency" })} />
 

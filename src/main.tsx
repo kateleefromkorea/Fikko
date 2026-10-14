@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App'
 import { AuthProvider } from './auth/AuthProvider'
 import { PlanProvider } from './hooks/usePlan'
+import { UpgradeProvider } from './hooks/useUpgrade'
 import ErrorBoundary from './components/ErrorBoundary'
 import './index.css'
 // Catches the browser's install offer before React starts (it fires only once).
@@ -26,7 +27,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <ErrorBoundary>
       <AuthProvider>
         <PlanProvider>
-          <App />
+          <UpgradeProvider>
+            <App />
+          </UpgradeProvider>
         </PlanProvider>
       </AuthProvider>
     </ErrorBoundary>

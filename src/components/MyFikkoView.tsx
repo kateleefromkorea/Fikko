@@ -8,7 +8,7 @@ import HarvestDialog from "./fikko/HarvestDialog";
 import ShareGardenDialog from "./fikko/ShareGardenDialog";
 import GardenScene from "./fikko/GardenScene";
 import { usePlan } from "../hooks/usePlan";
-import { PLANS_URL } from "../lib/plan";
+import UpgradeLink from "./UpgradeLink";
 import { useFikkoGarden, type GardenPlant } from "../hooks/useFikkoGarden";
 import type { ProfileRow } from "../hooks/useProfile";
 import type { HabitData } from "../types";
@@ -329,7 +329,7 @@ function TreeCard({ garden, growth, seedName, onMax }: { garden: GardenPlant[]; 
             {onMax
               ? `Grow a plant to full bloom, about ${BLOOM_DAYS} complete days, and Fikko donates and plants a real tree with our planting partner. The plant stays in your garden for good.`
               : `Every plant you grow to full bloom, about ${BLOOM_DAYS} complete days, stays in your garden for good. Max members also get a real tree donated and planted by Fikko for it.`}
-            {!onMax && <> <a href={PLANS_URL} className="font-medium text-primary-ink underline underline-offset-2">See Max</a></>}
+            {!onMax && <> <UpgradeLink reason="trees">See Max</UpgradeLink></>}
           </p>
         </div>
       </div>

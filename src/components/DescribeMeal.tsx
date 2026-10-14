@@ -6,6 +6,9 @@ import { describeMeal, gramsEaten, portionText, type DescribedFood } from "../li
 import { speechRecognition, type SpeechRecognitionLike } from "../lib/voice";
 import { formatMacros, sumMacros } from "../lib/macros";
 import { DB_LIMITS, clamp } from "../lib/limits";
+import { usePlan } from "../hooks/usePlan";
+import { aiLimitReason } from "../lib/upgrade";
+import UpgradeLink from "./UpgradeLink";
 import { friendlyError } from "../lib/errors";
 import { useAiCredits } from "../hooks/useAiCredits";
 import { Badge } from "@/components/ui/badge";
@@ -48,6 +51,8 @@ export default function DescribeMeal({ meal, mealLabel, onAddMany, onUndo, onSna
   const { left, limit, period } = useAiCredits();
   const when = period === "week" ? "this week" : "today";
   const outOfCredits = left === 0;
+  const { plan, enforced } = usePlan();
+  const limitReason = enforced ? aiLimitReason(plan) : null;
 
   useEffect(() => () => recognizer.current?.abort(), []);
 
@@ -347,7 +352,8 @@ export default function DescribeMeal({ meal, mealLabel, onAddMany, onUndo, onSna
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
         <p className="min-w-0 flex-1 basis-48 text-xs text-muted-foreground">
           {outOfCredits
-            ? "You've used all of today's AI credits. They reset at midnight; you can still search foods below."
+            ? <>You've used {period === "week" ? "this week's" : "today's"} AI credits. You can still search foods below.{" "}
+                {limitReason && <UpgradeLink reason={limitReason}>Get more</UpgradeLink>}</>
             : "Fikko works out the foods and portions. Uses one AI credit."}
         </p>
         {left != null && (

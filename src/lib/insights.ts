@@ -23,6 +23,8 @@ export interface Insight {
   cta?: { label: string; cardId: string };
   /** What it's based on, e.g. "Your last 4 weeks". */
   evidence?: string;
+  /** A pattern the member's plan doesn't show: the card says one was found, not what it is. */
+  locked?: boolean;
 }
 
 export interface InsightContext {
@@ -145,6 +147,19 @@ export function pickInsights(ctx: InsightContext, dismissed: Set<string>): Insig
     .filter((i): i is Insight => !!i && !dismissed.has(i.id))
     .sort((a, b) => b.priority - a.priority)
     .slice(0, MAX_INSIGHTS);
+}
+
+/**
+ * On plans without pattern insights, patterns become a locked card that says
+ * Fikko found one in that area. Tips, nudges and streaks stay as they are.
+ */
+export function lockPatterns(insights: Insight[]): Insight[] {
+  return insights.map((i) => i.kind !== "pattern" ? i : {
+    id: i.id, section: i.section, kind: i.kind, priority: i.priority, locked: true,
+    headline: `Fikko found a pattern in your ${i.section === "nutrition" ? "eating" : "activity"}`,
+    body: "Premium shows what it is and one thing to try, from your own logs.",
+    evidence: i.evidence,
+  });
 }
 
 /** Example cards for reviewing the design: open the app with ?insights=demo. */

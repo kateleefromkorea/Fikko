@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Watch } from "lucide-react";
+import { Lock, Watch } from "lucide-react";
 import type { HabitData, BiometricData } from "../types";
 import type { ProfileRow } from "../hooks/useProfile";
 import { goalByKey } from "../lib/metabolics";
@@ -10,8 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePlan } from "../hooks/usePlan";
+import { useUpgrade } from "../hooks/useUpgrade";
 import WeeklyReportCard from "./dashboard/WeeklyReport";
 import DashboardSummary from "./dashboard/DashboardSummary";
+import HistoryNote from "./HistoryNote";
 import WearableSections, { hasWearableData } from "./dashboard/WearableSections";
 import useDashCtx from "./dashboard/useDashCtx";
 import {
@@ -31,8 +33,11 @@ interface Props {
 // ── Shared UI ──────────────────────────────────────────────────────────────
 
 function PeriodToggle({ period, onChange, historyDays }: { period: Period; onChange: (p: Period) => void; historyDays: number | null }) {
+  const openUpgrade = useUpgrade();
+  const locked = (p: Period) => historyDays != null && PERIOD_DAYS[p] > historyDays;
   return (
-    <Tabs value={period} onValueChange={(v) => onChange(v as Period)}>
+    // A locked period opens the upgrade window instead of switching.
+    <Tabs value={period} onValueChange={(v) => (locked(v as Period) ? openUpgrade?.("history") : onChange(v as Period))}>
       {/* Sits on the summary's gradient, so it gets a white track and a solid
           Fikko green for the chosen period to stand out from the panel. */}
       <TabsList className="h-9! bg-white/80 shadow-sm ring-1 ring-primary/15">
@@ -40,12 +45,13 @@ function PeriodToggle({ period, onChange, historyDays }: { period: Period; onCha
           <TabsTrigger
             key={p}
             value={p}
-            disabled={historyDays != null && PERIOD_DAYS[p] > historyDays}
-            title={historyDays != null && PERIOD_DAYS[p] > historyDays ? `Your plan shows the last ${historyDays} days. See plans to look back further.` : undefined}
+            disabled={locked(p) && !openUpgrade}
+            title={locked(p) ? `Your plan shows the last ${historyDays} days. See plans to look back further.` : undefined}
             // A period switch with no tab panels, so nothing for aria-controls to point at.
             aria-controls={undefined}
             className="px-4 capitalize data-active:bg-primary! data-active:text-primary-foreground! data-active:shadow-sm"
           >
+            {locked(p) && <Lock className="size-3 opacity-60" aria-label="Locked" />}
             {p}
           </TabsTrigger>
         ))}
@@ -154,6 +160,7 @@ export default function Dashboard({ data: logged, biometrics, profile, onAskCoac
         note={hasWearable ? "Wearable data included." : undefined}
         report={<WeeklyReportCard data={data} biometrics={biometrics} profile={profile} />}
       />
+      <HistoryNote data={logged} className="-mt-6" />
       {/* What Fikko noticed is the Dashboard's core feature, so it comes first. */}
       <PatternsSection ctx={ctx} onAskCoach={onAskCoach} />
       <ConsistencySection ctx={ctx} />

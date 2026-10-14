@@ -13,6 +13,7 @@ import { PERIOD_DAYS, type Period } from "../../lib/dashboardStats";
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 import UpgradeNote from "../UpgradeNote";
+import { useUpgrade } from "../../hooks/useUpgrade";
 import { C, ChartCard, InsightRow, Section, TrendArea, VitalCard, ax, fmt, ttStyle } from "./ui";
 import { daysAgoKey, todayKey } from "../../lib/dates";
 
@@ -96,6 +97,7 @@ export default function WearableSections({ data, biometrics, period, bio }: {
   bio: boolean;
 }) {
   const days = PERIOD_DAYS[period];
+  const openUpgrade = useUpgrade();
   // Slices
   const bm = biometrics;
   const hrSlice   = last(bm.heartRate, days);
@@ -290,8 +292,30 @@ export default function WearableSections({ data, biometrics, period, bio }: {
         </ChartCard>
       </div>
     </Section>
-    {!bio && (
+    {!bio && (bm.heartRate.length > 0 || bm.hrv.length > 0) && openUpgrade ? (
+      // Their own vitals, blurred: it's clear the numbers are there, just not what they are.
+      <Section title="Vitals" sub="Heart, oxygen and respiratory data from your wearable">
+        <div className="relative">
+          <div aria-hidden="true" inert className="pointer-events-none grid grid-cols-2 gap-4 blur-[6px] select-none md:grid-cols-3 xl:grid-cols-5">
+            <VitalCard label="Resting heart rate" value={String(hrNow)} unit="bpm" sub={`avg ${Math.round(avg(hrSlice))} this ${period}`} />
+            <VitalCard label="HRV" value={String(hrvNow)} unit="ms" sub={`avg ${Math.round(avg(hrvSlice))} this ${period}`} />
+            <VitalCard label="Blood oxygen" value={String(spo2Now)} unit="%" sub={`avg ${avg(spo2Slice).toFixed(1)} this ${period}`} />
+            <VitalCard label="Respiratory rate" value={String(rrNow)} unit="br/min" sub={`avg ${avg(rrSlice).toFixed(1)} this ${period}`} />
+            <VitalCard label="Recovery" value={String(recNow)} unit="%" sub="latest" />
+          </div>
+          <div className="absolute inset-0 grid place-items-center p-2">
+            <UpgradeNote
+              className="max-w-md bg-white/95 shadow-sm"
+              reason="vitals"
+              title="Your heart rate, HRV, sleep stages and recovery are ready"
+              body="Your wearable has already sent them. Premium shows them here, with trends over time."
+            />
+          </div>
+        </div>
+      </Section>
+    ) : !bio && (
       <UpgradeNote
+        reason="vitals"
         title="Vitals, sleep stages and recovery are part of Premium"
         body="Your steps and activity stay free. Premium adds heart rate, HRV, sleep stages, recovery and the rest of your wearable data."
       />

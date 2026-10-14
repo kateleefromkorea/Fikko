@@ -8,6 +8,8 @@
 //   GET, from the hourly cron: sends reminder emails (migration 031, plan in
 //     _lib/reminders.ts). Vercel sends "Authorization: Bearer <CRON_SECRET>",
 //     which is checked before anything runs.
+//     The same run also sends the "your free trial ends soon" email, once per
+//     trial (migration 041).
 //   GET ?unsubscribe=<token>: a page with one button to turn reminders off.
 //     A plain link doesn't do it, because email scanners open links.
 //   POST ?unsubscribe=<token>: turns reminders off. Used by that button and by
@@ -176,6 +178,76 @@ async function sendReminders(db: SupabaseClient, now: Date) {
   return { sent, failed };
 }
 
+// ── Trial ending ───────────────────────────────────────────────────────────
+
+interface TrialRow {
+  user_id: string;
+  email: string;
+  first_name: string;
+  ends_at: string;
+  time_zone: string;
+}
+
+/** The end date in the member's own day, e.g. "Thursday 22 October". Falls back to UTC for an unknown zone. */
+function endDate(iso: string, timeZone: string) {
+  const opts: Intl.DateTimeFormatOptions = { weekday: "long", day: "numeric", month: "long" };
+  try {
+    return new Date(iso).toLocaleDateString("en-GB", { ...opts, timeZone });
+  } catch {
+    return new Date(iso).toLocaleDateString("en-GB", { ...opts, timeZone: "UTC" });
+  }
+}
+
+/** A service email about the member's own trial, sent once. It carries no promotion beyond naming the plans. */
+async function sendTrialEndings(db: SupabaseClient) {
+  const { data, error } = await db.rpc("trials_ending_soon");
+  // Migration 041 not run yet: nothing to do, and the reminders above shouldn't fail because of it.
+  if (error) {
+    console.warn("Trial-ending emails skipped:", error.message);
+    return { sent: 0, failed: 0 };
+  }
+  let sent = 0;
+  let failed = 0;
+  for (const row of (data ?? []) as TrialRow[]) {
+    // Claim the send first, so an overlapping run can't send it twice.
+    const { data: claimed } = await db.from("plan_trials")
+      .update({ ending_email_sent_at: new Date().toISOString() })
+      .eq("user_id", row.user_id).is("ending_email_sent_at", null).select("user_id");
+    if (!claimed?.length) continue;
+
+    const day = endDate(row.ends_at, row.time_zone);
+    const hi = row.first_name ? `${row.first_name}, your` : "Your";
+    const paragraphs = [
+      `${hi} free Premium trial ends on ${day}. Nothing is charged, and you don't need to do anything.`,
+      "If you'd like to keep Premium, choose a plan before then. Otherwise you move back to the Free plan: you'll see the last 7 days of history, 3 custom habits and 5 AI messages a week. Everything you've logged stays safe.",
+      "Cancel any time, and you only pay for the days you use.",
+    ];
+    const upgrade = `${APP_URL}/?open=profile`;
+    try {
+      await sendEmail({
+        to: row.email,
+        subject: "Your Fikko Premium trial ends soon",
+        html: layout({
+          title: "Your Premium trial ends soon",
+          heading: "Your Premium trial ends soon",
+          paragraphs,
+          button: { label: "Choose a plan", url: upgrade },
+          footnote: "We're sending this once because you started a free trial. You won't get more emails about it.",
+        }),
+        text: `${paragraphs.join("\n\n")}\n\nChoose a plan: ${upgrade}\n\nFikko · PipePiper, Seoul · hello@fikko.io`,
+      });
+      sent++;
+    } catch (err) {
+      console.error("Fikko couldn't send a trial-ending email:", err);
+      failed++;
+      // Give it back, so the next hourly run tries again while the trial is still on.
+      await db.from("plan_trials").update({ ending_email_sent_at: null }).eq("user_id", row.user_id);
+    }
+    await new Promise((r) => setTimeout(r, SEND_GAP_MS));
+  }
+  return { sent, failed };
+}
+
 // ── Unsubscribe ────────────────────────────────────────────────────────────
 
 function page(title: string, body: string, status = 200) {
@@ -227,7 +299,8 @@ async function handleGET(request: Request) {
   if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) return json({ error: "Not allowed." }, 401);
   if (!supabaseReady() || !emailReady()) return json({ error: "Not configured." }, 503);
   try {
-    return json(await sendReminders(admin(), new Date()));
+    const db = admin();
+    return json({ ...(await sendReminders(db, new Date())), trials: await sendTrialEndings(db) });
   } catch (err) {
     console.error(err);
     return json({ error: err instanceof Error ? err.message : "Reminders failed." }, 500);

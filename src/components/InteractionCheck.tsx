@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, CheckCircle2, Clock, Copy, Loader2, ShieldAlert, Sparkles } from "lucide-react";
 import { checkInteractions, type InteractionResult, type Severity } from "../lib/interactions";
 import { usePlan } from "../hooks/usePlan";
+import UpgradeLink from "./UpgradeLink";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -100,7 +101,8 @@ export default function InteractionCheck({ names, onClose }: { names: string[]; 
             {result.ai === "plan" && (
               <p className="text-xs text-muted-foreground">
                 {listNames(result.unrecognised)} {result.unrecognised.length === 1 ? "isn't" : "aren't"} on Fikko's
-                built-in list. The AI review for items not on the list is part of Max, so {result.unrecognised.length === 1 ? "it wasn't" : "they weren't"} checked.
+                built-in list. The AI review for items not on the list is part of Max, so {result.unrecognised.length === 1 ? "it wasn't" : "they weren't"} checked.{" "}
+                <UpgradeLink reason="interaction-ai">See Max</UpgradeLink>
               </p>
             )}
             {result.ai === "off" && (

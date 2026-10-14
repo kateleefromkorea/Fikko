@@ -33,23 +33,25 @@ export interface PlanLimits {
   deepDiveReports: boolean;
   /** The coach's weekly check-in (api/coach-checkin.ts). */
   proactiveCoach: boolean;
+  /** Pattern insight cards on the Habits page; Free sees that one was found (app only). */
+  patternInsights: boolean;
 }
 
 export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
   free: {
     customHabits: 3, aiPerWeek: 5, coachPerDay: null, aiPerDay: FAIR_USE_DAILY_AI,
     historyDays: 7, wearableBiometrics: false, interactionAi: false, csvExport: false,
-    deepDiveReports: false, proactiveCoach: false,
+    deepDiveReports: false, proactiveCoach: false, patternInsights: false,
   },
   premium: {
     customHabits: null, aiPerWeek: null, coachPerDay: 20, aiPerDay: FAIR_USE_DAILY_AI,
     historyDays: 30, wearableBiometrics: true, interactionAi: false, csvExport: false,
-    deepDiveReports: false, proactiveCoach: false,
+    deepDiveReports: false, proactiveCoach: false, patternInsights: true,
   },
   max: {
     customHabits: null, aiPerWeek: null, coachPerDay: 50, aiPerDay: FAIR_USE_DAILY_AI,
     historyDays: null, wearableBiometrics: true, interactionAi: true, csvExport: true,
-    deepDiveReports: true, proactiveCoach: true,
+    deepDiveReports: true, proactiveCoach: true, patternInsights: true,
   },
 };
 

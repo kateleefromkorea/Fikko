@@ -15,6 +15,8 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import { Textarea } from "@/components/ui/textarea";
 import { friendlyError } from "../lib/errors";
 import { usePlan } from "../hooks/usePlan";
+import { aiLimitReason } from "../lib/upgrade";
+import UpgradeNote from "./UpgradeNote";
 
 const STARTERS = [
   "How did my week go?",
@@ -75,7 +77,8 @@ export default function CoachView({ profileName, initialDraft = "" }: {
   const [messages, setMessages] = useState<CoachMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [used, setUsed] = useState(0);
-  const { ai } = usePlan();
+  const { ai, plan, enforced } = usePlan();
+  const limitReason = enforced ? aiLimitReason(plan) : null;
   const when = ai.period === "week" ? "this week" : "today";
   const [draft, setDraft] = useState(initialDraft);
   const [streaming, setStreaming] = useState<string | null>(null);
@@ -214,6 +217,13 @@ export default function CoachView({ profileName, initialDraft = "" }: {
                 )}
               </FikkoMessage>
             </div>
+          )}
+          {!loading && left === 0 && limitReason && (
+            <UpgradeNote
+              title={ai.period === "week" ? "You've used this week's AI messages" : "You've used today's AI messages"}
+              body={plan === "free" ? "They come back next week. Premium gives you 20 a day." : "They come back at midnight. Max gives you 50 a day."}
+              reason={limitReason}
+            />
           )}
           <div ref={endRef} />
         </div>

@@ -279,8 +279,9 @@ export default function DayComplete({ data, profile, onDone }: { data: HabitData
           aria-describedby="day-complete-line"
           className={cn("mt-4 flex flex-col items-center px-3 py-1", tappable)}
         >
-        <span className={cn("dc-streak flex items-center gap-2", beat >= 2 && "dc-on")}>
-          <Flame className="dc-flame size-11 text-[#E0782F]" fill="#F5B640" strokeWidth={1.75} aria-hidden="true" />
+        <span className={cn("dc-streak relative flex items-center justify-center", beat >= 2 && "dc-on")}>
+          {/* Beside the number rather than in a row with it, so the number sits dead centre under the ring. */}
+          <Flame className="dc-flame absolute top-1/2 right-full mr-2 size-11 -translate-y-1/2 text-[#E0782F]" fill="#F5B640" strokeWidth={1.75} aria-hidden="true" />
           <span className="dc-odometer text-[4rem] leading-none font-bold tracking-tight tabular-nums" aria-hidden="true">
             <span className="dc-odometer-track">
               <span>{streak - 1}</span>

@@ -71,6 +71,9 @@ const LOCAL_OPTIONS = 4;
 /** Recent foods shown before "Show more", and at most once expanded. */
 const RECENT_SHOWN = 3;
 const RECENT_MAX = 8;
+/** The newest foods shown in "Logged", and saved meals shown, before "Show more"; the rest wait behind a button. */
+const LOGGED_SHOWN = 3;
+const MEALS_SHOWN = 3;
 /** Foods looked back over for the amount last eaten. */
 const HISTORY_SIZE = 40;
 /** Quick amounts, as multiples of the food's usual portion. */
@@ -163,6 +166,10 @@ export default function FoodLogModal({
   // Foods eaten in the last 30 days, at their last amounts; the first few are the Recent list.
   const [history, setHistory] = useState<FoodLogItem[]>([]);
   const [showAllRecent, setShowAllRecent] = useState(false);
+  const [showAllLogged, setShowAllLogged] = useState(false);
+  const [showAllMeals, setShowAllMeals] = useState(false);
+  // The Recent food whose amount is open for changing; the others stay on one line.
+  const [adjusting, setAdjusting] = useState<string | null>(null);
   const [yesterday, setYesterday] = useState<FoodLogItem[]>([]);
   const [namingMeal, setNamingMeal] = useState(false);
   const [mealName, setMealName] = useState("");
@@ -204,6 +211,11 @@ export default function FoodLogModal({
   // The three most recent, and the rest behind "Show more", so the window stays short.
   const recentToShow = showAllRecent ? recentNotLogged : recentNotLogged.slice(0, RECENT_SHOWN);
   const recentHidden = recentNotLogged.length - recentToShow.length;
+  // The same for what's already in this meal (newest last, so the newest three) and for saved meals.
+  const loggedToShow = showAllLogged ? items : items.slice(-LOGGED_SHOWN);
+  const loggedHidden = items.length - loggedToShow.length;
+  const mealsToShow = showAllMeals ? savedMeals : savedMeals.slice(0, MEALS_SHOWN);
+  const mealsHidden = savedMeals.length - mealsToShow.length;
   const yesterdayKcal = yesterday.reduce((s, i) => s + i.calories, 0);
   const browsing = !q && !scanning && !scanned && !picked && !manualMode;
 
@@ -390,10 +402,39 @@ export default function FoodLogModal({
    * One row of a food you can add, from search, a scan or the recent list. A
    * render function rather than a component, so typing grams keeps focus.
    */
-  const resultRow = (result: FoodResult, onRemove?: () => void) => {
+  const resultRow = (result: FoodResult, onRemove?: () => void, compact = false) => {
     const grams = parseFloat(gramsByResult[result.id] ?? "") || defaultGrams(result);
     const base = defaultGrams(result);
     const label = portionLabel(result);
+    // A compact row (Recent) is one line: add it at the amount shown, or tap the amount to change it.
+    if (compact && adjusting !== result.id) {
+      return (
+        <li key={result.id} className="flex items-center gap-2 px-4 py-2.5">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[15px] font-medium">{result.name}</p>
+            <button
+              type="button"
+              onClick={() => setAdjusting(result.id)}
+              aria-label={`Change the amount of ${result.name}`}
+              title="Change the amount"
+              className="inline-flex max-w-full items-center gap-0.5 text-left text-xs text-muted-foreground tabular-nums underline-offset-2 hover:text-foreground hover:underline"
+            >
+              <span className="truncate">{Math.round(grams)} g · {Math.round((result.caloriesPer100g * grams) / 100)} kcal</span>
+              <ChevronDown className="size-3.5 shrink-0" aria-hidden="true" />
+            </button>
+          </div>
+          <Button onClick={() => addResult(result)} aria-label={`Add ${result.name}, ${Math.round(grams)} g`} className="h-9 px-3">
+            <Plus />
+            Add
+          </Button>
+          {onRemove && (
+            <Button variant="ghost" size="icon-sm" onClick={onRemove} aria-label={`Remove ${result.name} from recent`} title="Remove from recent" className="text-muted-foreground">
+              <X />
+            </Button>
+          )}
+        </li>
+      );
+    }
     return (
       <li key={result.id} className="space-y-2.5 px-4 py-3">
         <div className="min-w-0">
@@ -524,8 +565,21 @@ export default function FoodLogModal({
               Nothing logged for {mealLabel.toLowerCase()} yet. Add something below.
             </p>
           ) : (
+            <>
+            {items.length > LOGGED_SHOWN && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowAllLogged((v) => !v)}
+                aria-expanded={showAllLogged}
+                className="h-9 w-full rounded-none border-b text-primary-ink hover:text-primary-ink"
+              >
+                {showAllLogged ? "Show fewer" : `Show ${loggedHidden} earlier ${loggedHidden === 1 ? "item" : "items"}`}
+                <ChevronDown className={cn("transition-transform", showAllLogged && "rotate-180")} />
+              </Button>
+            )}
             <ul className="divide-y">
-              {items.map((item) => (
+              {loggedToShow.map((item) => (
                 // On a phone the amount and calories wrap under a long name instead of squeezing it.
                 <li key={item.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2.5">
                   <div className="min-w-0 flex-1 basis-44">
@@ -558,6 +612,7 @@ export default function FoodLogModal({
                 </li>
               ))}
             </ul>
+            </>
           )}
           {items.length > 0 && (
             <div className="space-y-2 border-t bg-muted/30 px-4 py-3">
@@ -742,7 +797,7 @@ export default function FoodLogModal({
                 <div className="space-y-2">
                   <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Your meals</p>
                   <ul className="divide-y rounded-lg border bg-card">
-                    {savedMeals.map((m) => (
+                    {mealsToShow.map((m) => (
                       <li key={m.id} className="flex items-center gap-2 px-4 py-3">
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium">{m.name}</p>
@@ -760,6 +815,18 @@ export default function FoodLogModal({
                       </li>
                     ))}
                   </ul>
+                  {savedMeals.length > MEALS_SHOWN && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowAllMeals((v) => !v)}
+                      aria-expanded={showAllMeals}
+                      className="h-8 w-full text-primary-ink hover:text-primary-ink"
+                    >
+                      {showAllMeals ? "Show fewer" : `Show ${mealsHidden} more`}
+                      <ChevronDown className={cn("transition-transform", showAllMeals && "rotate-180")} />
+                    </Button>
+                  )}
                 </div>
               )}
 
@@ -770,7 +837,7 @@ export default function FoodLogModal({
                   </p>
                   <ul className="divide-y rounded-lg border bg-card">
                     {recentToShow.map((r) => (
-                      resultRow({ id: `recent-${r.id}`, name: r.name, caloriesPer100g: r.caloriesPer100g, proteinPer100g: r.proteinPer100g, carbsPer100g: r.carbsPer100g, fatPer100g: r.fatPer100g, servingGrams: r.grams }, () => removeRecent(r))
+                      resultRow({ id: `recent-${r.id}`, name: r.name, caloriesPer100g: r.caloriesPer100g, proteinPer100g: r.proteinPer100g, carbsPer100g: r.carbsPer100g, fatPer100g: r.fatPer100g, servingGrams: r.grams }, () => removeRecent(r), true)
                     ))}
                   </ul>
                   {(recentHidden > 0 || (showAllRecent && recentNotLogged.length > RECENT_SHOWN)) && (

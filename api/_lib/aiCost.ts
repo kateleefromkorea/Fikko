@@ -9,11 +9,13 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export type AiFeature = "coach" | "coach_screen" | "coach_review" | "coach_checkin" | "food_macros" | "voice" | "photo" | "interactions" | "recipe";
+export type AiFeature = "coach" | "coach_screen" | "coach_review" | "coach_checkin" | "food_macros" | "voice" | "photo" | "interactions" | "recipe" | "recipe_import";
 
 const PRICES: Record<string, { input: number; output: number; cacheRead: number; cacheWrite: number }> = {
   // Haiku 4.5: US$1 input, US$5 output; cache reads 0.1x input, 5-minute cache writes 1.25x input.
   "claude-haiku-4-5": { input: 1, output: 5, cacheRead: 0.1, cacheWrite: 1.25 },
+  // Opus 5.5: US$4 input, US$20 output, US$0.20 cache reads; 5-minute cache writes 1.25x input.
+  "claude-opus-5-5": { input: 4, output: 20, cacheRead: 0.2, cacheWrite: 5 },
 };
 
 export interface CallUsage { feature: AiFeature; model: string; usage: Anthropic.Usage }

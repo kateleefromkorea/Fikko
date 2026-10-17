@@ -4,12 +4,14 @@
 
 import { allowedByRobots, decodeHtml, FetchError, safeFetch } from "./safeFetch.js";
 import { extractStructured, isComplete } from "./structured.js";
+import { mainText, MIN_CHARS } from "./content.js";
+import type { LlmInput } from "./llm.js";
 import type { ImportedRecipe, ImportStage, PageExtraction } from "./types.js";
 
 /** Why an import didn't produce a recipe. The endpoint turns each into a message with a next step. */
 export type FailureCode =
   | "invalid_url" | "blocked" | "robots" | "unreachable" | "timeout" | "too_large" | "not_html"
-  | "login_required" | "not_found" | "no_recipe";
+  | "login_required" | "not_found" | "no_recipe" | "js_only" | "ai_unavailable";
 
 export class ImportFailure extends Error {
   constructor(public code: FailureCode, message: string, public partial: Partial<ImportedRecipe> | null = null) { super(message); }
@@ -19,6 +21,24 @@ export interface SourceResult {
   /** Where the page really was, after redirects. */
   finalUrl: URL;
   extraction: PageExtraction;
+  /** The page itself, for the AI stage when structured data falls short. */
+  html: string;
+}
+
+/** What the AI stage came back with. `skipped` is shown to the member when it couldn't run. */
+export interface LlmOutcome {
+  recipe: ImportedRecipe | null;
+  /** Claude's reason when it found no recipe. Logged, not shown. */
+  reason?: string | null;
+  skipped?: string;
+}
+
+export interface PipelineOptions {
+  /**
+   * Stage 2: reads the page's text with Claude. Supplied by the endpoint,
+   * which checks the member's AI consent and allowance first.
+   */
+  llm?: (input: LlmInput) => Promise<LlmOutcome>;
 }
 
 /**
@@ -66,7 +86,7 @@ export const webSource: RecipeSource = {
         allowTypes: /text\/html|application\/xhtml\+xml|^$/,
       });
       const html = decodeHtml(page.body, page.contentType);
-      return { finalUrl: page.url, extraction: extractStructured(html, page.url) };
+      return { finalUrl: page.url, extraction: extractStructured(html, page.url), html };
     } catch (err) {
       throw failureFor(err);
     }
@@ -82,31 +102,45 @@ export interface PipelineResult {
 }
 
 /** Runs the stages in order. Throws ImportFailure, with whatever was found as `partial`. */
-export async function runPipeline(url: URL): Promise<PipelineResult> {
+export async function runPipeline(url: URL, options: PipelineOptions = {}): Promise<PipelineResult> {
   const source = SOURCES.find((s) => s.handles(url));
   if (!source) throw new ImportFailure("invalid_url", "We can't import from that kind of link yet.");
-  const { finalUrl, extraction } = await source.extract(url);
+  const { finalUrl, extraction, html } = await source.extract(url);
 
+  // Stage 1: structured data.
   if (isComplete(extraction.recipe) && extraction.stage) {
     return { recipe: extraction.recipe, stage: extraction.stage, finalUrl };
   }
 
-  // Stage 2 (the AI reading the page) slots in here.
-
   const { recipe, meta } = extraction;
+  const siteName = recipe?.source_site ?? meta.site_name ?? finalUrl.hostname.replace(/^www\./, "");
   const partial: Partial<ImportedRecipe> = {
     ...(recipe ?? {}),
     title: recipe?.title || meta.title || "",
     description: recipe?.description || meta.description || "",
     image_url: recipe?.image_url ?? meta.image_url,
+    language: recipe?.language ?? meta.language,
     source_url: finalUrl.toString(),
-    source_site: recipe?.source_site ?? meta.site_name ?? finalUrl.hostname.replace(/^www\./, ""),
+    source_site: siteName,
   };
+
+  // Stage 2: Claude reads the page's text.
+  const content = mainText(html);
+  if (content.text.length < MIN_CHARS) {
+    throw new ImportFailure("js_only", "That page builds its recipe as it loads, so we can't read it. You can type it in yourself.", partial);
+  }
+  if (options.llm) {
+    const out = await options.llm({ page: finalUrl, siteName, text: content.text, truncated: content.truncated, partial });
+    if (isComplete(out.recipe)) return { recipe: out.recipe, stage: "llm", finalUrl };
+    if (out.skipped) throw new ImportFailure("ai_unavailable", out.skipped, partial);
+  }
+
+  // Stage 3: what was found prefills the form.
   throw new ImportFailure(
     "no_recipe",
     recipe
       ? "We found part of a recipe on that page but not all of it. You can fill in the rest yourself."
-      : "We couldn't find a recipe on that page. It may load its recipe in a way we can't read yet.",
+      : "We couldn't find a recipe on that page.",
     partial,
   );
 }

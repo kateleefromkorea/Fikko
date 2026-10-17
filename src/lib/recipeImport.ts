@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import { friendlyError } from "./errors";
+import { notifyAiUsed } from "./aiCredits";
 import type { ImportedRecipe, ImportStage, Ingredient } from "../../api/_lib/recipeImport/types";
 
 // Import from URL: /api/recipe-import reads a recipe page and sends the recipe
@@ -32,7 +33,7 @@ export async function importRecipe(url: string): Promise<ImportResult> {
     res = await fetch("/api/recipe-import", {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ url }),
+      body: JSON.stringify({ url, tzOffset: new Date().getTimezoneOffset() }),
     });
   } catch (err) {
     throw new ImportError(friendlyError(err, "We couldn't reach Fikko. Please try again."), "network", null);
@@ -43,6 +44,8 @@ export async function importRecipe(url: string): Promise<ImportResult> {
     error?: string; code?: string; partial?: Partial<ImportedRecipe> | null; sourceUrl?: string;
   };
   if (out.duplicate) return { kind: "duplicate", ...out.duplicate };
+  // Only a page read by Fikko AI uses a credit; refresh the counter shown elsewhere.
+  if (out.stage === "llm") notifyAiUsed();
   if (!res.ok || !out.recipe || !out.stage || !out.sourceKey) {
     const source = out.sourceUrl && out.sourceKey ? { url: out.sourceUrl, key: out.sourceKey } : null;
     throw new ImportError(out.error ?? "We couldn't import that recipe. Please try again.", out.code ?? "unknown", out.partial ?? null, source);

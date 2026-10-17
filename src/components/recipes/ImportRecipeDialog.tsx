@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { RecipeForm, type FlaggedField, type RecipeFormInitial } from "./AddRecipeDialog";
 import { preparePhoto, RECIPE_TAGS, type NewRecipe, type RecipeTag } from "../../lib/recipes";
 import type { ImportToSave } from "../../lib/aiRecipes";
-import { detailsFor, imageBlob, importRecipe, ImportError, type ImportedRecipe } from "../../lib/recipeImport";
+import { detailsFor, imageBlob, importRecipe, ImportError, type ImportedRecipe, type ImportStage } from "../../lib/recipeImport";
 
 // Private recipes can be longer than shared ones (migration 044).
 const LIMITS = { ingredients: 80, steps: 50 };
@@ -16,6 +16,7 @@ const LIMITS = { ingredients: 80, steps: 50 };
 const FLAG_TEXT: Partial<Record<string, [FlaggedField, string]>> = {
   title: ["title", "We couldn't find the recipe's name."],
   ingredients: ["ingredients", "We couldn't find the ingredients. Add them one per line."],
+  ingredients_unverified: ["ingredients", "We left out lines we couldn't match to the page. Check them against the original."],
   steps: ["steps", "We couldn't find the method. Add the steps one per line."],
   servings: ["servings", "The page doesn't say how many it serves."],
   time: ["minutes", "The page doesn't give a total time."],
@@ -65,19 +66,26 @@ function Credit({ site, author, url, note }: { site: string; author?: string | n
 }
 
 const PROGRESS = ["Opening the page", "Finding the recipe", "Getting the photo"];
+// Pages without recipe data go to Fikko AI, which takes longer; say so rather than look stuck.
+const AI_STEP = "Reading the page with Fikko AI";
 
 /** Step by step while the server works; just a sense of progress, timed to typical pages. */
 function Progress({ site }: { site: string }) {
   const [step, setStep] = useState(0);
+  const [slow, setSlow] = useState(false);
   useEffect(() => {
     const timers = [900, 2200].map((ms, i) => setTimeout(() => setStep(i + 1), ms));
+    timers.push(setTimeout(() => setSlow(true), 4000));
     return () => timers.forEach(clearTimeout);
   }, []);
+  const steps = slow ? [PROGRESS[0], AI_STEP, PROGRESS[2]] : PROGRESS;
   return (
     <div className="space-y-5 py-2" role="status" aria-live="polite">
-      <p className="text-sm text-muted-foreground">Reading {site || "the page"}. This usually takes a few seconds.</p>
+      <p className="text-sm text-muted-foreground">
+        Reading {site || "the page"}. {slow ? "This page needs a closer read, which can take up to half a minute." : "This usually takes a few seconds."}
+      </p>
       <ol className="space-y-3">
-        {PROGRESS.map((label, i) => (
+        {steps.map((label, i) => (
           <li key={label} className={cn("flex items-center gap-3 text-sm", i > step && "text-muted-foreground")}>
             <span className={cn("grid size-6 place-items-center rounded-full", i < step ? "bg-primary text-primary-foreground" : "bg-muted")}>
               {i < step ? <Check className="size-3.5" aria-hidden="true" /> : i === step ? <Loader2 className="size-3.5 animate-spin" aria-hidden="true" /> : null}
@@ -95,7 +103,7 @@ type Stage =
   | { kind: "loading"; site: string }
   | { kind: "duplicate"; id: string; title: string }
   | { kind: "failed"; error: ImportError }
-  | { kind: "review"; recipe: Partial<ImportedRecipe>; photo: Blob | null; source: { url: string; key: string }; manual: boolean };
+  | { kind: "review"; recipe: Partial<ImportedRecipe>; photo: Blob | null; source: { url: string; key: string }; manual: boolean; stage?: ImportStage };
 
 interface Props {
   open: boolean;
@@ -144,6 +152,7 @@ function ImportFlow({ onOpenChange, onSave, onOpenRecipe, busyRef }: Props & { b
         photo,
         source: { url: result.recipe.source_url, key: result.sourceKey },
         manual: false,
+        stage: result.stage,
       });
     } catch (err) {
       if (mine !== attempt.current) return;
@@ -185,6 +194,7 @@ function ImportFlow({ onOpenChange, onSave, onOpenRecipe, busyRef }: Props & { b
   if (stage.kind === "review") {
     const r = stage.recipe;
     const site = r.source_site || new URL(stage.source.url).hostname.replace(/^www\./, "");
+    const byAi = !stage.manual && stage.stage === "llm";
     const lowConfidence = !stage.manual && (r.confidence ?? 1) < 0.7;
     return (
       <RecipeForm
@@ -200,7 +210,13 @@ function ImportFlow({ onOpenChange, onSave, onOpenRecipe, busyRef }: Props & { b
             site={site}
             author={r.author}
             url={stage.source.url}
-            note={lowConfidence ? "Some parts of this page were hard to read. Check the ingredients and steps against the original." : undefined}
+            note={
+              lowConfidence
+                ? "Some parts of this page were hard to read. Check the ingredients and steps against the original."
+                : byAi
+                  ? "Read by Fikko AI, as the page has no recipe data. Worth a quick check against the original."
+                  : undefined
+            }
           />
         }
         onSubmit={(input, photo) => save(stage, input, photo)}

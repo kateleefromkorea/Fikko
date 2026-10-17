@@ -2,22 +2,32 @@
 // and send back the recipe for them to check and save to their private
 // library (ai_recipes, migration 044). Nothing is saved here.
 //
-//   POST { url: string }  with "Authorization: Bearer <member session token>"
+//   POST { url: string, tzOffset?: number }  with "Authorization: Bearer <member session token>"
 //
 //   200 { recipe, stage, sourceKey, imageData }   recipe found; imageData is the photo as a data: URL, or null
 //   200 { duplicate: { id, title } }              the member already has this page in their library
 //   4xx { error, code, partial?, sourceUrl?, sourceKey? }   couldn't import; partial prefills the manual form
+//
+// Structured data (JSON-LD, microdata) is read first and costs nothing. Only a
+// page without it goes to Claude, which needs the member's AI consent and uses
+// one AI credit when it finds a recipe (none when it doesn't).
 //
 // Pages are fetched with the SSRF guards in _lib/recipeImport/safeFetch.ts. What
 // a page gave us is cached by normalised URL (recipe_import_cache), so the same
 // link is only read once. Logs record the stage, timing and outcome, never
 // page contents or who asked.
 
+import Anthropic from "@anthropic-ai/sdk";
 import { admin, json, memberFrom, supabaseReady } from "./_lib/devices.js";
+import { checkAllowance, clampOffset, limitMessage, recordUse } from "./_lib/aiUsage.js";
+import { recordCosts } from "./_lib/aiCost.js";
+import { consentError } from "./_lib/consent.js";
+import { extractWithClaude, MODEL, type LlmInput } from "./_lib/recipeImport/llm.js";
+import { isComplete } from "./_lib/recipeImport/structured.js";
 import { OPTIONS, withCors } from "./_lib/cors.js";
 import { SLOW_DOWN, withinLimits } from "./_lib/rateLimit.js";
 import { InvalidUrlError, normalizeUrl, sourceKey } from "./_lib/recipeImport/url.js";
-import { fetchImage, ImportFailure, runPipeline } from "./_lib/recipeImport/pipeline.js";
+import { fetchImage, ImportFailure, runPipeline, type LlmOutcome } from "./_lib/recipeImport/pipeline.js";
 import type { ImportedRecipe, ImportStage } from "./_lib/recipeImport/types.js";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -40,6 +50,30 @@ async function cached(db: SupabaseClient, key: string) {
   return (data as { recipe: ImportedRecipe; stage: ImportStage } | null) ?? null;
 }
 
+/** Stage 2, for one member: checks consent and allowance, calls Claude, records cost and credit. */
+function claudeFor(db: SupabaseClient, userId: string, tzOffset: number) {
+  return async (input: LlmInput): Promise<LlmOutcome> => {
+    if (!process.env.ANTHROPIC_API_KEY) return { recipe: null, skipped: "This page needs Fikko AI to read it, which isn't set up yet. You can type the recipe in yourself." };
+    if (await consentError(db, userId, ["ai_processing"])) {
+      return { recipe: null, skipped: "This page needs Fikko AI to read it, and AI features are turned off. You can turn them on in Profile → Privacy, or type the recipe in yourself." };
+    }
+    const { blocked, limit } = await checkAllowance(db, userId, tzOffset);
+    if (blocked === "fast") return { recipe: null, skipped: SLOW_DOWN };
+    if (blocked) return { recipe: null, skipped: `This page needs Fikko AI to read it. ${limitMessage(blocked, limit)}` };
+    try {
+      const out = await extractWithClaude(input);
+      if (out.usage) await recordCosts(db, userId, [{ feature: "recipe_import", model: MODEL, usage: out.usage }]);
+      // A credit only when a recipe came back.
+      if (isComplete(out.recipe)) await recordUse(db, userId);
+      return out;
+    } catch (err) {
+      if (err instanceof Anthropic.RateLimitError) return { recipe: null, skipped: "Fikko is busy right now. Please try again in a minute." };
+      log({ outcome: "llm_error", status: err instanceof Anthropic.APIError ? err.status : null });
+      return { recipe: null, skipped: "We couldn't read that page just now. Please try again, or type the recipe in yourself." };
+    }
+  };
+}
+
 async function handlePOST(request: Request) {
   const started = Date.now();
   if (!supabaseReady()) return json({ error: "Recipe import isn't configured on the server." }, 503);
@@ -49,7 +83,7 @@ async function handlePOST(request: Request) {
   if (!member) return json({ error: "Sign in again to continue." }, 401);
   if (!(await withinLimits(db, `recipe-import:${member.id}`, LIMITS))) return json({ error: SLOW_DOWN, code: "rate_limited" }, 429);
 
-  const body = (await request.json().catch(() => ({}))) as { url?: unknown };
+  const body = (await request.json().catch(() => ({}))) as { url?: unknown; tzOffset?: unknown };
   let url: URL;
   try {
     url = normalizeUrl(typeof body.url === "string" ? body.url : "");
@@ -79,7 +113,7 @@ async function handlePOST(request: Request) {
     }
   } else {
     try {
-      const result = await runPipeline(url);
+      const result = await runPipeline(url, { llm: claudeFor(db, member.id, clampOffset(body.tzOffset)) });
       ({ recipe, stage } = result);
       finalKey = sourceKey(result.finalUrl);
     } catch (err) {

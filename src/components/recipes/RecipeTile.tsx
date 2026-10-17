@@ -45,7 +45,7 @@ export default function RecipeTile({
           )}
         </div>
         <div className="space-y-1 px-1 pt-2.5">
-          <h3 className="line-clamp-2 text-sm leading-snug font-semibold">{recipe.title}</h3>
+          <h3 lang={recipe.language ?? undefined} className="line-clamp-2 text-sm leading-snug font-semibold">{recipe.title}</h3>
           <p className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs text-muted-foreground">
             {recipe.minutes != null && (
               <span className="inline-flex items-center gap-1"><Clock className="size-3" aria-hidden="true" />{recipe.minutes} min</span>
@@ -60,7 +60,7 @@ export default function RecipeTile({
           </p>
           {clash && <p className="text-xs font-medium text-destructive">{clash}</p>}
           <p className="truncate text-xs text-muted-foreground">
-            {recipe.source === "fikko" ? "Fikko recipe" : recipe.source === "ai" ? "Your AI recipe" : `By ${recipe.authorName}`}
+            {recipe.source === "fikko" ? "Fikko recipe" : recipe.origin === "imported" ? `From ${recipe.sourceSite}` : recipe.source === "ai" ? "Your AI recipe" : `By ${recipe.authorName}`}
           </p>
         </div>
       </button>

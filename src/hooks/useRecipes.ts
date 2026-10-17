@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import * as api from "../lib/recipes";
 import type { NewRecipe, Recipe } from "../lib/recipes";
 import { RECIPE_CATALOG } from "../lib/recipeCatalog";
-import { deleteAiRecipe, fetchAiRecipes, saveAiRecipe } from "../lib/aiRecipes";
+import { deleteAiRecipe, fetchAiRecipes, saveAiRecipe, saveImportedRecipe, type ImportToSave } from "../lib/aiRecipes";
 import { EMPTY_REWARDS, fetchFeatured, fetchRewards, type Rewards } from "../lib/rewards";
 
 const CATALOG = RECIPE_CATALOG.map(api.fromCatalog);
@@ -100,8 +100,15 @@ export function useRecipes(userId: string) {
   }
 
   async function removeAi(recipe: Recipe) {
-    await deleteAiRecipe(recipe.key);
+    await deleteAiRecipe(recipe);
     setAiRecipes((prev) => prev.filter((r) => r.key !== recipe.key));
+  }
+
+  /** Saves a recipe imported from a web page to the private library. Throws with a readable message. */
+  async function saveImport(input: ImportToSave, photo: Blob | null) {
+    const recipe = await saveImportedRecipe(userId, input, photo);
+    setAiRecipes((prev) => [recipe, ...prev]);
+    return recipe;
   }
 
   /** Reports a recipe and hides it from this member straight away. */
@@ -110,5 +117,5 @@ export function useRecipes(userId: string) {
     setMemberRecipes((prev) => prev.filter((r) => r.key !== recipe.key));
   }
 
-  return { recipes, saved, loading, error, setError, reload, toggleSave, create, remove, report, rewards, featured, saveIdea, removeAi };
+  return { recipes, saved, loading, error, setError, reload, toggleSave, create, remove, report, rewards, featured, saveIdea, removeAi, saveImport };
 }

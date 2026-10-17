@@ -54,8 +54,19 @@ export interface CatalogRecipe {
 export interface Recipe {
   /** Catalogue id, or a member recipe's uuid. Also the key for saves. */
   key: string;
-  /** "ai": the member's own AI recipe, private to them (see aiRecipes.ts). */
+  /**
+   * "ai": in the member's private library (see aiRecipes.ts), either an AI
+   * recipe or one imported from a web page; `origin` says which.
+   */
   source: "fikko" | "member" | "ai";
+  /** Private library recipes: made by Fikko AI, or imported from a web page. */
+  origin?: "ai" | "imported";
+  /** Imported recipes: the page, its site and author, always credited. */
+  sourceUrl?: string | null;
+  sourceSite?: string | null;
+  sourceAuthor?: string | null;
+  /** The recipe's language ("ja", "ko"), so it's shown with the right fonts. */
+  language?: string | null;
   title: string;
   description: string;
   tags: RecipeTag[];
@@ -168,7 +179,7 @@ function friendly(error: { message: string; code?: string }, fallback: string) {
   return new Error(fallback);
 }
 
-async function signPhotos(paths: string[]): Promise<Map<string, string>> {
+export async function signPhotos(paths: string[]): Promise<Map<string, string>> {
   const urls = new Map<string, string>();
   if (!paths.length) return urls;
   const { data } = await supabase.storage.from(BUCKET).createSignedUrls(paths, PHOTO_LINK_SECONDS);
@@ -207,7 +218,7 @@ export async function setSaved(userId: string, key: string, saved: boolean) {
  * Shrinks a photo to at most 1600px on its longest side and re-encodes it as
  * JPEG. Keeps uploads small and strips location data from phone photos.
  */
-export async function preparePhoto(file: File): Promise<Blob> {
+export async function preparePhoto(file: Blob): Promise<Blob> {
   const bitmap = await createImageBitmap(file);
   const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
   const canvas = document.createElement("canvas");
@@ -218,6 +229,18 @@ export async function preparePhoto(file: File): Promise<Blob> {
   return new Promise((resolve, reject) =>
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Couldn't read that photo."))), "image/jpeg", 0.85),
   );
+}
+
+/** Puts a prepared photo (see preparePhoto) in the member's own folder. Returns its path. */
+export async function uploadRecipePhoto(userId: string, photo: Blob): Promise<string> {
+  const path = `${userId}/${crypto.randomUUID()}.jpg`;
+  const { error } = await supabase.storage.from(BUCKET).upload(path, photo, { contentType: "image/jpeg" });
+  if (error) throw new Error("Couldn't upload the photo. Try a smaller image, or save without one.");
+  return path;
+}
+
+export async function removeRecipePhoto(path: string) {
+  await supabase.storage.from(BUCKET).remove([path]);
 }
 
 export interface NewRecipe {

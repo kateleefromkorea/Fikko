@@ -91,6 +91,9 @@
     },
     "api/coach-checkin.ts": {
       "maxDuration": 300
+    },
+    "api/recipe-import.ts": {
+      "maxDuration": 60
     }
   }
 }

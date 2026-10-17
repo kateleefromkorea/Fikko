@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowRight, Clock, Crown, Flag, Flame, Heart, MoreHorizontal, ShoppingBasket, Sparkles, Trash2, Users } from "lucide-react";
+import { ArrowRight, Clock, Crown, ExternalLink, Flag, Flame, Heart, Link2, MoreHorizontal, ShoppingBasket, Sparkles, Trash2, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -92,10 +92,12 @@ export default function RecipeDetail({
   const r = recipe;
   const own = r?.source === "member" && r.userId === userId;
   const idea = !!r && isIdea(r);
+  const imported = r?.origin === "imported";
 
   return (
     <Dialog open={!!r} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="block max-h-[90vh] overflow-y-auto p-0 sm:max-w-2xl">
+      {/* lang: Japanese and Korean recipes get the right glyphs and line breaking. */}
+      <DialogContent lang={r?.language ?? undefined} className="block max-h-[90vh] overflow-y-auto p-0 sm:max-w-2xl">
         {r && (
           <>
             {r.photoUrl ? (
@@ -115,10 +117,23 @@ export default function RecipeDetail({
                 )}
                 <DialogTitle className="text-2xl font-semibold tracking-tight sm:text-3xl">{r.title}</DialogTitle>
                 <DialogDescription className="text-base">
-                  {r.description || (r.source === "fikko" ? "A Fikko recipe." : r.source === "ai" ? "A recipe idea from Fikko AI." : "Shared by a Fikko member.")}
+                  {r.description || (r.source === "fikko" ? "A Fikko recipe." : imported ? `A recipe from ${r.sourceSite}.` : r.source === "ai" ? "A recipe idea from Fikko AI." : "Shared by a Fikko member.")}
                 </DialogDescription>
                 <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-                  {r.source === "ai" ? (
+                  {imported ? (
+                    <span>
+                      <Link2 className="mr-1 inline size-3.5 align-[-0.125em]" aria-hidden="true" />
+                      Imported from {r.sourceSite}{r.sourceAuthor ? ` · recipe by ${r.sourceAuthor}` : ""} · only you can see it
+                      {r.sourceUrl && (
+                        <>
+                          {" · "}
+                          <a href={r.sourceUrl} target="_blank" rel="noopener noreferrer" className="font-medium whitespace-nowrap text-primary-ink underline-offset-2 hover:underline">
+                            View original<ExternalLink className="ml-1 inline size-3.5 align-[-0.125em]" aria-hidden="true" />
+                          </a>
+                        </>
+                      )}
+                    </span>
+                  ) : r.source === "ai" ? (
                     <span className="inline-flex items-center gap-1">
                       <Sparkles className="size-3.5" aria-hidden="true" />
                       {idea ? "Fikko AI idea · not saved yet" : "Your AI recipe · only you can see it"}
@@ -197,7 +212,7 @@ export default function RecipeDetail({
                       </div>
                     ))}
                   </div>
-                  <p className="mt-2 text-xs text-muted-foreground">{r.source === "ai" ? "AI estimate, per serving." : "Approximate, per serving."}</p>
+                  <p className="mt-2 text-xs text-muted-foreground">{imported ? `From ${r.sourceSite}, per serving.` : r.source === "ai" ? "AI estimate, per serving." : "Approximate, per serving."}</p>
                 </div>
               )}
 

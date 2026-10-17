@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
-import { ChefHat, Loader2, Plus, Search, Sparkles, X } from "lucide-react";
+import { ChefHat, Link2, Loader2, Plus, Search, Sparkles, X } from "lucide-react";
 import PageHeader from "./PageHeader";
 import { EmptyState } from "./HabitCard";
 import RecipeTile from "./recipes/RecipeTile";
 import RecipeDetail from "./recipes/RecipeDetail";
 import AddRecipeDialog from "./recipes/AddRecipeDialog";
+import ImportRecipeDialog from "./recipes/ImportRecipeDialog";
 import FeaturedRecipe from "./recipes/FeaturedRecipe";
 import RewardsCard from "./recipes/RewardsCard";
 import RecipeGenerator from "./recipes/RecipeGenerator";
@@ -96,12 +97,13 @@ export default function RecipesView({ userId, profileName, diets, allergies }: {
   diets: string[];
   allergies: string[];
 }) {
-  const { recipes, saved, loading, error, setError, toggleSave, create, remove, report, rewards, featured, saveIdea, removeAi } = useRecipes(userId);
+  const { recipes, saved, loading, error, setError, toggleSave, create, remove, report, rewards, featured, saveIdea, removeAi, saveImport } = useRecipes(userId);
   const [tags, setTags] = useState<RecipeTag[]>([]);
   const [query, setQuery] = useState("");
   const [source, setSource] = useState<Source>("all");
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<Recipe | null>(null);
   const [reporting, setReporting] = useState<Recipe | null>(null);
   const [reportReason, setReportReason] = useState("");
@@ -201,7 +203,12 @@ export default function RecipesView({ userId, profileName, diets, allergies }: {
         eyebrow="Recipes"
         title={`Something good for ${mealOfDay()}.`}
         subtitle="From the Fikko kitchen and members like you."
-        action={<Button onClick={() => setAdding(true)}><Plus />Share a recipe</Button>}
+        action={
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => setImporting(true)}><Link2 />Import from URL</Button>
+            <Button onClick={() => setAdding(true)}><Plus />Share a recipe</Button>
+          </div>
+        }
       />
 
       <EarlyUsersNote />
@@ -311,14 +318,18 @@ export default function RecipesView({ userId, profileName, diets, allergies }: {
           title={source === "saved" && !tags.length && !query ? "No saved recipes yet" : "No recipes match"}
           body={
             source === "saved" && !tags.length && !query
-              ? "Tap the heart on any recipe to keep it here."
+              ? "Tap the heart on any recipe to keep it here, or import one from a recipe website."
               : source === "member" && !loading && !tags.length && !query
                 ? "No member recipes yet. Be the first to share one."
                 : "Try removing a tag or searching for something else."
           }
           className="py-16"
         >
-          {source === "member" ? <Button onClick={() => setAdding(true)}><Plus />Share a recipe</Button> : undefined}
+          {source === "member" ? (
+            <Button onClick={() => setAdding(true)}><Plus />Share a recipe</Button>
+          ) : source === "saved" && !tags.length && !query ? (
+            <Button variant="outline" onClick={() => setImporting(true)}><Link2 />Import from URL</Button>
+          ) : undefined}
         </EmptyState>
       )}
 
@@ -339,10 +350,29 @@ export default function RecipesView({ userId, profileName, diets, allergies }: {
           setNotice("Thanks for sharing! Other members will see your recipe once we've checked it.");
         }} />
 
+      <ImportRecipeDialog
+        open={importing}
+        onOpenChange={setImporting}
+        onSave={async (input, photo) => {
+          const recipe = await saveImport(input, photo);
+          setNotice("Saved to your recipes. You'll find it under Saved.");
+          return recipe;
+        }}
+        onOpenRecipe={(key) => {
+          // Imported recipes are private, so they live under Saved.
+          setSource("saved");
+          setTags([]);
+          setQuery("");
+          setOpenKey(key);
+        }}
+      />
+
       <Dialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{confirmDelete?.source === "ai" ? "Remove this AI recipe?" : "Delete this recipe?"}</DialogTitle>
+            <DialogTitle>
+              {confirmDelete?.origin === "imported" ? "Remove this recipe?" : confirmDelete?.source === "ai" ? "Remove this AI recipe?" : "Delete this recipe?"}
+            </DialogTitle>
             <DialogDescription>
               {confirmDelete?.source === "ai"
                 ? "It will be removed from your saved recipes. This can't be undone."

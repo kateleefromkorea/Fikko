@@ -54,8 +54,8 @@ export function FoundingWelcome({ userId }: { userId: string }) {
           </DialogDescription>
         </DialogHeader>
         <ul className="space-y-2 rounded-lg bg-muted/60 px-4 py-3 text-sm">
-          <li>Fikko is free for everyone while we launch.</li>
-          <li>When paid plans arrive, you get <strong>Fikko Premium free for 12 months</strong>, starting the day they launch.</li>
+          <li>You get <strong>Fikko Premium free for 12 months</strong>, counted from the day paid plans launch or the day you joined, whichever is later.</li>
+          <li>Everyone else starts on the Free plan and can upgrade any time.</li>
           <li>We&apos;ll email you about a month before your free year ends. We never charge without your agreement.</li>
         </ul>
         <p className="text-center text-xs text-muted-foreground">

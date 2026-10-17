@@ -85,6 +85,7 @@
       "schedule": "5 * * * *"
     }
   ],
+  "regions": ["iad1"],
   "functions": {
     "api/email.ts": {
       "maxDuration": 300

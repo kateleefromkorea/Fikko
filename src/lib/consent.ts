@@ -71,7 +71,7 @@ export const CONSENT_ITEMS: ConsentItem[] = [
     title: "Storing my information outside my country",
     ko: "개인정보 국외 이전 동의",
     details: [
-      { label: "Who and where", text: "Supabase, Inc. stores your account and everything you log on its servers in Singapore. Vercel, Inc. (United States) hosts the app, so your requests pass through it. Google LLC (United States) is involved only if you sign in with Google or connect Fitbit or Pixel Watch." },
+      { label: "Who and where", text: "Supabase, Inc. stores your account and everything you log on its servers in the United States. Vercel, Inc. (also United States) hosts the app, so your requests pass through it. Google LLC (United States) is involved only if you sign in with Google or connect Fitbit or Pixel Watch." },
       { label: "When and how", text: "Whenever you use Fikko, over encrypted connections." },
       { label: "Why", text: "To store your data and run the app." },
       { label: "How long", text: "Until you delete your account, then 30 days more. Hosting logs are kept briefly for security." },
@@ -104,7 +104,7 @@ export const REGION_NOTES: Record<Region, string[]> = {
   ],
   AU: [
     "Health information is sensitive information under the Privacy Act 1988, so we only collect it with your consent (APP 3).",
-    "Some of your information is held overseas, in Singapore and the United States (APP 8). You can complain to the Office of the Australian Information Commissioner.",
+    "Some of your information is held overseas, in the United States (APP 8). You can complain to the Office of the Australian Information Commissioner.",
   ],
   SG: [
     "Under the PDPA, we tell you why we collect your data before we do, and you can withdraw consent at any time.",

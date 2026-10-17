@@ -1,6 +1,6 @@
 # Brief for Korean privacy lawyer (one fixed-fee review)
 
-**Client:** PipePiper (개인사업자, 471-45-01158), operator of Fikko, a habit and wellness tracking web app (health-related data, optional AI features, optional Fitbit/Pixel Watch sync). Launch 2026-11-11 in Korea, Australia, Singapore and the US. Database in Singapore (Supabase); hosting and AI provider in the US.
+**Client:** PipePiper (개인사업자, 471-45-01158), operator of Fikko, a habit and wellness tracking web app (health-related data, optional AI features, optional Fitbit/Pixel Watch sync). Launch 2026-11-11 in the US first, then Australia; Korea review requested because the operator is a Korean business. Database (Supabase), hosting (Vercel) and AI provider (Anthropic) all in the US; no data is stored in Singapore.
 
 **Request:** a fixed-fee review of the finished documents below for PIPA compliance, with tracked edits. We are not asking for drafting from scratch. Please quote a fixed fee and turnaround (needed by ~2026-10-30).
 

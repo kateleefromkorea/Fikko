@@ -132,7 +132,7 @@ export default function DeleteAccountDialog({ profile, onUpdateProfile, onExport
             <div className="space-y-3 text-sm text-muted-foreground">
               <p>
                 After that, your profile, every habit you've logged, your food log, medications and saved foods, your
-                Community posts and comments, the recipes and photos you've shared, and your points are gone for good.
+                Fikko Circle posts and comments, the recipes and photos you've shared, and your points are gone for good.
                 Until then, your posts and recipes are hidden from other members.
               </p>
               <Button variant="outline" onClick={() => onExport("pdf")} disabled={exporting} className="h-9 px-4">

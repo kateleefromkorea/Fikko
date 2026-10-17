@@ -148,7 +148,7 @@ export async function deleteAccount(feedback?: { reason: string; details: string
 /**
  * Tables cleared by "Reset my data": everything the member has tracked. The
  * account, profile and goals, medication list, custom habits, saved foods and
- * meals, Community posts, recipes, points and wearable data all stay.
+ * meals, Fikko Circle posts, recipes, points and wearable data all stay.
  */
 const LOG_TABLES = ["habit_entries", "custom_habit_entries", "food_log_items", "coach_messages"] as const;
 

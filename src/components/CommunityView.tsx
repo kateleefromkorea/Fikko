@@ -97,13 +97,13 @@ function Composer({ profileName, onPost }: { profileName: string; onPost: (topic
     <Card className="gap-4">
       <CardContent>
         <form onSubmit={submit} className="space-y-3">
-          <label htmlFor="community-composer" className="sr-only">Share with the community</label>
+          <label htmlFor="community-composer" className="sr-only">Share with Fikko Circle</label>
           <Textarea
             id="community-composer"
             value={body}
             onChange={(e) => setBody(e.target.value)}
             placeholder={
-              topic === "question" ? "Ask the community something…"
+              topic === "question" ? "Ask Fikko Circle something…"
               : topic === "tip" ? "Share something that works for you…"
               : topic === "motivation" ? "Say something encouraging…"
               : "Share a win, big or small…"
@@ -377,7 +377,7 @@ export default function CommunityView({ userId, profileName }: Props) {
   return (
     <div className="space-y-10">
       <PageHeader
-        eyebrow="Community"
+        eyebrow="Fikko Circle"
         title={feedHeadline(feed.posts, feed.loading, filter)}
         action={
           <Button variant="outline" onClick={() => feed.reload()} disabled={feed.loading}>
@@ -415,7 +415,7 @@ export default function CommunityView({ userId, profileName }: Props) {
           )}
 
           {feed.loading && feed.posts.length === 0 ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">Loading the community…</p>
+            <p className="py-10 text-center text-sm text-muted-foreground">Loading Fikko Circle…</p>
           ) : feed.posts.length === 0 ? (
             <EmptyState
               icon={Users}
@@ -452,7 +452,7 @@ export default function CommunityView({ userId, profileName }: Props) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 font-semibold">
               <ShieldCheck className="size-4 text-primary-ink" aria-hidden="true" />
-              Community guidelines
+              Fikko Circle guidelines
             </CardTitle>
             <CardDescription>Keep Fikko a supportive place.</CardDescription>
           </CardHeader>

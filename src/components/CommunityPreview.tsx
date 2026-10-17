@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
 /**
- * "From the community" on the Habits page: the three newest posts and a way
- * into the full Community page. Quietly renders nothing if the feed can't be
+ * "From Fikko Circle" on the Habits page: the three newest posts and a way
+ * into the full Fikko Circle page. Quietly renders nothing if the feed can't be
  * reached, so it never gets in the way of logging habits.
  */
 export default function CommunityPreview({ userId, onOpen }: { userId: string; onOpen: () => void }) {
@@ -27,7 +27,7 @@ export default function CommunityPreview({ userId, onOpen }: { userId: string; o
 
   return (
     <section className="space-y-4">
-      <SectionLabel>From the community</SectionLabel>
+      <SectionLabel>From Fikko Circle</SectionLabel>
       <Card className={softCardCls}>
         <CardContent className="space-y-4">
           {posts === null ? (
@@ -38,10 +38,10 @@ export default function CommunityPreview({ userId, onOpen }: { userId: string; o
                 <Users className="size-5 text-primary-ink" />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium">The community is just getting started</p>
+                <p className="text-sm font-medium">Fikko Circle is just getting started</p>
                 <p className="text-sm text-muted-foreground">Share a win or ask a question to kick things off.</p>
               </div>
-              <Button onClick={onOpen}>Open community <ArrowRight /></Button>
+              <Button onClick={onOpen}>Open Fikko Circle <ArrowRight /></Button>
             </div>
           ) : (
             <>

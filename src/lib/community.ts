@@ -85,7 +85,7 @@ export async function fetchPosts(userId: string, { topic, offset = 0, limit = PA
   if (topic) query = query.eq("topic", topic);
 
   const { data, error } = await query;
-  if (error) throw friendly(error, "Couldn't load the community feed.");
+  if (error) throw friendly(error, "Couldn't load Fikko Circle.");
   const rows = (data ?? []) as PostRow[];
 
   // Which of these posts has the current member already cheered?

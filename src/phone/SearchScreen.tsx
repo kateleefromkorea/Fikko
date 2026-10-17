@@ -21,7 +21,7 @@ const PLACES: { id: Place; label: string; hint: string; icon: LucideIcon; words:
   { id: "recipes", label: "Recipes", hint: "Meal ideas for your goals", icon: ChefHat, words: "recipe cook cooking meal ideas dinner lunch breakfast" },
   { id: "garden", label: "My Fikko", hint: "Your plant, garden and rewards", icon: Sprout, words: "plant garden seed pot companion scene booster rain cloud harvest streak" },
   { id: "settings", label: "Profile & settings", hint: "Goals, devices, reminders, privacy", icon: Settings, words: "profile account goals calories weight height units devices fitbit apple health garmin wearable medications reminders notifications email privacy consent export data delete plan premium founding" },
-  { id: "community", label: "Community", hint: "Challenges and friends", icon: Users, words: "friends challenges social group" },
+  { id: "community", label: "Fikko Circle", hint: "Challenges and friends", icon: Users, words: "community circle friends challenges social group" },
 ];
 
 const MIN_SEARCH = 2;

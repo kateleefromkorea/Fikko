@@ -23,8 +23,8 @@ const SECTION_TITLES: Record<string, string> = {
   medications: "Medications",
   recipes: "Recipes you shared",
   recipe_saves: "Saved recipes",
-  community_posts: "Community posts",
-  community_comments: "Community comments",
+  community_posts: "Fikko Circle posts",
+  community_comments: "Fikko Circle comments",
   community_cheers: "Cheers you gave",
   points_events: "Points history",
 };

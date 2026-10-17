@@ -8,7 +8,7 @@ const ProfileView = lazy(() => import("@/components/ProfileView"));
 const CommunityView = lazy(() => import("@/components/CommunityView"));
 
 export type YouPage = "settings" | "community";
-const PAGE_TITLE: Record<YouPage, string> = { settings: "Profile & settings", community: "Community" };
+const PAGE_TITLE: Record<YouPage, string> = { settings: "Profile & settings", community: "Fikko Circle" };
 
 /** The website footer's links, at the bottom of You. */
 const LINKS: [string, string][] = [
@@ -23,7 +23,7 @@ const loading = <p className="py-10 text-center text-sm text-muted-foreground">L
 
 /**
  * Everything about you, opened from the profile button in the top bar: your
- * profile and settings, and the community. Each opens as its own page with a
+ * profile and settings, and Fikko Circle. Each opens as its own page with a
  * back button, the way settings work on a phone. (Your plant has its own tab.)
  */
 export default function YouScreen({
@@ -88,7 +88,7 @@ export default function YouScreen({
 
       <Group>
         <Item icon={Settings} label="Profile & settings" hint="Goals, devices, medications, reminders, privacy" onClick={() => onPage("settings")} />
-        <Item icon={Users} label="Community" hint="Challenges and friends" onClick={() => onPage("community")} />
+        <Item icon={Users} label="Fikko Circle" hint="Challenges and friends" onClick={() => onPage("community")} />
       </Group>
 
       <Group>

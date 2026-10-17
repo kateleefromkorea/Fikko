@@ -81,7 +81,7 @@ const isAdminPage = window.location.pathname.replace(/\/+$/, "") === "/admin";
 
 type Tab = "habits" | "dashboard" | "fikko" | "recipes" | "community" | "coaches" | "profile";
 
-// Community isn't a tab: it opens from the Habits page's preview card and the
+// Fikko Circle (the community) isn't a tab: it opens from the Habits page's preview card and the
 // account menu. Named as on the phone (Today, Progress, Garden, Coach), so
 // someone using both finds the same places.
 // Shown as tabs in the header on tablet and desktop, and as a bottom tab bar
@@ -473,7 +473,7 @@ function DesktopApp({ deviceOutcome, openProfile }: { deviceOutcome: DeviceOutco
                   </DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => setTab("community")}>
                     <Users />
-                    Community
+                    Fikko Circle
                   </DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => signOut()}>
                     <LogOut />
@@ -568,7 +568,7 @@ function DesktopApp({ deviceOutcome, openProfile }: { deviceOutcome: DeviceOutco
           </Suspense>
         )}
         {tab === "community" && (
-          <Suspense fallback={<p className="py-10 text-center text-sm text-muted-foreground">Loading community…</p>}>
+          <Suspense fallback={<p className="py-10 text-center text-sm text-muted-foreground">Loading Fikko Circle…</p>}>
             <CommunityView userId={session.user.id} profileName={profile.name} />
           </Suspense>
         )}

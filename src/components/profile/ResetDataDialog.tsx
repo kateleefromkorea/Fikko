@@ -17,7 +17,7 @@ const ERASED = [
 const KEPT = [
   "Your account, profile and goals",
   "Your medication list, custom habits, saved foods and saved meals",
-  "Your Community posts, recipes and points",
+  "Your Fikko Circle posts, recipes and points",
   "Data synced from connected devices",
 ];
 

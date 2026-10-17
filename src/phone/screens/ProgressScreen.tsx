@@ -22,7 +22,7 @@ import useDashCtx from "@/components/dashboard/useDashCtx";
 import { headline } from "@/components/dashboard/DashboardSummary";
 import { comparisonLine } from "@/components/dashboard/headline";
 import { ReportDialog } from "@/components/dashboard/WeeklyReport";
-import { buildWeeklyReport, nextReportDate, weekLabel, weeksWithHistory } from "@/components/dashboard/reportData";
+import { buildReport, nextReportDate, periodsWithHistory, REPORT_NAME, weekLabel, type ReportPeriod } from "@/components/dashboard/reportData";
 import WearableSections, { hasWearableData } from "@/components/dashboard/WearableSections";
 import {
   CalendarCard, CaloriesCard, CompletionCard, CustomHabitCard, ExerciseCard, LEVELS, MealSplitCard, MedsCard, MoodCard,
@@ -72,7 +72,7 @@ export default function ProgressScreen({ data: logged, biometrics, profile, onAs
   const [detail, setDetail] = useState<Detail | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
   const hasWearable = hasWearableData(biometrics);
-  const history = useMemo(() => weeksWithHistory(data), [data]);
+  const history = useMemo(() => periodsWithHistory(data, period), [data, period]);
 
   const openUpgrade = useUpgrade();
   const isLocked = (id: Period) => limits.historyDays != null && PERIOD_DAYS[id] > limits.historyDays;
@@ -109,8 +109,8 @@ export default function ProgressScreen({ data: logged, biometrics, profile, onAs
         <ul className={cn(SURFACE, "divide-y divide-border/70 overflow-hidden")}>
           <LinkRow
             icon={FileText}
-            title="Weekly report"
-            sub={history === 0 ? `Your first one arrives ${longDate(nextReportDate())}` : <ReportSub data={data} biometrics={biometrics} profile={profile} />}
+            title={`${REPORT_NAME[period]} report`}
+            sub={history === 0 ? `Your first one arrives ${longDate(nextReportDate(period))}` : <ReportSub data={data} biometrics={biometrics} profile={profile} period={period} />}
             onClick={history === 0 ? undefined : () => setReportOpen(true)}
           />
           {hasWearable ? (
@@ -131,7 +131,7 @@ export default function ProgressScreen({ data: logged, biometrics, profile, onAs
         {detail && <DetailBody detail={detail} ctx={ctx} biometrics={biometrics} bio={limits.wearableBiometrics} />}
       </Sheet>
       {history > 0 && (
-        <ReportDialog open={reportOpen} onOpenChange={setReportOpen} data={data} biometrics={biometrics} profile={profile} history={history} />
+        <ReportDialog open={reportOpen} onOpenChange={setReportOpen} data={data} biometrics={biometrics} profile={profile} history={history} period={period} />
       )}
     </div>
   );
@@ -596,9 +596,9 @@ function LinkRow({ icon: Icon, title, sub, onClick }: { icon: typeof Watch; titl
   );
 }
 
-/** The last finished week's consistency, under the Weekly report row. */
-function ReportSub({ data, biometrics, profile }: { data: HabitData; biometrics: BiometricData; profile?: ProfileRow }) {
-  const report = useMemo(() => buildWeeklyReport(data, biometrics, profile, 0), [data, biometrics, profile]);
+/** The last finished week's, month's or 12 months' consistency, under the report row. */
+function ReportSub({ data, biometrics, profile, period }: { data: HabitData; biometrics: BiometricData; profile?: ProfileRow; period: ReportPeriod }) {
+  const report = useMemo(() => buildReport(period, data, biometrics, profile, 0), [period, data, biometrics, profile]);
   return <>{report.label}{report.logged > 0 && ` · ${pct(report.rate)}`}</>;
 }
 

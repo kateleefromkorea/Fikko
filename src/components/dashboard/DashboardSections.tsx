@@ -168,11 +168,120 @@ export function CalendarCard({ ctx, className }: { ctx: DashCtx; className?: str
   );
 }
 
+/** One thing to try for the habit that most often stops a day being complete. */
+const MISSED_TRY: Record<CoreHabit, string> = {
+  exercise: "a 10-minute walk after lunch on busy days.",
+  medication: "keeping them next to something you use every morning.",
+  sleep: "the same bedtime every night this week.",
+  water: "a glass of water with every meal.",
+  food: "logging breakfast as soon as you've eaten.",
+  mood: "checking in on your mood when you log dinner.",
+};
+
+/**
+ * "What breaks your days": on the days something was logged but not every
+ * habit was done, which habit was missing, ranked. The top one gets an exact
+ * count of how many of those days it alone kept from being all done.
+ */
+export function MissedHabitsCard({ ctx, className }: { ctx: DashCtx; className?: string }) {
+  const { data, dates, waterTarget } = ctx;
+  const today = dateKey(0);
+  // Today is still going, so it doesn't count yet.
+  const days = dates.filter((d) => d < today).map((d) => completion(data, d, waterTarget));
+  const unfinished = days.filter((c) => c.done > 0 && c.done < c.total);
+  const allDone = days.filter((c) => c.total > 0 && c.done === c.total).length;
+
+  type Missed = { key: string; label: string; core?: CoreHabit; custom?: CustomHabit; count: number; alone: number };
+  const tally = new Map<string, Missed>();
+  for (const day of unfinished) {
+    const missing: Omit<Missed, "count" | "alone">[] = [
+      ...day.core.filter((c) => !c.done).map((c) => ({ key: c.key, label: HABIT_INFO[c.key].label, core: c.key })),
+      ...day.custom.filter((c) => !c.done).map((c) => ({ key: c.habit.id, label: c.habit.name, custom: c.habit })),
+    ];
+    for (const m of missing) {
+      const t = tally.get(m.key) ?? { ...m, count: 0, alone: 0 };
+      t.count++;
+      if (missing.length === 1) t.alone++;
+      tally.set(m.key, t);
+    }
+  }
+  const ranked = [...tally.values()].sort((a, b) => b.count - a.count || b.alone - a.alone);
+  const shown = ranked.slice(0, 4);
+  const top = ranked[0];
+  const n = unfinished.length;
+
+  return (
+    <ChartCard
+      title="What breaks your days"
+      sub={n ? `On the ${plural(n, "day")} you didn't finish everything, what was missing` : "Which habit is missing on the days you don't finish everything"}
+      className={className}
+    >
+      {!n ? (
+        <EmptyState
+          icon={Target}
+          title={allDone ? "Every day you logged, you finished everything" : "Nothing to show yet"}
+          body={allDone ? "Nothing is costing you full days. Keep it going." : "Once a day has something missing, this shows which habit it was."}
+        />
+      ) : (
+        <>
+          <ul className="space-y-4">
+            {shown.map((m) => (
+              <li key={m.key} className="flex items-center gap-3">
+                {m.core
+                  ? <HabitIcon icon={HABIT_INFO[m.core].icon} hue={HABIT_INFO[m.core].hue} className="size-8 [&>svg]:size-4" />
+                  : <CustomHabitIcon icon={m.custom!.icon} className="size-8 text-base [&>svg]:size-4" />}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline justify-between gap-3 text-sm">
+                    <span className="truncate font-medium">{m.label}</span>
+                    <span className="shrink-0 tabular-nums">
+                      <span className="font-semibold">{m.count}</span>
+                      <span className="text-muted-foreground"> of {plural(n, "day")}</span>
+                    </span>
+                  </div>
+                  <HabitBar
+                    value={m.count}
+                    max={n}
+                    hue={m.core ? HABIT_INFO[m.core].hue : "custom"}
+                    className="mt-1.5 h-1.5"
+                    label={`${m.label}: missing on ${m.count} of ${n} unfinished days`}
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+          {ranked.length > shown.length && (
+            <p className="mt-3 text-xs text-muted-foreground">
+              And {plural(ranked.length - shown.length, "other habit")}, missing less often.
+            </p>
+          )}
+
+          <div className="mt-auto pt-5">
+            <div className="rounded-xl bg-[#F4FBFA] px-4 py-3">
+              <p className="text-sm font-semibold">{top.label} is the habit that costs you full days.</p>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                {top.alone > 0
+                  ? `With it done, ${top.alone} of those ${plural(n, "day")} would have been all done.`
+                  : `It was missing on ${top.count} of them, usually alongside another habit.`}
+              </p>
+              {top.core && (
+                <p className="mt-1.5 flex items-start gap-1.5 text-sm text-primary-ink">
+                  <Target className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                  <span><span className="font-medium">Try:</span> {MISSED_TRY[top.core]}</span>
+                </p>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </ChartCard>
+  );
+}
+
 export function ConsistencySection({ ctx }: { ctx: DashCtx }) {
   return (
     <Section title="Consistency" sub="How much of your routine you got through, day by day">
       <div className="grid gap-6 lg:grid-cols-5">
-        <CompletionCard ctx={ctx} className="lg:col-span-3" />
+        <MissedHabitsCard ctx={ctx} className="lg:col-span-3" />
         <CalendarCard ctx={ctx} className="lg:col-span-2" />
       </div>
     </Section>

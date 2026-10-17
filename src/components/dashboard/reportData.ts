@@ -6,20 +6,30 @@ import { CORE_HABITS, EXERCISE_TARGET_MIN, WATER_TARGET, type CoreHabit } from "
 import {
   avgOf, byDate, habitStats, overview, parseJSON, sleepHours, valuesIn,
 } from "../../lib/dashboardStats";
-import { periodRange, shiftDateKey, todayKey } from "../../lib/dates";
+import { localDateKey, periodRange, shiftDateKey, todayKey } from "../../lib/dates";
 import { patternItems, type Pattern } from "./DashboardSections";
 import { HABIT_INFO, kcal, moodLabel, one, pct, plural, restLabel, type DashCtx } from "./context";
 
-// The weekly report: how last Monday-to-Sunday went, worked out from what the
-// member logged. Everything here is rule-based and runs in the browser.
+// The report: how the last finished week (Monday to Sunday), calendar month or
+// 12 months went, worked out from what the member logged. Everything here is
+// rule-based and runs in the browser.
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-/** How far back past reports can be browsed. */
-export const MAX_WEEKS_BACK = 52;
-/** Days of history the report's patterns look at, ending with the report's Sunday. */
+/** Which stretch a report covers: the last finished week, month, or 12 months. */
+export type ReportPeriod = "week" | "month" | "year";
+
+export const REPORT_NAME: Record<ReportPeriod, string> = { week: "Weekly", month: "Monthly", year: "Yearly" };
+
+/** What comes after a report: the yearly one rolls on every month, so it looks to the months ahead. */
+export const REPORT_NEXT: Record<ReportPeriod, string> = { week: "next week", month: "next month", year: "the months ahead" };
+
+/** How far back past reports can be browsed. The app keeps about 13 months of history. */
+const MAX_BACK: Record<ReportPeriod, number> = { week: 52, month: 12, year: 1 };
+/** Days of history the weekly report's patterns look at, ending with the report's Sunday. */
 const PATTERN_DAYS = 28;
 
-export interface ReportWeek { from: string; to: string; dates: string[] }
+export interface ReportSpan { from: string; to: string; dates: string[] }
+export type ReportWeek = ReportSpan;
 
 /** "21–27 September 2026", or "28 September – 4 October 2026" across months. */
 export function weekLabel({ from, to }: { from: string; to: string }) {
@@ -31,30 +41,70 @@ export function weekLabel({ from, to }: { from: string; to: string }) {
   return `${f.getDate()} ${month(f)}${startYear} – ${t.getDate()} ${month(t)} ${t.getFullYear()}`;
 }
 
+/** The first day of the month `delta` months from the one containing `key`. */
+function monthStart(key: string, delta: number) {
+  const d = new Date(key + "T12:00:00");
+  return localDateKey(new Date(d.getFullYear(), d.getMonth() + delta, 1));
+}
+
+const monthYear = (key: string) => new Date(key + "T12:00:00").toLocaleDateString(undefined, { month: "long", year: "numeric" });
+
+/** "5–11 October 2026", "September 2026", or "October 2025 – September 2026". */
+export function spanLabel(period: ReportPeriod, { from, to }: { from: string; to: string }) {
+  if (period === "week") return weekLabel({ from, to });
+  return period === "month" ? monthYear(from) : `${monthYear(from)} – ${monthYear(to)}`;
+}
+
 /** The Monday-to-Sunday week `weeksAgo` full weeks back; 0 is the most recent finished week. */
-export function reportWeek(weeksAgo: number): ReportWeek {
+export function reportWeek(weeksAgo: number): ReportSpan {
   const thisMonday = periodRange("week", todayKey()).from;
   const from = shiftDateKey(thisMonday, -7 * (weeksAgo + 1));
   const dates = Array.from({ length: 7 }, (_, i) => shiftDateKey(from, i));
   return { from, to: dates[6], dates };
 }
 
-/** The Monday the next report appears. */
-export const nextReportDate = () => shiftDateKey(periodRange("week", todayKey()).from, 7);
+/**
+ * The span a report covers, `back` periods back; 0 is the most recent finished
+ * one: last Monday-to-Sunday week, last calendar month, or the last 12
+ * finished months.
+ */
+export function reportSpan(period: ReportPeriod, back: number): ReportSpan {
+  if (period === "week") return reportWeek(back);
+  const months = period === "month" ? 1 : 12;
+  const thisMonth = monthStart(todayKey(), 0);
+  const from = monthStart(thisMonth, -months * (back + 1));
+  const to = shiftDateKey(monthStart(thisMonth, -months * back), -1);
+  const dates: string[] = [];
+  for (let d = from; d <= to; d = shiftDateKey(d, 1)) dates.push(d);
+  return { from, to, dates };
+}
 
-/** How many weeks back there is anything to report on, up to MAX_WEEKS_BACK. */
-export function weeksWithHistory(data: HabitData): number {
+/** The day the next report appears: the next Monday, or the 1st of next month. */
+export function nextReportDate(period: ReportPeriod = "week") {
+  return period === "week" ? shiftDateKey(periodRange("week", todayKey()).from, 7) : monthStart(todayKey(), 1);
+}
+
+/** The first day the member logged anything, or null. */
+function firstLogDate(data: HabitData): string | null {
   const all = [
     ...CORE_HABITS.flatMap((k) => data[k].map((e) => e.date)),
     ...data.custom.flatMap((h) => h.entries.filter((e) => e.value > 0).map((e) => e.date)),
   ];
-  if (!all.length) return 0;
-  const earliest = all.reduce((a, b) => (a < b ? a : b));
-  // Started this week: the first report is next Monday's.
-  if (earliest > reportWeek(0).to) return 0;
-  for (let w = 0; w < MAX_WEEKS_BACK; w++) if (reportWeek(w).from <= earliest) return w + 1;
-  return MAX_WEEKS_BACK;
+  return all.length ? all.reduce((a, b) => (a < b ? a : b)) : null;
 }
+
+/** How many periods back there is anything to report on, up to the most the app keeps. */
+export function periodsWithHistory(data: HabitData, period: ReportPeriod): number {
+  const earliest = firstLogDate(data);
+  if (!earliest) return 0;
+  // Started inside the current period: the first report comes when it finishes.
+  if (earliest > reportSpan(period, 0).to) return 0;
+  for (let b = 0; b < MAX_BACK[period]; b++) if (reportSpan(period, b).from <= earliest) return b + 1;
+  return MAX_BACK[period];
+}
+
+/** How many weeks back there is anything to report on. */
+export const weeksWithHistory = (data: HabitData) => periodsWithHistory(data, "week");
 
 /** The context the Dashboard's pattern rules expect, for any run of days. */
 function ctxFor(data: HabitData, profile: ProfileRow | undefined, dates: string[], waterTarget: number): DashCtx {
@@ -73,10 +123,10 @@ export interface HabitRow {
   label: string;
   core?: CoreHabit;
   custom?: CustomHabit;
-  /** Days the habit was done, out of 7. */
+  /** Days the habit was done, out of the days in the report. */
   done: number;
   prevDone: number | null;
-  /** The week's headline figure for this habit, e.g. "1,820 kcal a day". */
+  /** The period's headline figure for this habit, e.g. "1,820 kcal a day". */
   figure: string;
 }
 
@@ -119,7 +169,7 @@ export interface WearableFigure {
   label: string;
   value: string;
   unit: string;
-  /** Change on the week before, in the figure's own unit, or null. */
+  /** Change on the period before, in the figure's own unit, or null. */
   change: number | null;
   /** Unit for the change, e.g. "steps". */
   deltaUnit: string;
@@ -158,24 +208,28 @@ function wearableFigures(bm: BiometricData, dates: string[], prevDates: string[]
     }));
 }
 
-// ── Focus for next week ────────────────────────────────────────────────────
+// ── Focus for next time ────────────────────────────────────────────────────
 
-const FOCUS_TIPS: Record<CoreHabit, (target: number, waterGoal: number) => string> = {
-  food: (n) => `Log at least one meal on ${n} days. Breakfast is the easiest one to remember.`,
-  exercise: (n) => `Get ${EXERCISE_TARGET_MIN} active minutes on ${n} days. A brisk walk counts.`,
-  water: (n, goal) => `Reach ${goal} glasses on ${n} days. Keeping a bottle where you work makes it easier.`,
-  mood: (n) => `Check in on your mood on ${n} days. It takes five seconds and makes your patterns clearer.`,
-  medication: (n) => `Take everything on ${n} days. Ticking it off straight after helps it stick.`,
-  sleep: (n) => `Wake up rested on ${n} days. A regular bedtime is the most reliable lever.`,
+/** Each tip takes how often, e.g. "5 days" or "5 days a week". */
+const FOCUS_TIPS: Record<CoreHabit, (when: string, waterGoal: number) => string> = {
+  food: (n) => `Log at least one meal on ${n}. Breakfast is the easiest one to remember.`,
+  exercise: (n) => `Get ${EXERCISE_TARGET_MIN} active minutes on ${n}. A brisk walk counts.`,
+  water: (n, goal) => `Reach ${goal} glasses on ${n}. Keeping a bottle where you work makes it easier.`,
+  mood: (n) => `Check in on your mood on ${n}. It takes five seconds and makes your patterns clearer.`,
+  medication: (n) => `Take everything on ${n}. Ticking it off straight after helps it stick.`,
+  sleep: (n) => `Wake up rested on ${n}. A regular bedtime is the most reliable lever.`,
 };
 
 export interface Focus { label: string; text: string }
 
 // ── The report ─────────────────────────────────────────────────────────────
 
-export interface WeeklyReport {
-  week: ReportWeek;
-  /** "22 – 28 September 2026". */
+export interface PeriodReport {
+  period: ReportPeriod;
+  span: ReportSpan;
+  /** Days in the report: 7, a month's, or a year's. */
+  days: number;
+  /** "22 – 28 September 2026", "September 2026" or "October 2025 – September 2026". */
   label: string;
   logged: number;
   perfect: number;
@@ -190,26 +244,37 @@ export interface WeeklyReport {
   patterns: Pattern[];
   focus: Focus | null;
 }
+export type WeeklyReport = PeriodReport;
 
-function headlineFor(rate: number, logged: number) {
-  if (logged === 0) return "Nothing logged this week";
-  if (rate >= 0.8) return "An excellent week";
-  if (rate >= 0.6) return "A strong week";
-  if (rate >= 0.4) return "A steady week";
-  return "A light week";
+function headlineFor(rate: number, logged: number, noun: string) {
+  if (logged === 0) return `Nothing logged this ${noun}`;
+  if (rate >= 0.8) return `An excellent ${noun}`;
+  if (rate >= 0.6) return `A strong ${noun}`;
+  if (rate >= 0.4) return `A steady ${noun}`;
+  return `A light ${noun}`;
 }
 
-export function buildWeeklyReport(
-  data: HabitData, biometrics: BiometricData, profile: ProfileRow | undefined, weeksAgo: number,
-): WeeklyReport {
-  const week = reportWeek(weeksAgo);
-  const prev = reportWeek(weeksAgo + 1);
+export function buildReport(
+  period: ReportPeriod, data: HabitData, biometrics: BiometricData, profile: ProfileRow | undefined, back: number,
+): PeriodReport {
+  const noun = period;
+  const span = reportSpan(period, back);
+  const prevSpan = reportSpan(period, back + 1);
+  // Days before the member started don't count against them: a first month or
+  // year is scored from their first check-in.
+  const start = firstLogDate(data);
+  const from = (ds: string[]) => (start ? ds.filter((d) => d >= start) : ds);
+  const dates = from(span.dates).length ? from(span.dates) : span.dates;
+  const prevDates = from(prevSpan.dates);
+  const joinedDuring = dates.length < span.dates.length;
+  const len = dates.length;
   const waterTarget = profile?.water_goal ?? WATER_TARGET;
-  const ov = overview(data, week.dates, waterTarget);
-  const prevOv = overview(data, prev.dates, waterTarget);
-  const prevLogged = prevOv.logged > 0;
+  const ov = overview(data, dates, waterTarget);
+  const prevOv = overview(data, prevDates, waterTarget);
+  // The app keeps about 13 months, so a year has nothing complete to be compared with.
+  const prevLogged = period !== "year" && prevOv.logged > 0;
   const prevRate = prevLogged ? prevOv.rate : null;
-  const stats = habitStats(data, week.dates, prev.dates, prevLogged, waterTarget);
+  const stats = habitStats(data, dates, prevDates, prevLogged, waterTarget);
 
   const habits: HabitRow[] = stats.map((s) => {
     const core = s.custom ? undefined : (s.key as CoreHabit);
@@ -219,21 +284,24 @@ export function buildWeeklyReport(
       core,
       custom: s.custom,
       done: s.done,
-      prevDone: s.prevRate == null ? null : Math.round(s.prevRate * 7),
-      figure: core ? figureFor(core, data, week.dates, profile) : `Target ${s.custom!.target} ${s.custom!.unit} a day`,
+      prevDone: s.prevRate == null ? null : Math.round(s.prevRate * len),
+      figure: core ? figureFor(core, data, dates, profile) : `Target ${s.custom!.target} ${s.custom!.unit} a day`,
     };
   });
+  // A two-day swing in a week, scaled to the period.
+  const bigChange = (a: number, b: number) => Math.abs(a - b) / len >= 2 / 7 - 0.001;
 
   // ── Summary ──
   const ranked = [...habits].sort((a, b) => b.done - a.done);
   let summary: string;
   if (ov.logged === 0) {
-    summary = "You didn't log anything this week. Check in on the Habits page and next Monday's report fills in.";
+    summary = `You didn't log anything this ${noun}. Check in on the Today page and the next ${REPORT_NAME[period].toLowerCase()} report fills in.`;
   } else {
-    summary = `You logged ${ov.logged} of 7 days and completed ${pct(ov.rate)} of your habits`;
+    const since = new Date(dates[0] + "T12:00:00").toLocaleDateString(undefined, { day: "numeric", month: "long" });
+    summary = `You logged ${ov.logged} of ${joinedDuring ? `the ${len} days since you started on ${since}` : `${len} days`} and completed ${pct(ov.rate)} of your habits`;
     if (prevRate != null) {
       const diff = Math.round((ov.rate - prevRate) * 100);
-      summary += diff === 0 ? ", the same as the week before." : `, ${diff > 0 ? "up" : "down"} ${Math.abs(diff)} points on the week before.`;
+      summary += diff === 0 ? `, the same as the ${noun} before.` : `, ${diff > 0 ? "up" : "down"} ${Math.abs(diff)} points on the ${noun} before.`;
     } else summary += ".";
     if (ranked[0]?.done > 0) summary += ` ${ranked[0].label} was your most consistent habit.`;
   }
@@ -247,20 +315,20 @@ export function buildWeeklyReport(
     if (diff <= -5) watch.push({ id: "down", icon: TrendingDown, text: `Consistency slipped ${-diff} points, from ${pct(prevRate)} to ${pct(ov.rate)}.` });
   }
   for (const h of habits) {
-    if (h.done === 7) highlights.push({ id: `all-${h.key}`, icon: Trophy, text: `${h.label}: done every day this week.` });
-    else if (h.prevDone != null && h.done - h.prevDone >= 2) {
+    if (h.done === len) highlights.push({ id: `all-${h.key}`, icon: Trophy, text: `${h.label}: done every day this ${noun}.` });
+    else if (h.prevDone != null && h.done > h.prevDone && bigChange(h.done, h.prevDone)) {
       highlights.push({ id: `more-${h.key}`, icon: TrendingUp, text: `${h.label} went from ${plural(h.prevDone, "day")} to ${h.done}.` });
     }
-    if (h.prevDone != null && h.prevDone - h.done >= 2) {
+    if (h.prevDone != null && h.done < h.prevDone && bigChange(h.done, h.prevDone)) {
       watch.push({ id: `less-${h.key}`, icon: TrendingDown, text: `${h.label} dropped from ${plural(h.prevDone, "day")} to ${h.done}.` });
     }
   }
   if (ov.perfect > 0) highlights.push({ id: "perfect", icon: CalendarCheck, text: `${plural(ov.perfect, "perfect day")} with every habit done.` });
   const best = ov.perDay.reduce<(typeof ov.perDay)[number] | null>((b, d) => (d.done > (b?.done ?? 0) ? d : b), null);
-  if (best && best.done > 0 && ov.perfect === 0) {
+  if (period === "week" && best && best.done > 0 && ov.perfect === 0) {
     highlights.push({ id: "best", icon: Trophy, text: `Your best day was ${DAY_NAMES[new Date(best.date + "T12:00:00").getDay()]}, with ${best.done} of ${best.total} habits done.` });
   }
-  const calAvg = avgOf(valuesIn(data.food, week.dates, (e) => e.value > 0));
+  const calAvg = avgOf(valuesIn(data.food, dates, (e) => e.value > 0));
   const goal = profile?.calorie_goal;
   if (calAvg != null && goal && Math.abs(calAvg - goal) > goal * 0.15) {
     watch.push({
@@ -270,55 +338,61 @@ export function buildWeeklyReport(
   }
 
   // ── Wearable, patterns, focus ──
-  const wearable = wearableFigures(biometrics, week.dates, prev.dates);
+  const wearable = wearableFigures(biometrics, dates, prevDates);
   if (wearable.length) {
     const steps = wearable.find((w) => w.label === "Steps");
     if (steps?.change != null && Math.abs(steps.change) >= 1000) {
       (steps.change > 0 ? highlights : watch).push({
         id: "steps", icon: Footprints,
-        text: `Steps ${steps.change > 0 ? "rose" : "fell"} by about ${kcal(Math.abs(steps.change))} a day on the week before.`,
+        text: `Steps ${steps.change > 0 ? "rose" : "fell"} by about ${kcal(Math.abs(steps.change))} a day on the ${noun} before.`,
       });
     }
     const hr = wearable.find((w) => w.label === "Resting heart rate");
     if (hr?.change != null && hr.change >= 3) {
-      watch.push({ id: "hr", icon: HeartPulse, text: `Resting heart rate was ${Math.round(hr.change)} bpm higher than the week before. Stress, illness or short sleep can all do this.` });
+      watch.push({ id: "hr", icon: HeartPulse, text: `Resting heart rate was ${Math.round(hr.change)} bpm higher than the ${noun} before. Stress, illness or short sleep can all do this.` });
     }
   }
 
-  const patternDates = Array.from({ length: PATTERN_DAYS }, (_, i) => shiftDateKey(week.to, i - PATTERN_DAYS + 1));
+  // A week looks at the four weeks up to it; a month or year at all of its own days.
+  const patternDates = period === "week"
+    ? Array.from({ length: PATTERN_DAYS }, (_, i) => shiftDateKey(span.to, i - PATTERN_DAYS + 1))
+    : dates;
   const patterns = ov.logged ? patternItems(ctxFor(data, profile, patternDates, waterTarget), { relative: false }) : [];
 
   // The habit with the most room to grow, among those the member actually
-  // uses: anything logged in the last four weeks, or every core habit if new.
+  // uses: anything logged in the period (and the weeks before it), or every
+  // core habit if new.
   const recent = new Set(patternDates);
   const used = habits.filter((h) =>
     h.custom
       ? h.custom.entries.some((e) => recent.has(e.date) && e.value > 0)
       : data[h.core!].some((e) => recent.has(e.date)),
   );
-  const pool = (used.length ? used : habits).filter((h) => h.done < 7);
+  const pool = (used.length ? used : habits).filter((h) => h.done < len);
   const pick = pool.length ? pool.reduce((a, b) => (b.done < a.done ? b : a)) : null;
   let focus: Focus | null = null;
   if (pick && ov.logged > 0) {
-    const target = Math.min(7, Math.max(4, pick.done + 2));
+    // Two more days a week than now, between four and seven.
+    const perWeek = Math.min(7, Math.max(4, Math.round((pick.done / len) * 7) + 2));
+    const when = period === "week" ? `${perWeek} days` : `${perWeek} days a week`;
     focus = {
       label: pick.label,
-      text: pick.core
-        ? FOCUS_TIPS[pick.core](target, waterTarget)
-        : `Hit ${pick.custom!.target} ${pick.custom!.unit} on ${target} days.`,
+      text: pick.core ? FOCUS_TIPS[pick.core](when, waterTarget) : `Hit ${pick.custom!.target} ${pick.custom!.unit} on ${when}.`,
     };
   } else if (!pick && ov.logged > 0) {
-    focus = { label: "Keep it up", text: "Every habit was done every day. Keep the same rhythm next week." };
+    focus = { label: "Keep it up", text: `Every habit was done every day. Keep the same rhythm ${REPORT_NEXT[period]}.` };
   }
 
   return {
-    week,
-    label: weekLabel(week),
+    period,
+    span,
+    days: len,
+    label: spanLabel(period, span),
     logged: ov.logged,
     perfect: ov.perfect,
     rate: ov.rate,
     prevRate,
-    headline: headlineFor(ov.rate, ov.logged),
+    headline: headlineFor(ov.rate, ov.logged, noun),
     summary,
     highlights: highlights.slice(0, 4),
     watch: watch.slice(0, 3),
@@ -328,3 +402,7 @@ export function buildWeeklyReport(
     focus,
   };
 }
+
+/** The weekly report, `weeksAgo` weeks back. */
+export const buildWeeklyReport = (data: HabitData, biometrics: BiometricData, profile: ProfileRow | undefined, weeksAgo: number) =>
+  buildReport("week", data, biometrics, profile, weeksAgo);

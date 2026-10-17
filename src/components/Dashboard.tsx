@@ -158,7 +158,7 @@ export default function Dashboard({ data: logged, biometrics, profile, onAskCoac
         ctx={ctx}
         toggle={<PeriodToggle period={period} onChange={setPeriod} historyDays={limits.historyDays} />}
         note={hasWearable ? "Wearable data included." : undefined}
-        report={<WeeklyReportCard data={data} biometrics={biometrics} profile={profile} />}
+        report={<WeeklyReportCard data={data} biometrics={biometrics} profile={profile} period={period} />}
       />
       <HistoryNote data={logged} className="-mt-6" />
       {/* What Fikko noticed is the Dashboard's core feature, so it comes first. */}

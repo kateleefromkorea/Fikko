@@ -35,5 +35,5 @@ alter table public.consent_records enable row level security;
 
 drop policy if exists "consent records are readable by their owner" on public.consent_records;
 create policy "consent records are readable by their owner" on public.consent_records
-  for select using (auth.uid() = user_id);
+  for select using ((select auth.uid()) = user_id);
 -- No insert, update or delete policies: only the server writes, and never edits.

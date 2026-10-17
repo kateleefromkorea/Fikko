@@ -1,4 +1,4 @@
--- Migration check: is everything from schema.sql and migrations 002–046 in this database?
+-- Migration check: is everything from schema.sql and migrations 002–049 in this database?
 -- Generated 2026-10-17 by scripts/build-migration-check.mjs (528 checks).
 -- Read-only. Returns one row per missing object, plus any public table
 -- without row-level security. One row saying "All good" means nothing is missing.
@@ -231,10 +231,6 @@ with expected(file, kind, sch, tbl, name, has) as (values
   ('013_deletion_grace_period.sql', 'column', 'public', 'account_deletion_feedback', 'reason', null),
   ('013_deletion_grace_period.sql', 'column', 'public', 'account_deletion_feedback', 'details', null),
   ('013_deletion_grace_period.sql', 'column', 'public', 'account_deletion_feedback', 'created_at', null),
-  ('013_deletion_grace_period.sql', 'function', 'public', null, 'is_active_member', null),
-  ('013_deletion_grace_period.sql', 'policy', 'public', 'community_posts', 'community_posts readable by members', null),
-  ('013_deletion_grace_period.sql', 'policy', 'public', 'community_comments', 'community_comments readable by members', null),
-  ('013_deletion_grace_period.sql', 'policy', 'public', 'recipes', 'recipes readable by members', null),
   ('014_ai_coach.sql', 'table', 'public', null, 'coach_messages', null),
   ('014_ai_coach.sql', 'column', 'public', 'coach_messages', 'id', null),
   ('014_ai_coach.sql', 'column', 'public', 'coach_messages', 'user_id', null),
@@ -299,7 +295,6 @@ with expected(file, kind, sch, tbl, name, has) as (values
   ('022_consent_records.sql', 'column', 'public', 'consent_records', 'country', null),
   ('022_consent_records.sql', 'column', 'public', 'consent_records', 'created_at', null),
   ('022_consent_records.sql', 'index', 'public', null, 'consent_records_user_idx', null),
-  ('022_consent_records.sql', 'policy', 'public', 'consent_records', 'consent records are readable by their owner', null),
   ('024_ai_costs.sql', 'table', 'public', null, 'ai_costs', null),
   ('024_ai_costs.sql', 'column', 'public', 'ai_costs', 'id', null),
   ('024_ai_costs.sql', 'column', 'public', 'ai_costs', 'user_id', null),
@@ -421,7 +416,6 @@ with expected(file, kind, sch, tbl, name, has) as (values
   ('034_hidden_recent_foods.sql', 'column', 'public', 'hidden_recent_foods', 'user_id', null),
   ('034_hidden_recent_foods.sql', 'column', 'public', 'hidden_recent_foods', 'name', null),
   ('034_hidden_recent_foods.sql', 'column', 'public', 'hidden_recent_foods', 'hidden_at', null),
-  ('034_hidden_recent_foods.sql', 'policy', 'public', 'hidden_recent_foods', 'hidden_recent_foods own rows', null),
   ('035_plans.sql', 'table', 'public', null, 'plan_settings', null),
   ('035_plans.sql', 'column', 'public', 'plan_settings', 'id', null),
   ('035_plans.sql', 'column', 'public', 'plan_settings', 'enforced', null),
@@ -530,6 +524,12 @@ with expected(file, kind, sch, tbl, name, has) as (values
   ('044_recipe_import.sql', 'column', 'public', 'recipe_import_cache', 'created_at', null),
   ('046_founders_year_ending_email.sql', 'column', 'public', 'founding_members', 'year_ending_email_sent_at', null),
   ('046_founders_year_ending_email.sql', 'function', 'public', null, 'founders_year_ending_soon', null),
+  ('048_rls_auth_initplan.sql', 'policy', 'public', 'hidden_recent_foods', 'hidden_recent_foods own rows', null),
+  ('048_rls_auth_initplan.sql', 'policy', 'public', 'consent_records', 'consent records are readable by their owner', null),
+  ('049_private_helpers.sql', 'function', 'private', null, 'is_active_member', null),
+  ('049_private_helpers.sql', 'policy', 'public', 'community_posts', 'community_posts readable by members', null),
+  ('049_private_helpers.sql', 'policy', 'public', 'community_comments', 'community_comments readable by members', null),
+  ('049_private_helpers.sql', 'policy', 'public', 'recipes', 'recipes readable by members', null),
   ('041_food_macros_cost.sql', 'constraint text', 'public', 'ai_costs', 'ai_costs_feature_check', 'food_macros'),
   ('045_founders_year_from_joining.sql', 'function text', 'public', null, 'effective_plan', 'claimed + interval ''12 months''')
 ),

@@ -15,4 +15,4 @@ alter table public.hidden_recent_foods enable row level security;
 
 drop policy if exists "hidden_recent_foods own rows" on public.hidden_recent_foods;
 create policy "hidden_recent_foods own rows" on public.hidden_recent_foods
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  for all using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);

@@ -20,10 +20,11 @@ const PRICE_IDS: Record<PaidPlan, Record<Interval, string | undefined>> = {
   max: { month: env.VITE_PADDLE_PRICE_MAX_MONTHLY, year: env.VITE_PADDLE_PRICE_MAX_YEARLY },
 };
 
-/** Shown on the plan card; Paddle charges the amounts set on its prices. */
+/** Shown on the plan card; Paddle charges the amounts set on its prices.
+ * "US$" so Australian members don't read them as Australian dollars. */
 export const PRICES: Record<PaidPlan, Record<Interval, string>> = {
-  premium: { month: "$12.99", year: "$124.68" },
-  max: { month: "$21.99", year: "$211.08" },
+  premium: { month: "US$12.99", year: "US$124.68" },
+  max: { month: "US$21.99", year: "US$211.08" },
 };
 
 /** What a year costs against twelve months, as a whole percent (20% for both plans today). */

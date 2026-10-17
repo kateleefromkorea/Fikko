@@ -271,6 +271,7 @@ export default function SignInScreen() {
           <a href="/privacy.html" className="underline underline-offset-2 hover:text-foreground">Privacy Policy</a>.
           {" "}Paid plans have a 14-day money-back guarantee: see our{" "}
           <a href="/refunds.html" className="underline underline-offset-2 hover:text-foreground">Refund Policy</a>.
+          {" "}US members: <a href="/privacy.html#consumer-health-data" className="underline underline-offset-2 hover:text-foreground">Consumer Health Data Privacy Policy</a>.
         </p>
       </main>
 

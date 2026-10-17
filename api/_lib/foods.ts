@@ -5,6 +5,7 @@
 //     licensed), loaded into the regional_foods table. See migration 024.
 
 import { admin, supabaseReady } from "./devices.js";
+import { matchTier, queryVariants } from "./foodQuery.js";
 
 const USDA_URL = "https://api.nal.usda.gov/fdc/v1/foods/search";
 // Whole foods (Foundation, SR Legacy) plus FNDDS, USDA's list of prepared dishes
@@ -110,25 +111,14 @@ interface RegionalRow {
  */
 export async function searchRegional(query: string): Promise<FoodSearchHit[]> {
   if (!supabaseReady()) throw new Error("not configured");
-  const words = query.split(" ").filter(Boolean).slice(0, 4);
-  if (!words.length) return [];
-  let q = admin()
-    .from("regional_foods")
-    .select("source, source_id, name, name_local, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g");
-  for (const w of words) {
-    // % and _ are wildcards in LIKE; \ escapes them. The backslash itself is escaped first.
-    q = q.ilike("search_text", `%${w.replace(/[\\%_]/g, "\\$&")}%`);
-  }
-  const { data, error } = await q.limit(60);
-  if (error) throw new Error(error.message);
+  if (!query.split(" ").some(Boolean)) return [];
+  // The query as typed, plus rewrites using the names the regional databases use.
+  const found = await Promise.all(queryVariants(query).map(regionalRows));
+  const byId = new Map<string, RegionalRow>();
+  for (const rows of found) for (const r of rows) byId.set(`${r.source}-${r.source_id}`, r);
 
-  const lower = query.toLowerCase();
-  const rank = (r: RegionalRow) => {
-    const name = r.name.toLowerCase();
-    const first = name.split(",")[0].trim();
-    return (first === lower || r.name_local === query ? 0 : first.startsWith(lower) ? 1 : 2) * 1000 + name.length;
-  };
-  return ((data ?? []) as RegionalRow[])
+  const rank = (r: RegionalRow) => matchTier(r.name, r.name_local, query) * 1000 + r.name.length;
+  return [...byId.values()]
     .sort((a, b) => rank(a) - rank(b))
     .slice(0, REGIONAL_RESULTS)
     .map((r) => ({
@@ -141,6 +131,22 @@ export async function searchRegional(query: string): Promise<FoodSearchHit[]> {
       fatPer100g: r.fat_per_100g == null ? null : r1(Number(r.fat_per_100g)),
       source: "generic" as const,
     }));
+}
+
+/** Rows whose name contains every word of `query` (up to four words). */
+async function regionalRows(query: string): Promise<RegionalRow[]> {
+  const words = query.split(" ").filter(Boolean).slice(0, 4);
+  if (!words.length) return [];
+  let q = admin()
+    .from("regional_foods")
+    .select("source, source_id, name, name_local, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g");
+  for (const w of words) {
+    // % and _ are wildcards in LIKE; \ escapes them. The backslash itself is escaped first.
+    q = q.ilike("search_text", `%${w.replace(/[\\%_]/g, "\\$&")}%`);
+  }
+  const { data, error } = await q.limit(60);
+  if (error) throw new Error(error.message);
+  return (data ?? []) as RegionalRow[];
 }
 
 // ── Open Food Facts ────────────────────────────────────────────────────────

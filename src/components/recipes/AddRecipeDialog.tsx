@@ -97,7 +97,8 @@ export function RecipeForm({
     title: initial?.title ?? "",
     description: initial?.description ?? "",
     ingredients: (initial?.ingredients ?? []).join("\n"),
-    steps: (initial?.steps ?? []).join("\n"),
+    // A blank line between steps keeps long ones readable; blank lines are ignored on save.
+    steps: (initial?.steps ?? []).join("\n\n"),
     minutes: text(initial?.minutes),
     servings: text(initial?.servings),
     calories: text(initial?.calories),

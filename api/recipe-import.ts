@@ -34,6 +34,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 // A burst of a few links is normal (trying a couple of pages); scripts aren't.
 const LIMITS: [number, number][] = [[6, 60], [60, 24 * 3600]];
 const CACHE_DAYS = 30;
+// Bump when parsing changes, so pages cached by the old parser are read again.
+const CACHE_VERSION = "v2";
+const cacheKey = (key: string) => `${CACHE_VERSION}:${key}`;
 
 function log(fields: Record<string, unknown>) {
   console.log(JSON.stringify({ event: "recipe_import", ...fields }));
@@ -46,7 +49,7 @@ async function existing(db: SupabaseClient, userId: string, keys: string[]) {
 
 async function cached(db: SupabaseClient, key: string) {
   const since = new Date(Date.now() - CACHE_DAYS * 86_400_000).toISOString();
-  const { data } = await db.from("recipe_import_cache").select("recipe, stage").eq("source_key", key).gte("created_at", since).maybeSingle();
+  const { data } = await db.from("recipe_import_cache").select("recipe, stage").eq("source_key", cacheKey(key)).gte("created_at", since).maybeSingle();
   return (data as { recipe: ImportedRecipe; stage: ImportStage } | null) ?? null;
 }
 
@@ -126,7 +129,7 @@ async function handlePOST(request: Request) {
       return json({ error: failure.message, code: failure.code, partial: failure.partial, sourceUrl: url.toString(), sourceKey: key }, 422);
     }
 
-    const rows = [...new Set([key, finalKey])].map((k) => ({ source_key: k, stage, recipe, created_at: new Date().toISOString() }));
+    const rows = [...new Set([key, finalKey])].map((k) => ({ source_key: cacheKey(k), stage, recipe, created_at: new Date().toISOString() }));
     const { error } = await db.from("recipe_import_cache").upsert(rows);
     if (error) log({ host, outcome: "cache_write_failed" });
   }

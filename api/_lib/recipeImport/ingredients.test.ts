@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { groupHeading, parseIngredient } from "./ingredients";
+import { groupHeading, parseIngredient, tidyLine } from "./ingredients";
 
 const parts = (raw: string) => {
   const { quantity, unit, name, notes } = parseIngredient(raw);
@@ -70,4 +70,30 @@ describe("groupHeading", () => {
     (line, group) => expect(groupHeading(line)).toBe(group),
   );
   test.each(["2 cups flour", "salt, to taste", "Ratio 1:2"])("%s is an ingredient", (line) => expect(groupHeading(line)).toBeNull());
+});
+
+describe("tidyLine: recipe plugin leftovers (RecipeTin Eats, WP Recipe Maker)", () => {
+  test.each([
+    ["3 cups (450g) flour (, bread or plain/all purpose (Note 1))", "3 cups (450g) flour (bread or plain/all purpose, Note 1)"],
+    ["2 tsp instant or rapid rise yeast ((Note 2 for normal / active dry yeast))", "2 tsp instant or rapid rise yeast (Note 2 for normal / active dry yeast)"],
+    ["1 1/2 tsp cooking salt / kosher salt (, HALVE if using table salt (Note 3))", "1 1/2 tsp cooking salt / kosher salt (HALVE if using table salt, Note 3)"],
+    ["1 1/2 cups (375 ml) very warm tap water (, NOT boiling or super hot (ie up to 55°C/130°F) (Note 4))", "1 1/2 cups (375 ml) very warm tap water (NOT boiling or super hot (ie up to 55°C/130°F), Note 4)"],
+    ["1 1/2 tbsp flour (, for dusting)", "1 1/2 tbsp flour (for dusting)"],
+    ["180g (6oz ) chicken breast (, thinly sliced)", "180g (6oz) chicken breast (thinly sliced)"],
+    ["2 cups flour", "2 cups flour"],
+    ["豚肉（バラスライス） 150g", "豚肉（バラスライス） 150g"],
+  ])("%s", (raw, tidy) => expect(tidyLine(raw)).toBe(tidy));
+
+  test("parsing still finds the parts, and raw_text is the tidy line", () => {
+    expect(parseIngredient("1 1/2 tbsp flour (, for dusting)")).toMatchObject({ raw_text: "1 1/2 tbsp flour (for dusting)", quantity: 22.5, unit: "ml", name: "flour", notes: "for dusting" });
+  });
+});
+
+describe("parseIngredient: the author's metric amount wins", () => {
+  test.each([
+    ["3 cups (450g) flour (bread or plain/all purpose, Note 1)", { quantity: 450, unit: "g", name: "flour", notes: "bread or plain/all purpose, Note 1" }],
+    ["1 1/2 cups (375 ml) very warm tap water", { quantity: 375, unit: "ml", name: "very warm tap water", notes: null }],
+    ["1 lb (500 g) beef mince", { quantity: 500, unit: "g", name: "beef mince", notes: null }],
+    ["2 cups (not packed) spinach", { quantity: 480, unit: "ml", name: "spinach", notes: "not packed" }],
+  ])("%s", (raw, expected) => expect(parts(raw)).toEqual(expected));
 });

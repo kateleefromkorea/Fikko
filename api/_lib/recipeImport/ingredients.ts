@@ -108,7 +108,7 @@ function convert(quantity: number | null, def: UnitDef | null): { quantity: numb
 // What follows a comma when it's preparation, not part of the name:
 // "chicken breasts, diced" but not "boneless, skin-on chicken thighs".
 const PREP = /^(?:\w+ed|\w+ly|to taste|optional|divided|or\b|plus\b|about\b|at room|for\b|cut\b|such as|if\b|see\b|more\b|room temp)/i;
-const tidy = (s: string) => s.replace(/^[\s,;:、]+|[\s,;:、]+$/g, "").replace(/\s+/g, " ");
+const tidy = (s: string) => s.replace(/^[\s,;:、]+|[\s,;:、]+$/g, "").replace(/\s+/g, " ").replace(/\s+([,;])/g, "$1");
 
 /** Splits "chicken breasts, diced" and "flour (sifted)" into name and notes. */
 function nameAndNotes(text: string): { name: string; notes: string | null } {
@@ -154,8 +154,31 @@ function parseCjk(text: string): Omit<Ingredient, "raw_text" | "group"> | null {
   return null;
 }
 
+/**
+ * Undoes what recipe plugins do to a line when they join its parts: WP
+ * Recipe Maker writes notes as "(, sifted (Note 1))". The words are the
+ * author's; only the stray punctuation goes.
+ *   "flour (, bread or plain (Note 1))" → "flour (bread or plain, Note 1)"
+ */
+export function tidyLine(raw: string): string {
+  let s = raw.trim().replace(/\s+/g, " ");
+  for (let i = 0; i < 3; i++) {
+    const before = s;
+    s = s
+      .replace(/\(\s*[,;:]\s*/g, "(") // "(, sifted" → "(sifted"
+      .replace(/\(\(([^()]*)\)\)/g, "($1)") // "((Note 2))" → "(Note 2)"
+      .replace(/\s+\(([^()]*)\)\)/g, ", $1)") // "(bread (Note 1))" → "(bread, Note 1)"
+      .replace(/\s+\)/g, ")") // "(6oz )" → "(6oz)"
+      .replace(/\(\s*\)/g, "") // "()"
+      .replace(/\s{2,}/g, " ")
+      .trim();
+    if (s === before) break;
+  }
+  return s;
+}
+
 export function parseIngredient(raw: string, group: string | null = null): Ingredient {
-  const raw_text = raw.trim().replace(/\s+/g, " ");
+  const raw_text = tidyLine(raw);
   let text = raw_text;
   for (const [from, to] of Object.entries(FRACTIONS)) text = text.split(from).join(to);
   // Full-width digits and symbols ("１／６", "～") to their plain forms.
@@ -176,6 +199,12 @@ export function parseIngredient(raw: string, group: string | null = null): Ingre
       } else if (def) {
         rest = rest.slice(word[0].length);
       }
+    }
+    // "3 cups (450g) flour": the author's own metric amount beats converting cups.
+    const metric = rest.match(new RegExp(String.raw`^\(\s*(${NUM})\s*(g|grams?|kg|ml|millilitres?|milliliters?|l|litres?|liters?)\s*\)\s*`, "i"));
+    if (metric) {
+      const { name, notes } = nameAndNotes(rest.slice(metric[0].length));
+      if (name) return { raw_text, group, name, notes, ...convert(toNumber(metric[1]), unitFor(metric[2])) };
     }
     const { name, notes } = nameAndNotes(rest);
     if (name) return { raw_text, group, name, notes, ...convert(quantity, def) };

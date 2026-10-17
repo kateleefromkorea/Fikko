@@ -44,7 +44,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { shiftDateKey, todayKey } from "../lib/dates";
-import { foodComment, macroComment, medsComment, momentFor, moodComment, sleepComment, waterComment } from "./habitComments";
+import { foodComment, macroComment, medsComment, momentFor, moodComment, sleepComment, targetImpact, waterComment } from "./habitComments";
 import { dayRange, sleepHours } from "../lib/dashboardStats";
 import { macroTargets, sumMacros } from "../lib/macros";
 import MacroBars from "./MacroBars";
@@ -530,6 +530,10 @@ function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog, biome
     targetWeightKg: goals.targetWeightKg, heightCm: goals.heightCm, diets: goals.diets,
   });
   const moment = momentFor(activeDate, todayKey());
+  // What being over or under means for the goal, once something is logged.
+  const impact = eaten > 0
+    ? targetImpact({ net: total, target, goalKey: goals.goalKey, dayOver: activeDate !== todayKey() || new Date().getHours() >= 20 })
+    : null;
   const comment =
     macroComment({
       net: total, target, eaten, meals, macros: macrosEaten, macroTarget,
@@ -576,6 +580,7 @@ function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog, biome
             </p>
           )}
           {overTarget && <p className="max-w-56 text-center text-sm font-semibold text-ink tabular-nums">{Math.round(total - target).toLocaleString()} kcal over your target</p>}
+          {impact && <p className="max-w-60 text-center text-xs text-muted-foreground">{impact}</p>}
         </div>
 
         <div className="grid auto-rows-fr grid-cols-2 gap-3">

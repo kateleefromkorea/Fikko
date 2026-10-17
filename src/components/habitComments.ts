@@ -193,3 +193,41 @@ export function macroComment(
   }
   return `${n(kcalLeft)} kcal and ${n(proteinLeft)} g protein left for today.`;
 }
+
+/** Roughly how much energy a kilogram of body weight holds. */
+const KCAL_PER_KG = 7700;
+
+/**
+ * A short line under the calorie ring on what being over or under the target
+ * means for the member's goal, using the usual ~7,700 kcal per kg estimate.
+ * Under the target it only speaks once the day is done (an earlier day, or
+ * after 8pm), since a day in progress is under by design. Null when close.
+ */
+export function targetImpact({ net, target, goalKey, dayOver }: {
+  net: number; target: number; goalKey?: string | null;
+  /** True for an earlier day, or today after 8pm. */
+  dayOver: boolean;
+}): string | null {
+  const diff = Math.round(net - target);
+  const monthKg = (Math.abs(diff) * 30) / KCAL_PER_KG;
+  const kg = monthKg >= 1 ? `${monthKg.toFixed(1)} kg` : `${Math.round(monthKg * 1000 / 50) * 50} g`;
+  if (diff > 150) {
+    if (goalKey === "weight_loss") return `Days like this, most days, would slow your weight loss by about ${kg} a month. One day won't undo your progress.`;
+    if (goalKey === "muscle_building") {
+      return diff <= 300
+        ? "A small surplus like this supports muscle gain."
+        : `This much over, most days, adds about ${kg} a month, mostly as fat rather than muscle.`;
+    }
+    return `Days like this, most days, would add about ${kg} a month. One day makes little difference.`;
+  }
+  if (diff < -300 && dayOver) {
+    if (goalKey === "weight_loss") {
+      return diff < -target * 0.25
+        ? "Eating far below your target can leave you tired and cost muscle. Landing close to it is enough to keep losing."
+        : `Under your target, so you're ahead of plan. Most days like this would mean about ${kg} more lost a month.`;
+    }
+    if (goalKey === "muscle_building") return "Under your target slows muscle gain. A protein-rich snack would have closed the gap.";
+    return `This far under, most days, would mean losing about ${kg} a month.`;
+  }
+  return null;
+}

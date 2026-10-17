@@ -81,7 +81,7 @@ export function ConsistencyCalendar({ data, waterTarget }: { data: DashCtx["data
           onClick={() => setOffset((o) => o + 1)}
           disabled={offset >= 11}
           aria-label="Previous month"
-          className="-mx-1.5 grid size-11 place-items-center rounded-md text-muted-foreground hover:bg-muted disabled:opacity-30"
+          className="-mx-1 grid size-9 place-items-center rounded-md text-muted-foreground hover:bg-muted disabled:opacity-30"
         >
           <ChevronLeft className="size-4" />
         </button>
@@ -91,13 +91,13 @@ export function ConsistencyCalendar({ data, waterTarget }: { data: DashCtx["data
           onClick={() => setOffset((o) => o - 1)}
           disabled={offset === 0}
           aria-label="Next month"
-          className="-mx-1.5 grid size-11 place-items-center rounded-md text-muted-foreground hover:bg-muted disabled:opacity-30"
+          className="-mx-1 grid size-9 place-items-center rounded-md text-muted-foreground hover:bg-muted disabled:opacity-30"
         >
           <ChevronRight className="size-4" />
         </button>
       </div>
 
-      <div className="mt-3 grid grid-cols-7 gap-1 text-center text-[11px] text-muted-foreground" aria-hidden="true">
+      <div className="mt-2 grid grid-cols-7 gap-1 text-center text-[11px] text-muted-foreground" aria-hidden="true">
         {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => <span key={d}>{d}</span>)}
       </div>
       <div className="mt-1 grid grid-cols-7 gap-1">
@@ -111,7 +111,7 @@ export function ConsistencyCalendar({ data, waterTarget }: { data: DashCtx["data
               title={d.future ? label : `${label}: ${d.done} of ${d.total} habits done`}
               aria-label={d.future ? label : `${label}: ${d.done} of ${d.total} habits done`}
               className={cn(
-                "grid aspect-square place-items-center rounded-md text-xs tabular-nums",
+                "grid h-8 place-items-center rounded-md text-xs tabular-nums",
                 d.future ? "text-muted-foreground/50" : lv.cls,
                 d.date === today && "ring-2 ring-foreground/70 ring-offset-1 ring-offset-card font-semibold",
               )}
@@ -122,7 +122,7 @@ export function ConsistencyCalendar({ data, waterTarget }: { data: DashCtx["data
         })}
       </div>
 
-      <p className="mt-4 text-sm text-muted-foreground">
+      <p className="mt-3 text-sm text-muted-foreground">
         {logged === 0
           ? "Nothing logged this month yet."
           : <><span className="font-medium text-foreground">{allDone} {allDone === 1 ? "day" : "days"}</span> with every habit done, and something logged on {logged} of {past.length} days.</>}
@@ -155,7 +155,7 @@ export function CompletionCard({ ctx, className }: { ctx: DashCtx; className?: s
       sub={byMonth(ctx.period) ? "Monthly average, share of habits done" : "Share of your habits done each day"}
       className={className}
     >
-      <BarTrend data={completionSeries(ctx)} color={C.primary} name="Completed" format={(v) => `${v}%`} domain={[0, 100]} width={40} />
+      <BarTrend data={completionSeries(ctx)} color={C.primary} name="Completed" format={(v) => `${v}%`} domain={[0, 100]} width={40} fill />
     </ChartCard>
   );
 }

@@ -171,14 +171,17 @@ export function TrendArea({ data, color, id, height = 180, domain, unit, name, w
 
 /** Daily (or monthly) bars, with an optional dashed target line. */
 export function BarTrend({
-  data, color, name, format, target, targetLabel, height = 200, width = 36, domain,
+  data, color, name, format, target, targetLabel, height = 200, width = 36, domain, fill,
 }: {
   data: Point[]; color: string; name: string; format: (v: number) => string;
   target?: number; targetLabel?: string; height?: number; width?: number; domain?: [number, number];
+  /** Grows to the height of its card (at least `height`), for a card sitting beside a taller one. */
+  fill?: boolean;
 }) {
   return (
-    <div>
-    <ResponsiveContainer width="100%" height={height}>
+    <div className={fill ? "flex flex-1 flex-col" : undefined} style={fill ? { minHeight: height } : undefined}>
+    <div className={fill ? "relative flex-1" : undefined}>
+    <ResponsiveContainer width="100%" height={fill ? "100%" : height} className={fill ? "!absolute inset-0" : undefined}>
       <BarChart data={data} margin={{ top: 12, right: 4, left: 0, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke={C.grid} vertical={false} />
         <XAxis dataKey="label" {...ax} interval="preserveStartEnd" minTickGap={8} />
@@ -195,6 +198,7 @@ export function BarTrend({
         <Bar dataKey="value" fill={color} radius={[4, 4, 0, 0]} maxBarSize={28} />
       </BarChart>
     </ResponsiveContainer>
+    </div>
     {/* The target sits under the chart rather than on the line, where it would cover bars. */}
     {target != null && targetLabel && (
       <p className="mt-2 flex items-center justify-end gap-2 text-xs text-muted-foreground">

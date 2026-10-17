@@ -45,7 +45,7 @@ export default function PlanCard({ className }: { className?: string }) {
         <CardDescription>
           {subscribed
             ? `${PLAN_LABEL[sub.plan]}${sub.status === "canceled" && sub.currentPeriodEnd ? `, ends ${dateLabel(sub.currentPeriodEnd)}` : sub.currentPeriodEnd ? `, renews ${dateLabel(sub.currentPeriodEnd)}` : ""}`
-            : !enforced ? "Free during launch. Everything is unlocked for now."
+            : !enforced ? "Everything is unlocked for now."
             : onTrial(planState) ? `${PLAN_LABEL[plan]} free trial, ends ${dateLabel(trialEndsAt!)}. Choose a plan to keep it.`
             : `${PLAN_LABEL[plan]}${plan === "premium" ? " (founding member)" : ""}`}
         </CardDescription>

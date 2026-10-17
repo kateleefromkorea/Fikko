@@ -61,7 +61,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
 
 export interface PlanState {
   plan: Plan;
-  /** False until paid plans open; limits are not applied while it is. */
+  /** False means limits are not applied. */
   enforced: boolean;
 }
 

@@ -2,7 +2,7 @@ import { supabase } from "./supabase";
 import type { Plan } from "./fikko";
 
 // The member's plan and what it includes (migration 035). Limits only apply
-// once `enforced` is true; until paid plans open every member keeps full access
+// once `enforced` is true; until then every member keeps full access
 // and the current 20 AI messages a day. Keep PLAN_LIMITS in step with
 // api/_lib/plans.ts, which is what the server actually enforces.
 

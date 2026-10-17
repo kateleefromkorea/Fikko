@@ -60,17 +60,17 @@ Vercel → your Fikko project → Settings → Environment Variables. For every 
 - [ ] In Paddle → Notifications → the destination, recent events show a 200 response
 - [ ] Refund the test payment yourself: email `hello@fikko.io` or refund it in Paddle (Transactions), then cancel the subscription in Manage billing
 
-## 7. Turn on the limits
+## 7. Check the limits are on
 
-Only when sections 4 to 6 pass. Run in the Supabase SQL editor (Supabase will warn about an UPDATE with no WHERE; that is expected, the table has one row):
+They were switched on on 17 October, so this is a check, not a step. Run in the Supabase SQL editor:
 
 ```sql
-update public.plan_settings set enforced = true, launched_at = now();
+select enforced, launched_at from public.plan_settings;
 ```
 
-- [ ] Run it
-- [ ] Check: `select enforced, launched_at from public.plan_settings;` shows `true` and a timestamp (founding members' free year runs from the day they joined, so this doesn't change it)
+- [ ] `enforced` shows `true`. If it ever shows `false`, run `update public.plan_settings set enforced = true;` (Supabase will warn about an UPDATE with no WHERE; that is expected, the table has one row)
 - [ ] Your own account still shows its plan, and a free test account shows the limits and the "Try Premium free" button
+- [ ] Founding members' free year runs from the day they joined, so none of this changes it
 
 ## 8. After launch
 

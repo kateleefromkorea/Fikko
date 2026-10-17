@@ -3,7 +3,7 @@
 Draft for approval, 7 October 2026, updated with your answers (signed by the Fikko Team, no waitlist, one 🌱 emoji, hashtags on Instagram only). Nothing here is published yet. Every claim matches the
 Terms (`/terms.html#founding-members`) and how the app works today:
 
-- Soft launch on **11 November 2026**, free for everyone, web app plus home-screen install, English.
+- Soft launch on **11 November 2026**: a Free plan for everyone, and the first 100 founding members get Premium free for 12 months. Web app plus home-screen install, English.
 - The **first 100** people who **create an account, confirm their email and finish setup** become founding members.
 - Founding members get **Premium free for 12 months, starting the day they join**.
 - About a month before the year ends we email them; then they choose to subscribe or stay on Free. **No card is needed, and nobody is charged without agreeing.**
@@ -22,7 +22,7 @@ during launch week.
 
 **Headline:** Be one of Fikko's first 100.
 
-**Body:** Fikko is free for everyone while we launch. Sign up, finish setup, and you'll become a
+**Body:** Fikko has a Free plan for everyone. Sign up, finish setup, and you could become a
 founding member: Fikko Premium free for a full year, starting the day you join. No card, no catch.
 
 **Button:** Claim my place
@@ -32,7 +32,7 @@ founding member: Fikko Premium free for a full year, starting the day you join. 
 
 When all 100 are taken, swap to:
 
-> **All 100 founding places are taken.** Thank you. Fikko is still free for everyone while we launch. **Start free**
+> **All 100 founding places are taken.** Thank you. The Free plan is open to everyone. **Start free**
 
 ---
 
@@ -43,7 +43,7 @@ When all 100 are taken, swap to:
 2. You're invited: be one of Fikko's first 100
 3. Your water, meals, sleep and mood in one check-in
 
-**Preview text:** Free while we launch. The first 100 to finish setup get Premium free for a year.
+**Preview text:** The first 100 to finish setup get Premium free for a year.
 
 **Body:**
 
@@ -56,7 +56,7 @@ When all 100 are taken, swap to:
 > of water and a banana for breakfast") and it fills in your habits for you. Ask its AI coach how
 > your week went. And every day you complete your habits, your own Fikko plant grows a little more.
 >
-> **It's free for everyone while we launch.** And the first 100 people to sign up and finish
+> **There's a Free plan for everyone.** And the first 100 people to sign up and finish
 > setup become **founding members**, with Fikko Premium free for a full year, starting the day they join.
 > No card needed.
 >
@@ -104,7 +104,7 @@ For review only; this is the text the app sends today (`api/email.ts`). Tell me 
 **Slide 2:** Water, meals, activity, sleep, mood and your supplements, all in one place.
 **Slide 3:** Just say it: "Two glasses of water and a banana for breakfast." Fikko logs it for you.
 **Slide 4:** Complete your habits and your Fikko plant grows. 🌱
-**Slide 5:** Free while we launch. The first 100 to sign up get Premium free for a year. Link in bio.
+**Slide 5:** The first 100 to sign up get Premium free for a year. Link in bio.
 
 **Caption:**
 
@@ -114,7 +114,7 @@ For review only; this is the text the app sends today (`api/email.ts`). Tell me 
 > supplements. Talk to it, ask its AI coach about your week, and watch your own Fikko plant grow
 > every day you show up.
 >
-> It's free for everyone while we launch, and the first 100 people to sign up and finish setup
+> There's a Free plan for everyone, and the first 100 people to sign up and finish setup
 > become founding members, with Premium free for a full year, starting the day they join.
 >
 > Claim your place: link in bio.
@@ -128,7 +128,7 @@ For review only; this is the text the app sends today (`api/email.ts`). Tell me 
 > It's a habit tracker that fits your whole day into one check-in: water, meals, sleep, mood,
 > activity, supplements. You can just talk to it.
 >
-> Free while we launch, and the first 100 to finish setup get Premium free for a year.
+> The first 100 to finish setup get Premium free for a year.
 > www.fikko.io
 
 ### X (two posts)
@@ -137,7 +137,7 @@ For review only; this is the text the app sends today (`api/email.ts`). Tell me 
 > Fikko is live: water, meals, activity, sleep and mood in one daily check-in. Say what you did and
 > it logs it for you.
 >
-> Free while we launch. First 100 to finish setup get Premium free for a year. 🌱
+> First 100 to finish setup get Premium free for a year. 🌱
 > www.fikko.io
 
 **Mid-week (update the number):**
@@ -158,7 +158,7 @@ For review only; this is the text the app sends today (`api/email.ts`). Tell me 
 > • An AI coach that answers from your own logs (a wellness coach, not a doctor)
 > • A plant that grows every day you complete your habits
 >
-> We're launching free for everyone. The first 100 people to sign up and finish setup become
+> We're launching with a Free plan for everyone. The first 100 people to sign up and finish setup become
 > founding members, with Premium free for a full year, starting the day they join.
 >
 > If you try it, we'd love your honest feedback, especially what's missing.
@@ -181,8 +181,8 @@ what you built and ask for feedback rather than selling.
 > and supplements, or just say it out loud and it fills them in. There's an AI coach that answers
 > from your own logs, and a small plant that grows on the days you complete everything.
 >
-> It's free while we launch (the first 100 people who finish setup also get Premium free for a
-> year, starting the day they join). It runs in the browser and you can add it to your home screen.
+> There's a Free plan, and the first 100 people who finish setup get Premium free for a
+> year, starting the day they join. It runs in the browser and you can add it to your home screen.
 >
 > What would make you actually stick with a habit tracker? And what's the first thing that
 > annoys you when you try it?
@@ -200,7 +200,7 @@ Post these as places fill. The live number is on www.fikko.io in the pricing sec
 | 50 left | Halfway there: 50 founding places left. Sign up and finish setup to get Premium free for a year. |
 | 20 left | 20 founding places left. Once they're gone, they're gone. |
 | 5 left | Last 5 founding places. 🌱 |
-| All taken | All 100 founding places are taken. Thank you, founding members! Fikko is still free for everyone while we launch. |
+| All taken | All 100 founding places are taken. Thank you, founding members! The Free plan is open to everyone. |
 
 ---
 

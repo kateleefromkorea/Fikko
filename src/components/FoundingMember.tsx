@@ -54,7 +54,7 @@ export function FoundingWelcome({ userId }: { userId: string }) {
           </DialogDescription>
         </DialogHeader>
         <ul className="space-y-2 rounded-lg bg-muted/60 px-4 py-3 text-sm">
-          <li>You get <strong>Fikko Premium free for 12 months</strong>, counted from the day paid plans launch or the day you joined, whichever is later.</li>
+          <li>You get <strong>Fikko Premium free for 12 months</strong>, starting the day you joined.</li>
           <li>Everyone else starts on the Free plan and can upgrade any time.</li>
           <li>We&apos;ll email you about a month before your free year ends. We never charge without your agreement.</li>
         </ul>
@@ -79,7 +79,7 @@ export function FoundingBadge({ userId }: { userId: string }) {
       <div className="min-w-0 text-sm">
         <p className="font-semibold text-primary-ink">Founding member #{place.place}</p>
         <p className="text-muted-foreground">
-          Premium free for 12 months once paid plans launch.{" "}
+          Premium free for 12 months from the day you joined.{" "}
           <a href="/terms.html#founding-members" target="_blank" rel="noreferrer" className="underline">Details</a>
         </p>
       </div>
@@ -99,7 +99,7 @@ export function FoundingPlacesLeft({ className }: { className?: string }) {
   return (
     <p className={className}>
       <Award className="mr-1 inline size-4 -translate-y-px text-primary" aria-hidden="true" />
-      <strong className="font-semibold text-foreground">{left} of {FOUNDING_PLACES}</strong> founding places left: finish setup to get Premium free for a year once paid plans launch.
+      <strong className="font-semibold text-foreground">{left} of {FOUNDING_PLACES}</strong> founding places left: finish setup to get Premium free for a year.
     </p>
   );
 }

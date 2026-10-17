@@ -49,7 +49,7 @@ async function foundingWelcome(request: Request) {
   const first = (profile?.name ?? "").trim().split(/\s+/)[0];
   const paragraphs = [
     `${first ? `${first}, you're` : "You're"} founding member #${place.place} of 100. Thank you for joining Fikko this early.`,
-    "As a founding member you get Fikko Premium free for 12 months, counted from the day paid plans launch or the day you joined, whichever is later. Nothing to do now, and we'll never charge you without your agreement.",
+    "As a founding member you get Fikko Premium free for 12 months, starting the day you joined. Nothing to do now, and we'll never charge you without your agreement.",
     "About a month before your free year ends, we'll email you to say when it ends and what Premium costs if you'd like to keep it.",
     "Questions or ideas? Just reply to this email. Founding members shape what we build next.",
     "The Fikko Team",

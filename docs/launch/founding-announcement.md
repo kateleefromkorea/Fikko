@@ -5,7 +5,7 @@ Terms (`/terms.html#founding-members`) and how the app works today:
 
 - Soft launch on **11 November 2026**, free for everyone, web app plus home-screen install, English.
 - The **first 100** people who **create an account, confirm their email and finish setup** become founding members.
-- Founding members get **Premium free for 12 months, starting the day paid plans launch**.
+- Founding members get **Premium free for 12 months, starting the day they join**.
 - About a month before the year ends we email them; then they choose to subscribe or stay on Free. **No card is needed, and nobody is charged without agreeing.**
 - Fitbit and Pixel Watch: invite-only beta. Apple Health and Garmin: coming.
 
@@ -23,7 +23,7 @@ during launch week.
 **Headline:** Be one of Fikko's first 100.
 
 **Body:** Fikko is free for everyone while we launch. Sign up, finish setup, and you'll become a
-founding member: Fikko Premium free for a full year once paid plans arrive. No card, no catch.
+founding member: Fikko Premium free for a full year, starting the day you join. No card, no catch.
 
 **Button:** Claim my place
 
@@ -57,7 +57,7 @@ When all 100 are taken, swap to:
 > your week went. And every day you complete your habits, your own Fikko plant grows a little more.
 >
 > **It's free for everyone while we launch.** And the first 100 people to sign up and finish
-> setup become **founding members**, with Fikko Premium free for a full year once paid plans arrive.
+> setup become **founding members**, with Fikko Premium free for a full year, starting the day they join.
 > No card needed.
 >
 > **[Claim your place →](https://app.fikko.io/?mode=signup)**
@@ -82,9 +82,8 @@ For review only; this is the text the app sends today (`api/email.ts`). Tell me 
 >
 > [Kate], you're founding member #[12] of 100. Thank you for joining Fikko this early.
 >
-> Fikko is free for everyone while we launch. When paid plans arrive, you'll get Fikko Premium free
-> for 12 months, starting the day they launch. Nothing to do now, and we'll never charge you without
-> your agreement.
+> As a founding member you get Fikko Premium free for 12 months, starting the day you joined. Nothing
+> to do now, and we'll never charge you without your agreement.
 >
 > About a month before your free year ends, we'll email you to say when it ends and what Premium
 > costs if you'd like to keep it.
@@ -116,7 +115,7 @@ For review only; this is the text the app sends today (`api/email.ts`). Tell me 
 > every day you show up.
 >
 > It's free for everyone while we launch, and the first 100 people to sign up and finish setup
-> become founding members, with Premium free for a full year once paid plans arrive.
+> become founding members, with Premium free for a full year, starting the day they join.
 >
 > Claim your place: link in bio.
 >
@@ -143,7 +142,7 @@ For review only; this is the text the app sends today (`api/email.ts`). Tell me 
 
 **Mid-week (update the number):**
 > [37] founding places left. Sign up, finish setup, and Fikko Premium is free for your first year
-> once paid plans arrive. No card needed. www.fikko.io
+> from the day you join. No card needed. www.fikko.io
 
 ### LinkedIn (Fikko company page)
 
@@ -160,7 +159,7 @@ For review only; this is the text the app sends today (`api/email.ts`). Tell me 
 > • A plant that grows every day you complete your habits
 >
 > We're launching free for everyone. The first 100 people to sign up and finish setup become
-> founding members, with Premium free for a full year once paid plans arrive.
+> founding members, with Premium free for a full year, starting the day they join.
 >
 > If you try it, we'd love your honest feedback, especially what's missing.
 > www.fikko.io
@@ -183,7 +182,7 @@ what you built and ask for feedback rather than selling.
 > from your own logs, and a small plant that grows on the days you complete everything.
 >
 > It's free while we launch (the first 100 people who finish setup also get Premium free for a
-> year when paid plans start). It runs in the browser and you can add it to your home screen.
+> year, starting the day they join). It runs in the browser and you can add it to your home screen.
 >
 > What would make you actually stick with a habit tracker? And what's the first thing that
 > annoys you when you try it?

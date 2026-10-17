@@ -1,7 +1,7 @@
 import { supabase } from "./supabase";
 
 // Founding members (migration 030): the first 100 members to finish setup get
-// Premium free for 12 months once paid plans launch. The database claims the
+// Premium free for 12 months from the day they join. The database claims the
 // place when setup is completed; the app only reads it.
 
 /** Keep in step with founding_places_total() in migration 030. */

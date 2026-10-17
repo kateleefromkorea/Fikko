@@ -69,7 +69,7 @@ update public.plan_settings set enforced = true, launched_at = now();
 ```
 
 - [ ] Run it
-- [ ] Check: `select enforced, launched_at from public.plan_settings;` shows `true` and a timestamp
+- [ ] Check: `select enforced, launched_at from public.plan_settings;` shows `true` and a timestamp (founding members' free year runs from the day they joined, so this doesn't change it)
 - [ ] Your own account still shows its plan, and a free test account shows the limits and the "Try Premium free" button
 
 ## 8. After launch

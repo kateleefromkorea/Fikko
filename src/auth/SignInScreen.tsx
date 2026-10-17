@@ -269,6 +269,7 @@ export default function SignInScreen() {
           By continuing you agree to our{" "}
           <a href="/terms.html" className="underline underline-offset-2 hover:text-foreground">Terms</a> and{" "}
           <a href="/privacy.html" className="underline underline-offset-2 hover:text-foreground">Privacy Policy</a>.
+          {" "}New here? <a href="/about.html" className="underline underline-offset-2 hover:text-foreground">See what Fikko is and what it costs</a>.
           {" "}Paid plans have a 14-day money-back guarantee: see our{" "}
           <a href="/refunds.html" className="underline underline-offset-2 hover:text-foreground">Refund Policy</a>.
           {" "}US members: <a href="/privacy.html#consumer-health-data" className="underline underline-offset-2 hover:text-foreground">Consumer Health Data Privacy Policy</a>.

@@ -1,6 +1,8 @@
 # Move the database and API to the US
 
-Decided 2026-10-17: Fikko launches in the US first, so the database and the API move from Singapore to **US East (N. Virginia)**. Supabase `us-east-1` and Vercel `iad1` sit next to each other, so each request needs one short hop instead of crossing the Pacific.
+> **On hold (2026-10-17).** Fikko now launches in Australia first, and Singapore is close to Australia, so the database stays in Singapore. Use this runbook later, when the US becomes the main market (ideally with the iPhone app). The code and policy edits listed below were undone; redo them at that time.
+
+Originally decided 2026-10-17: Fikko launches in the US first, so the database and the API move from Singapore to **US East (N. Virginia)**. Supabase `us-east-1` and Vercel `iad1` sit next to each other, so each request needs one short hop instead of crossing the Pacific.
 
 Supabase can't change a project's region in place. The move is a **new project** in the US, then switching Fikko over to it. Do it before the private beta (20 Oct) while there is little real data. Allow a morning.
 

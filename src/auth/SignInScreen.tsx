@@ -269,6 +269,8 @@ export default function SignInScreen() {
           By continuing you agree to our{" "}
           <a href="/terms.html" className="underline underline-offset-2 hover:text-foreground">Terms</a> and{" "}
           <a href="/privacy.html" className="underline underline-offset-2 hover:text-foreground">Privacy Policy</a>.
+          {" "}Paid plans have a 14-day money-back guarantee: see our{" "}
+          <a href="/refunds.html" className="underline underline-offset-2 hover:text-foreground">Refund Policy</a>.
         </p>
       </main>
 

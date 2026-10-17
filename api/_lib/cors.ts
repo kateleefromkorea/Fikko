@@ -8,6 +8,8 @@
 
 const APP_ORIGINS = new Set(["capacitor://localhost", "https://localhost", "http://localhost"]);
 
+import { reportServerError } from "./errorReport.js";
+
 type Handler = (request: Request) => Promise<Response>;
 
 function corsHeaders(request: Request): Record<string, string> | null {
@@ -24,7 +26,15 @@ function corsHeaders(request: Request): Record<string, string> | null {
 /** Wraps a handler so its responses to the apps carry the CORS headers. */
 export function withCors(handler: Handler): Handler {
   return async (request) => {
-    const response = await handler(request);
+    let response: Response;
+    const where = new URL(request.url).pathname;
+    try {
+      response = await handler(request);
+    } catch (err) {
+      await reportServerError(err, where);
+      throw err;
+    }
+    if (response.status >= 500) await reportServerError(null, where, response.status);
     const cors = corsHeaders(request);
     if (!cors) return response;
     const headers = new Headers(response.headers);

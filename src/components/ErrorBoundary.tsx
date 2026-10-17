@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { reportError } from "@/lib/errorReport";
 
 /**
  * Shows a friendly reload screen instead of a blank page when something in the
@@ -15,6 +16,7 @@ export default class ErrorBoundary extends Component<{ children: ReactNode }, { 
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error("Fikko crashed:", error, info.componentStack);
+    reportError(error, "render");
   }
 
   render() {

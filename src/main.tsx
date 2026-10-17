@@ -8,6 +8,9 @@ import ErrorBoundary from './components/ErrorBoundary'
 import './index.css'
 // Catches the browser's install offer before React starts (it fires only once).
 import './lib/install'
+import { startErrorReporting } from './lib/errorReport'
+
+startErrorReporting()
 
 // After a new deploy, a page that was already open asks for code files that no
 // longer exist (e.g. the Dashboard, opened right after onboarding). Reload once

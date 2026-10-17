@@ -16,6 +16,8 @@ export interface GoalLine {
   /** What they set out to do, e.g. "target 1,900". */
   target: string;
   status: GoalStatus;
+  /** How close they are to the target, 0 to 1, for a progress bar. */
+  progress: number;
   /** One plain sentence about where this is heading. */
   note: string;
 }
@@ -89,6 +91,7 @@ export function goalProgress(
         now: current != null ? `${w(current)} now` : `${w(Math.abs(pace))} a week`,
         target: `goal ${w(target)}`,
         status: reached ? "on" : status,
+        progress: reached ? 1 : Math.max(0, Math.min(1, ratio)),
         note,
       });
     }
@@ -106,6 +109,7 @@ export function goalProgress(
       now: `${kcal(avgKcal)} kcal a day`,
       target: `target ${kcal(goal)}`,
       status: share <= 0.1 ? "on" : share <= 0.2 ? "close" : "off",
+      progress: Math.min(avgKcal, goal) / Math.max(avgKcal, goal),
       note: share <= 0.1
         ? `Within your target on ${onDays} of ${food.length} days logged.`
         : `About ${kcal(Math.abs(gap))} kcal ${gap > 0 ? "over" : "under"} your target on an average day.`,
@@ -124,6 +128,7 @@ export function goalProgress(
       now: `${one(avgWater)} glasses a day`,
       target: `target ${profile.water_goal}`,
       status: share >= 0.95 ? "on" : share >= 0.75 ? "close" : "off",
+      progress: Math.min(1, share),
       note: share >= 0.95
         ? `Target reached on ${hit} of ${water.length} days.`
         : `About ${one(profile.water_goal - avgWater)} ${profile.water_goal - avgWater >= 1.5 ? "glasses" : "glass"} short on an average day.`,
@@ -146,6 +151,7 @@ export function goalProgress(
       now: `${one(avgHours)}h a night`,
       target: `target ${profile.sleep_goal}h`,
       status: short <= 0.25 ? "on" : short <= 0.75 ? "close" : "off",
+      progress: Math.min(1, avgHours / profile.sleep_goal),
       note: short <= 0.25
         ? `Getting the sleep you aimed for on most nights.`
         : `About ${one(short)}h short of your target on an average night.`,

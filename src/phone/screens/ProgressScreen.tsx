@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, type ReactNode } from "react";
-import { ChevronRight, FileText, MessageCircle, Target, Watch } from "lucide-react";
+import { ArrowUpRight, Check, ChevronRight, Circle, FileText, MessageCircle, Target, Watch, type LucideIcon } from "lucide-react";
 import type { BiometricData, HabitData } from "@/types";
 import type { ProfileRow } from "@/hooks/useProfile";
 import { usePlan } from "@/hooks/usePlan";
@@ -268,57 +268,75 @@ function Patterns({ ctx, biometrics, onAskCoach }: { ctx: DashCtx; biometrics: B
   );
 }
 
-const STATUS: Record<GoalStatus, { label: string; cls: string }> = {
-  on: { label: "On track", cls: "bg-primary/10 text-primary-ink" },
-  close: { label: "Nearly", cls: "bg-[#E6F1FC] text-[#1F73C2]" },
-  off: { label: "Not yet", cls: "bg-foreground/[0.06] text-foreground/70" },
+const GOAL_TONE: Record<GoalStatus, { label: string; icon: LucideIcon; text: string; bar: string }> = {
+  on: { label: "On track", icon: Check, text: "text-primary-ink", bar: "bg-primary" },
+  close: { label: "Nearly", icon: ArrowUpRight, text: "text-[#1F73C2]", bar: "bg-[#1F73C2]" },
+  off: { label: "Not yet", icon: Circle, text: "text-foreground/60", bar: "bg-foreground/35" },
 };
 
-/** Whether the member is heading for the targets they set in onboarding. */
+/**
+ * Whether the member is heading for the targets they set in onboarding: a dark
+ * header with the verdict, then a white body with a bar per goal.
+ */
 function GoalsCard({ lines, onAskCoach, single }: { lines: GoalLine[]; onAskCoach?: (question: string) => void; single: boolean }) {
   const on = lines.filter((l) => l.status === "on").length;
   const behind = lines.filter((l) => l.status !== "on");
   const title = on === lines.length
     ? (lines.length === 1 ? "You're on track for your goal" : "You're on track for all your goals")
-    : `On track for ${on} of your ${lines.length} goals`;
+    : on === 0
+      ? (lines.length === 1 ? "Your goal needs a nudge" : "Your goals need a nudge")
+      : `On track for ${on} of your ${lines.length} goals`;
   return (
     <article
       aria-labelledby="goals-title"
       className={cn(
-        "flex shrink-0 snap-start flex-col rounded-2xl border border-[#1A9C8C]/20 bg-[#F4FBFA] p-4",
+        "flex shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-[#D9E3E0] bg-white",
         single ? "w-full" : "w-[calc(100%-1.75rem)]",
       )}
     >
-      <span className="mb-2 flex items-center gap-1.5 self-start rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-[#0A6E63] ring-1 ring-[#1A9C8C]/25">
-        <Target className="size-3.5" aria-hidden="true" />
-        Your goals
-      </span>
-      <h3 id="goals-title" className="text-lg leading-snug font-semibold">{title}</h3>
-      <ul className="mt-3 space-y-3">
-        {lines.map((l) => (
-          <li key={l.key}>
-            <div className="flex items-center gap-2">
-              <span className="text-[15px] font-semibold">{l.label}</span>
-              <span className={cn("ml-auto shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold", STATUS[l.status].cls)}>{STATUS[l.status].label}</span>
-            </div>
-            <p className="text-[13px] text-foreground/80 tabular-nums">{l.now} <span className="text-muted-foreground">· {l.target}</span></p>
-            <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">{l.note}</p>
-          </li>
-        ))}
-      </ul>
-      {onAskCoach && (
-        <button
-          onClick={() => onAskCoach(
-            behind.length
-              ? `I'm behind on my ${behind.map((l) => l.label.toLowerCase()).join(" and ")} goal${behind.length > 1 ? "s" : ""}. ${behind.map((l) => l.note).join(" ")} What would help me get back on track?`
-              : "I'm on track for all my goals. What could I focus on next?",
-          )}
-          className="press mt-auto flex h-11 items-center gap-2 self-start pt-3 text-[15px] font-semibold text-primary-ink"
-        >
-          <MessageCircle className="size-4" aria-hidden="true" />
-          {behind.length ? "Ask Fikko how to catch up" : "Ask Fikko what's next"}
-        </button>
-      )}
+      <header className="bg-[#001F27] px-4 pt-3.5 pb-4">
+        <p className="flex items-center gap-1.5 text-[13px] font-medium text-[#7FE3D6]">
+          <Target className="size-3.5" aria-hidden="true" />
+          Your goals
+        </p>
+        <h3 id="goals-title" className="mt-1 text-[19px] leading-tight font-semibold text-white">{title}</h3>
+      </header>
+      <div className="flex flex-1 flex-col px-4 pb-4">
+        <ul className="divide-y divide-border/70">
+          {lines.map((l) => {
+            const tone = GOAL_TONE[l.status];
+            return (
+              <li key={l.key} className="py-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-[15px] font-semibold">{l.label}</span>
+                  <span className={cn("ml-auto flex shrink-0 items-center gap-1 text-[13px] font-semibold", tone.text)}>
+                    <tone.icon className="size-3.5" strokeWidth={2.5} aria-hidden="true" />
+                    {tone.label}
+                  </span>
+                </div>
+                <p className="mt-0.5 text-[13px] text-muted-foreground tabular-nums">{l.now} · {l.target}</p>
+                <div className="mt-2 h-[7px] overflow-hidden rounded-full bg-foreground/[0.08]" aria-hidden="true">
+                  <div className={cn("h-full rounded-full", tone.bar)} style={{ width: `${Math.max(4, Math.round(l.progress * 100))}%` }} />
+                </div>
+                <p className="mt-2 text-[13px] leading-snug text-muted-foreground">{l.note}</p>
+              </li>
+            );
+          })}
+        </ul>
+        {onAskCoach && (
+          <button
+            onClick={() => onAskCoach(
+              behind.length
+                ? `I'm behind on my ${behind.map((l) => l.label.toLowerCase()).join(" and ")} goal${behind.length > 1 ? "s" : ""}. ${behind.map((l) => l.note).join(" ")} What would help me get back on track?`
+                : "I'm on track for all my goals. What could I focus on next?",
+            )}
+            className="press mt-auto flex h-11 items-center gap-2 self-start rounded-full border-[1.5px] border-primary px-4 text-[15px] font-semibold text-primary-ink"
+          >
+            <MessageCircle className="size-4" aria-hidden="true" />
+            {behind.length ? "Ask Fikko how to catch up" : "Ask Fikko what's next"}
+          </button>
+        )}
+      </div>
     </article>
   );
 }

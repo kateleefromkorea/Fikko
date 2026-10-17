@@ -39,6 +39,8 @@ const MyFikkoView = lazy(() => import("@/components/MyFikkoView"));
 const today = todayKey();
 const params = new URLSearchParams(location.search);
 const empty = params.has("empty");
+// ?behind sets targets the sample data misses, to see the "Nearly" and "Not yet" goal states.
+const behind = params.has("behind");
 const streakDays = Math.max(0, Number(params.get("streak") ?? 14) || 0);
 const past = (n: number) => shiftDateKey(today, -n);
 
@@ -65,7 +67,7 @@ function Preview() {
   const { seedPlan } = usePlan();
   const base = useProfile(null).profile;
   const [profile, setProfile] = useState<ProfileRow>(() => ({
-    ...base, name: "Kate Lee", calorie_goal: 1900, water_goal: 8, sleep_goal: 8,
+    ...base, name: "Kate Lee", calorie_goal: behind ? 1400 : 1900, water_goal: behind ? 10 : 8, sleep_goal: 8,
     fikko_seed: "sprout", fikko_planted_on: past(streakDays), onboarding_completed_at: past(streakDays),
   }));
   const [logged, setLogged] = useState(sampleData);

@@ -28,6 +28,10 @@ const USER_TABLES = [
   ["coach_messages", "created_at"],
   ["fikko_garden", "created_at"],
   ["ai_recipes", "created_at"],
+  ["weigh_ins", "date"],
+  ["food_days_complete", "date"],
+  ["adaptive_targets", null],
+  ["target_suggestions", "created_at"],
 ] as const;
 
 /** The tables a deep-dive report reads (report.ts). */

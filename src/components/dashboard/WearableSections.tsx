@@ -82,7 +82,8 @@ function groupByMonth(entries: (HabitEntry | BiometricEntry)[], agg: "avg" | "su
 
 /** True once a wearable has synced anything. */
 export function hasWearableData(biometrics: BiometricData) {
-  return Object.values(biometrics).some((series) => series.length > 0);
+  // Weight alone doesn't count: members can type their weigh-ins in without a device.
+  return Object.entries(biometrics).some(([metric, series]) => metric !== "weight" && series.length > 0);
 }
 
 /**

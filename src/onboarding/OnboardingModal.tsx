@@ -23,6 +23,7 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { saveReminderSettings } from "../lib/reminders";
+import { saveAdaptiveSettings, saveWeighIn } from "../lib/adaptiveData";
 
 /** The seven questionnaire steps; step 8 is the result, which is not counted. */
 const TOTAL_STEPS = 7;
@@ -101,6 +102,9 @@ export default function OnboardingModal({ profile, userId, deviceOutcome, onAddM
       for (const name of s.medications) onAddMedication(name);
       // Not worth blocking setup over; it can be changed in Profile.
       await saveReminderSettings(userId, s.reminders).catch((err) => console.error(err));
+      await saveAdaptiveSettings(userId, { enabled: s.adaptiveTargets !== false }).catch((err) => console.error(err));
+      // The weight from setup is the first weigh-in, so the weight trend starts today.
+      if (derived.weightKg != null) await saveWeighIn(userId, todayKey(), derived.weightKg).catch((err) => console.error(err));
       await onComplete(
         {
           name: s.name.trim(),

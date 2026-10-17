@@ -17,6 +17,8 @@ import type { HabitUpdate } from "../hooks/useHabitData";
 import { useCustomFoods } from "../hooks/useCustomFoods";
 import { usePlan } from "../hooks/usePlan";
 import UpgradeNote from "./UpgradeNote";
+import FullDayToggle from "./FullDayToggle";
+import type { TrainingDay } from "../lib/trainingDays";
 import { useUpgrade } from "../hooks/useUpgrade";
 import FoodLogModal from "./FoodLogModal";
 import VoiceCheckIn from "./VoiceCheckIn";
@@ -143,6 +145,14 @@ export interface Goals {
   weightKg?: number | null;
   /** The goal that sets the calories (profiles.primary_goal), for the macro targets. */
   goalKey?: string | null;
+  /** "kg" or "lb", for weigh-ins. */
+  weightUnit?: string;
+  /** For the macro targets' reference weight (see lib/macros). */
+  heightCm?: number | null;
+  targetWeightKg?: number | null;
+  diets?: string[];
+  /** Set when training-day targets are on (Max): `calories` is then the day's adjusted target. */
+  trainingDay?: TrainingDay | null;
 }
 
 /** 7.5 → "7h 30m". */
@@ -461,6 +471,23 @@ function MealShortcutChips({ label, shortcuts, onAdd }: {
   );
 }
 
+/** Why the day's target differs from the usual one, with training-day targets on. */
+function TrainingDayNote({ day, isToday }: { day: TrainingDay; isToday: boolean }) {
+  if (day.adjust === 0) return null;
+  const the = isToday ? "Today's" : "This day's";
+  const n = (v: number) => Math.abs(v).toLocaleString();
+  return (
+    <p className="mt-4 flex gap-2 rounded-lg bg-muted/60 px-3 py-2 text-sm text-muted-foreground">
+      <Dumbbell className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+      <span>
+        {day.adjust > 0
+          ? <>{the} target is <span className="font-medium text-foreground">{n(day.adjust)} kcal higher</span> for your {n(day.workoutKcal)} kcal of workouts. Fikko counts half of what a workout burns, because estimates usually run high, and your usual activity is already part of your {n(day.base)} kcal target.</>
+          : <>Rest day: {the.toLowerCase()} target is <span className="font-medium text-foreground">{n(day.adjust)} kcal lower</span>, so your week still adds up to your usual {n(day.base)} kcal a day.</>}
+      </span>
+    </p>
+  );
+}
+
 function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog, biometrics }: Props & { foodLog: FoodLog }) {
   const entry = getEntry(data.food, activeDate);
   const saved: MealCalories = parseNote<MealCalories>(entry?.note) ?? { breakfast: 0, lunch: 0, dinner: 0, snacks: 0 };
@@ -484,7 +511,8 @@ function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog, biome
   const eaten = meals.breakfast + meals.lunch + meals.dinner + meals.snacks;
   // Net calories: what was eaten, less the estimated burn of the workouts logged on the Activity card.
   // The same burn the Activity card shows: logged workouts plus a wearable's active calories.
-  const burned = dayBurn(
+  // With training-day targets on, workouts raise the target instead, so nothing is subtracted (no double counting).
+  const burned = goals.trainingDay ? 0 : dayBurn(
     workoutsOf(getEntry(data.exercise, activeDate)),
     goals.weightKg,
     biometrics?.activeCalories?.find((e) => e.date === activeDate)?.value ?? null,
@@ -497,7 +525,10 @@ function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog, biome
   const scale = Math.max(eaten, target);
 
   const { total: macrosEaten, missing } = sumMacros(foodLog.items);
-  const macroTarget = macroTargets({ calories: target, goalKey: goals.goalKey, weightKg: goals.weightKg });
+  const macroTarget = macroTargets({
+    calories: target, goalKey: goals.goalKey, weightKg: goals.weightKg,
+    targetWeightKg: goals.targetWeightKg, heightCm: goals.heightCm, diets: goals.diets,
+  });
   const moment = momentFor(activeDate, todayKey());
   const comment =
     macroComment({
@@ -613,6 +644,8 @@ function FoodCard({ data, activeDate, userId, goals, trackMacros, foodLog, biome
       {foodLog.error && !openMeal && (
         <p role="alert" className="mt-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{foodLog.error}</p>
       )}
+      {goals.trainingDay && <TrainingDayNote day={goals.trainingDay} isToday={activeDate === todayKey()} />}
+      {eaten > 0 && <FullDayToggle userId={userId} date={activeDate} />}
 
       {openMeal && (
         <FoodLogModal

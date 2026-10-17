@@ -52,6 +52,8 @@ export interface OnboardingState {
   seed: string | null;
   /** Email reminders, chosen with the daily targets (step 6). */
   reminders: ReminderSettings;
+  /** Weekly adaptive calorie target suggestions (Premium), chosen on step 6. */
+  adaptiveTargets: boolean;
 }
 
 function initialState(profile: ProfileRow): OnboardingState {
@@ -85,6 +87,7 @@ function initialState(profile: ProfileRow): OnboardingState {
     medications: [],
     seed: profile.fikko_seed ?? null,
     reminders: DEFAULT_REMINDERS,
+    adaptiveTargets: true,
   };
 }
 

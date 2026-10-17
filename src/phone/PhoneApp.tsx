@@ -8,6 +8,10 @@ import { FoundingWelcome } from "@/components/FoundingMember";
 import { MEALS, useDayCompleteCelebration, useToday, type HabitCardProps } from "@/components/HabitsView";
 import type { DeviceOutcome } from "@/components/profile/DevicesCard";
 import { useBiometrics } from "@/hooks/useBiometrics";
+import { useTrainingDays } from "@/hooks/useTrainingDays";
+import { trainingDay } from "@/lib/trainingDays";
+import AdaptiveCheck from "@/components/adaptive/AdaptiveCheck";
+import WorkoutCheck from "@/components/adaptive/WorkoutCheck";
 import { useFoodLog, type NewFood } from "@/hooks/useFoodLog";
 import { useHabitData, type HabitUpdate } from "@/hooks/useHabitData";
 import { useMedications } from "@/hooks/useMedications";
@@ -17,7 +21,7 @@ import { useConsents } from "@/hooks/useConsents";
 import { CHECKINS_READ_EVENT, fetchUnreadCheckins, syncCheckinTimeZone } from "@/lib/coach";
 import { hasRequiredConsent } from "@/lib/consent";
 import { completion } from "@/lib/completion";
-import { shiftDateKey } from "@/lib/dates";
+import { daysAgoKey, shiftDateKey } from "@/lib/dates";
 import { dietsOf, tracksMacros } from "@/lib/preferences";
 import { syncReminderTimeZone } from "@/lib/reminders";
 import { isSupabaseConfigured } from "@/lib/supabase";
@@ -104,7 +108,12 @@ function PhoneShell({ viewPrefix, siteOrigin = "", deviceOutcome = null, startOn
   const { seedPlan } = usePlan();
   const consent = useConsents(userId);
   const medications = useMedications(userId);
-  const { biometrics, reload: reloadBiometrics } = useBiometrics(userId);
+  const { biometrics, reload: reloadBiometrics, loaded: biometricsLoaded } = useBiometrics(userId);
+  // The latest weigh-in from the last 60 days (typed or from a scale), else the weight from setup.
+  const lastWeighIn = biometrics.weight[biometrics.weight.length - 1];
+  const latestWeight = lastWeighIn && lastWeighIn.date >= daysAgoKey(60) ? lastWeighIn.value : null;
+  // Training-day targets (Max, opt-in): the day's calorie target moves with logged workouts.
+  const trainingOn = useTrainingDays(userId);
   // Medications only counts towards the day for members who've listed some.
   // Wearable active minutes add to the workouts the member logs.
   const data = useMemo(
@@ -135,6 +144,8 @@ function PhoneShell({ viewPrefix, siteOrigin = "", deviceOutcome = null, startOn
   // the day rolls over, someone looking at "today" moves to the new today.
   const today = useToday();
   const [activeDate, setActiveDate] = useState(today);
+  const training = trainingOn ? trainingDay(data, activeDate, profile.calorie_goal, latestWeight ?? profile.weight_kg) : null;
+  const dayCalories = profile.calorie_goal + (training?.adjust ?? 0);
   const shownToday = useRef(today);
   useEffect(() => {
     if (shownToday.current === today) return;
@@ -217,7 +228,7 @@ function PhoneShell({ viewPrefix, siteOrigin = "", deviceOutcome = null, startOn
   const needsConsent = !consent.loading && !hasRequiredConsent(consent.consents);
   const habitsReady = !habitsLoading && !habitsLoadError;
   const needsHabits = tab === "today" || tab === "progress" || tab === "garden";
-  const goals = { calories: profile.calorie_goal, water: profile.water_goal, sleepHours: profile.sleep_goal, weightKg: profile.weight_kg, goalKey: profile.primary_goal };
+  const goals = { calories: dayCalories, trainingDay: training, water: profile.water_goal, sleepHours: profile.sleep_goal, weightKg: latestWeight ?? profile.weight_kg, goalKey: profile.primary_goal, weightUnit: profile.weight_unit, heightCm: profile.height_cm, targetWeightKg: profile.target_weight_kg, diets: dietsOf(profile) };
   const cardProps: HabitCardProps = {
     data, onChange, activeDate, biometrics, medications, userId, profileName: profile.name, goals, trackMacros: tracksMacros(profile.tracking_style),
   };
@@ -330,6 +341,18 @@ function PhoneShell({ viewPrefix, siteOrigin = "", deviceOutcome = null, startOn
         )}
       </main>
 
+      {habitsReady && biometricsLoaded && !profileLoading && (
+        <AdaptiveCheck userId={session.user.id} data={loggedData} biometrics={biometrics} profile={profile} onUpdateProfile={updateProfile} />
+      )}
+      {habitsReady && biometricsLoaded && trainingOn && (
+        <WorkoutCheck
+          userId={session.user.id}
+          data={loggedData}
+          biometrics={biometrics}
+          weightKg={latestWeight ?? profile.weight_kg}
+          onOpenDay={(date) => { setActiveDate(date); open("today"); }}
+        />
+      )}
       {habitsReady && (
         <>
           <CaptureSheet
@@ -338,6 +361,7 @@ function PhoneShell({ viewPrefix, siteOrigin = "", deviceOutcome = null, startOn
             cardProps={cardProps}
             onQuick={quickLog}
             onLogMeal={setMeal}
+            onNotice={(message) => toast(message)}
             onVoiceSave={(next, foods) => {
               const before = completion(data, activeDate, profile.water_goal).done;
               if (foods.length) void foodLog.addEntries(foods, next);

@@ -7,7 +7,7 @@ import { shiftDateKey } from "./dates";
 
 export type UpgradeReason =
   | "general" | "ai-limit" | "ai-limit-max" | "history" | "custom-habits" | "vitals" | "insights"
-  | "trees" | "export" | "reports" | "interaction-ai";
+  | "trees" | "export" | "reports" | "interaction-ai" | "adaptive" | "training-days";
 
 export interface UpgradeCopy { title: string; body: string; plan: PaidPlan }
 
@@ -60,6 +60,16 @@ export const UPGRADE_COPY: Record<UpgradeReason, UpgradeCopy> = {
   reports: {
     title: "Monthly and lifetime reports",
     body: "Max turns your logs into a report you can keep or share with your doctor or coach.",
+    plan: "max",
+  },
+  adaptive: {
+    title: "A calorie target that learns from you",
+    body: "Each week Premium compares what you ate with how your weight moved, and suggests a target that fits your body. You approve every change.",
+    plan: "premium",
+  },
+  "training-days": {
+    title: "Eat more on the days you train",
+    body: "On Max, your calorie target rises on days you log a workout and dips a little on rest days, so your week still adds up.",
     plan: "max",
   },
   "interaction-ai": {

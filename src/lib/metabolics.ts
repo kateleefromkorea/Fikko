@@ -130,7 +130,7 @@ export interface Baseline {
  * Mifflin-St Jeor. The male and female constants differ by 166 kcal; for
  * anyone who did not specify, we split the difference rather than guessing.
  */
-function bmrFor(sex: string | null, weightKg: number, heightCm: number, age: number) {
+export function bmrFor(sex: string | null, weightKg: number, heightCm: number, age: number) {
   const base = 10 * weightKg + 6.25 * heightCm - 5 * age;
   if (sex === "Male") return base + 5;
   if (sex === "Female") return base - 161;
@@ -141,7 +141,7 @@ function bmrFor(sex: string | null, weightKg: number, heightCm: number, age: num
  * Floors below which we will not set a calorie target, regardless of the
  * requested rate of loss. These are the widely used minimums for adults.
  */
-function calorieFloor(sex: string | null) {
+export function calorieFloor(sex: string | null) {
   return sex === "Male" ? 1500 : 1200;
 }
 

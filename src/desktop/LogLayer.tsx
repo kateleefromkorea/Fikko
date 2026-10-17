@@ -44,7 +44,7 @@ export const SHORTCUTS: [keys: string[], what: string][] = [
  * pieces, shown as centred panels here (desktop.css).
  */
 export default function LogLayer({
-  panel, onPanel, cardProps, profile, foodLog, meal, onMeal, onQuick, onVoiceSave, onAddFood, onAsk, onGo, mealLabelFor, celebrating, onCelebrated,
+  panel, onPanel, cardProps, profile, foodLog, meal, onMeal, onQuick, onVoiceSave, onNotice, onAddFood, onAsk, onGo, mealLabelFor, celebrating, onCelebrated,
 }: {
   panel: Panel;
   onPanel: (panel: Panel) => void;
@@ -55,6 +55,7 @@ export default function LogLayer({
   onMeal: (meal: MealKey | null) => void;
   onQuick: QuickLog;
   onVoiceSave: (next: HabitData, foods: (NewFood & { meal: MealKey })[]) => void;
+  onNotice: (message: string) => void;
   onAddFood: (meal: MealKey, food: NewFood) => void;
   onAsk: (question: string) => void;
   onGo: (place: Place) => void;
@@ -79,6 +80,7 @@ export default function LogLayer({
         onQuick={onQuick}
         onLogMeal={onMeal}
         onVoiceSave={onVoiceSave}
+        onNotice={onNotice}
       />
       <SearchScreen
         open={panel === "search"}

@@ -1,8 +1,9 @@
 import { useState, type ReactNode } from "react";
-import { Activity, ChevronLeft, Droplet, Moon, Pill, SmilePlus, Sparkles, type LucideIcon } from "lucide-react";
+import { Activity, ChevronLeft, Droplet, Moon, Pill, Scale, SmilePlus, Sparkles, type LucideIcon } from "lucide-react";
 import { ExerciseCard, MEALS, MOOD_OPTIONS, SleepCard, type HabitCardProps } from "@/components/HabitsView";
 import { CUSTOM_ICONS, HabitIcon, type HabitHue } from "@/components/HabitCard";
 import VoiceCheckIn from "@/components/VoiceCheckIn";
+import WeighInForm from "@/components/WeighInForm";
 import type { NewFood } from "@/hooks/useFoodLog";
 import { completion } from "@/lib/completion";
 import { shiftDateKey, todayKey } from "@/lib/dates";
@@ -12,24 +13,27 @@ import Sheet from "@/phone/Sheet";
 import { addGlass, bumpCustom, mealForNow, setMood, takeAllMeds } from "@/phone/quickLog";
 import type { QuickLog } from "@/phone/screens/TodayScreen";
 
-type Step = "home" | "mood" | "exercise" | "sleep";
-const STEP_TITLE: Record<Step, string> = { home: "Log", mood: "How are you feeling?", exercise: "Activity", sleep: "Sleep" };
+type Step = "home" | "mood" | "exercise" | "sleep" | "weight";
+const STEP_TITLE: Record<Step, string> = { home: "Log", mood: "How are you feeling?", exercise: "Activity", sleep: "Sleep", weight: "Weight" };
 
 /**
  * Everything that can be logged, one tap from anywhere: tell Fikko in your
  * own words, pick a meal (describe, photo, barcode or search inside), or tap
  * a habit. It's built for logging the moment something happens, in seconds.
  */
-export default function CaptureSheet({ open, onClose, cardProps, onQuick, onLogMeal, onVoiceSave }: {
+export default function CaptureSheet({ open, onClose, cardProps, onQuick, onLogMeal, onVoiceSave, onNotice }: {
   open: boolean;
   onClose: () => void;
   cardProps: HabitCardProps;
   onQuick: QuickLog;
   onLogMeal: (meal: MealKey) => void;
   onVoiceSave: (next: HabitData, foods: (NewFood & { meal: MealKey })[]) => void;
+  /** A confirmation that doesn't change the habits, e.g. a weigh-in saved. */
+  onNotice?: (message: string) => void;
 }) {
   const [step, setStep] = useState<Step>("home");
-  const { data, activeDate, medications, goals } = cardProps;
+  const { data, activeDate, medications, goals, biometrics, userId } = cardProps;
+  const weighedToday = biometrics.weight.some((e) => e.date === activeDate);
   const today = todayKey();
   const when = activeDate === today ? null : activeDate === shiftDateKey(today, -1) ? "yesterday" : new Date(activeDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
   const now = mealForNow();
@@ -97,6 +101,7 @@ export default function CaptureSheet({ open, onClose, cardProps, onQuick, onLogM
               )}
               <QuickTile icon={Activity} hue="exercise" label="Activity" hint="Add a workout" done={isDone("exercise")} onClick={() => setStep("exercise")} />
               <QuickTile icon={Moon} hue="sleep" label="Sleep" hint="Rate your rest" done={isDone("sleep")} onClick={() => setStep("sleep")} />
+              <QuickTile icon={Scale} hue="custom" label="Weight" hint="Log a weigh-in" done={weighedToday} onClick={() => setStep("weight")} />
               {custom.map(({ habit, done }) => (
                 <QuickTile key={habit.id} icon={CUSTOM_ICONS[habit.icon] ?? Sparkles} hue="custom" label={habit.name} hint={`+1 ${habit.unit}`} done={done}
                   onClick={() => quick((d) => bumpCustom(d, activeDate, habit.id), `${habit.name} logged`)} />
@@ -122,6 +127,15 @@ export default function CaptureSheet({ open, onClose, cardProps, onQuick, onLogM
       )}
       {step === "exercise" && <ExerciseCard {...cardProps} />}
       {step === "sleep" && <SleepCard {...cardProps} />}
+      {step === "weight" && (
+        <WeighInForm
+          userId={userId}
+          date={activeDate}
+          biometrics={biometrics}
+          unit={goals.weightUnit}
+          onSaved={(message) => { onNotice?.(message); close(); }}
+        />
+      )}
     </Sheet>
   );
 }

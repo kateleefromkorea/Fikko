@@ -8,6 +8,7 @@ import DeleteAccountDialog from "./profile/DeleteAccountDialog";
 import ExportDialog from "./profile/ExportDialog";
 import ResetDataDialog from "./profile/ResetDataDialog";
 import PlanCard from "./profile/PlanCard";
+import AdaptiveCard from "./profile/AdaptiveCard";
 import PrivacyCard from "./profile/PrivacyCard";
 import { paddleEnabled } from "../lib/paddle";
 import RemindersCard from "./profile/RemindersCard";
@@ -438,6 +439,8 @@ export default function ProfileView({ email, profile, onUpdateProfile, userId, o
           {paddleEnabled && <PlanCard className={cardCls} />}
 
           <PreferencesCard profile={profile} onUpdateProfile={onUpdateProfile} />
+
+          <AdaptiveCard userId={userId} profile={profile} className={cardCls} />
 
           <RemindersCard userId={userId} className={cardCls} />
 

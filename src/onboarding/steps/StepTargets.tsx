@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { Droplet, Minus, Moon, Pill, Plus, X } from "lucide-react";
+import { Droplet, Minus, Moon, Pill, Plus, Sparkles, X } from "lucide-react";
 import type { useOnboardingState } from "../useOnboardingState";
 import { ErrorText, Field, inputCls, StepHeading } from "../ui";
 import { suggestMedications } from "../../lib/medicationNames";
 import { ReminderPicker } from "../../components/profile/RemindersCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { usePlan } from "../../hooks/usePlan";
 
 type Api = ReturnType<typeof useOnboardingState>;
 
@@ -147,8 +149,40 @@ export default function StepTargets({ api, showError }: { api: Api; showError: b
           <ReminderPicker idPrefix="onboarding-reminder" value={s.reminders} onChange={(v) => set("reminders", v)} />
         </Field>
 
+        <AdaptiveIntro on={s.adaptiveTargets !== false} onChange={(v) => set("adaptiveTargets", v)} />
+
         {showError && errors[6] && <ErrorText>{errors[6]}</ErrorText>}
       </div>
     </div>
+  );
+}
+
+/** Introduces adaptive calorie targets (Premium) and lets the member turn weekly suggestions off. */
+function AdaptiveIntro({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
+  const { limits } = usePlan();
+  return (
+    <section aria-labelledby="adaptive-intro" className="rounded-xl bg-primary/[0.06] p-4">
+      <h3 id="adaptive-intro" className="flex items-center gap-2 font-medium">
+        <Sparkles className="size-4 text-primary-ink" aria-hidden="true" />
+        Your calorie target learns from you
+        {!limits.adaptiveTargets && <span className="rounded-full bg-background px-2 py-0.5 text-xs font-medium text-muted-foreground">Premium</span>}
+      </h3>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Your calorie target is a starting estimate from a standard formula. Real bodies differ by hundreds of calories a day,
+        so after three weeks Fikko compares what you ate with how your weight moved, and suggests a number that fits you better.
+      </p>
+      <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+        <li><span className="font-medium text-foreground">You decide.</span> Fikko suggests, you approve. Your target never changes on its own.</li>
+        <li><span className="font-medium text-foreground">You can see why.</span> Every suggestion shows the numbers behind it.</li>
+        <li><span className="font-medium text-foreground">It stays yours.</span> Your data is never sold or shown to advertisers, and there are no ads.</li>
+      </ul>
+      <p className="mt-2 text-sm text-muted-foreground">All it needs: log your meals and weigh in a few times a week.</p>
+      {limits.adaptiveTargets && (
+        <label className="mt-3 flex cursor-pointer items-center justify-between gap-4 text-sm font-medium">
+          Weekly suggestions
+          <Switch checked={on} onCheckedChange={onChange} />
+        </label>
+      )}
+    </section>
   );
 }

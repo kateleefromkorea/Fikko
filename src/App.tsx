@@ -25,6 +25,10 @@ import { useConsents } from "./hooks/useConsents";
 import { hasRequiredConsent } from "./lib/consent";
 import { useMedications } from "./hooks/useMedications";
 import { useBiometrics } from "./hooks/useBiometrics";
+import { useTrainingDays } from "./hooks/useTrainingDays";
+import { trainingDay } from "./lib/trainingDays";
+import AdaptiveCheck from "./components/adaptive/AdaptiveCheck";
+import WorkoutCheck from "./components/adaptive/WorkoutCheck";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -38,7 +42,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { shiftDateKey, todayKey } from "./lib/dates";
+import { daysAgoKey, shiftDateKey, todayKey } from "./lib/dates";
 import { dietsOf, tracksMacros } from "./lib/preferences";
 import { hasDraft } from "./onboarding/draft";
 import { trackView } from "./lib/track";
@@ -171,7 +175,12 @@ function DesktopApp({ deviceOutcome, openProfile }: { deviceOutcome: DeviceOutco
   }, []);
   const consent = useConsents(userId);
   const medications = useMedications(userId);
-  const { biometrics, reload: reloadBiometrics } = useBiometrics(userId);
+  const { biometrics, reload: reloadBiometrics, loaded: biometricsLoaded } = useBiometrics(userId);
+  // The latest weigh-in from the last 60 days (typed or from a scale), else the weight from setup.
+  const lastWeighIn = biometrics.weight[biometrics.weight.length - 1];
+  const latestWeight = lastWeighIn && lastWeighIn.date >= daysAgoKey(60) ? lastWeighIn.value : null;
+  // Training-day targets (Max, opt-in): the day's calorie target moves with logged workouts.
+  const trainingOn = useTrainingDays(userId);
   // Medications only counts towards the day for members who've listed some.
   // Wearable active minutes add to the workouts the member logs.
   const data = useMemo(
@@ -187,6 +196,8 @@ function DesktopApp({ deviceOutcome, openProfile }: { deviceOutcome: DeviceOutco
   // When the day rolls over, someone looking at "today" moves to the new today.
   const today = useToday();
   const [activeDate, setActiveDate] = useState(today);
+  const training = trainingOn ? trainingDay(data, activeDate, profile.calorie_goal, latestWeight ?? profile.weight_kg) : null;
+  const dayCalories = profile.calorie_goal + (training?.adjust ?? 0);
   const shownToday = useRef(today);
   useEffect(() => {
     if (shownToday.current === today) return;
@@ -510,7 +521,7 @@ function DesktopApp({ deviceOutcome, openProfile }: { deviceOutcome: DeviceOutco
                 <UpNext
                   data={data}
                   activeDate={activeDate}
-                  goals={{ calories: profile.calorie_goal, water: profile.water_goal, sleepHours: profile.sleep_goal }}
+                  goals={{ calories: dayCalories, trainingDay: training, water: profile.water_goal, sleepHours: profile.sleep_goal }}
                   medications={medications}
                   foodLog={foodLog}
                   onQuick={quickLog}
@@ -522,7 +533,7 @@ function DesktopApp({ deviceOutcome, openProfile }: { deviceOutcome: DeviceOutco
             medications={medications}
             userId={userId}
             profileName={profile.name}
-            goals={{ calories: profile.calorie_goal, water: profile.water_goal, sleepHours: profile.sleep_goal, weightKg: profile.weight_kg, goalKey: profile.primary_goal }}
+            goals={{ calories: dayCalories, trainingDay: training, water: profile.water_goal, sleepHours: profile.sleep_goal, weightKg: latestWeight ?? profile.weight_kg, goalKey: profile.primary_goal, weightUnit: profile.weight_unit, heightCm: profile.height_cm, targetWeightKg: profile.target_weight_kg, diets: dietsOf(profile) }}
             trackMacros={tracksMacros(profile.tracking_style)}
             onOpenCommunity={() => setTab("community")}
           />
@@ -581,6 +592,18 @@ function DesktopApp({ deviceOutcome, openProfile }: { deviceOutcome: DeviceOutco
         )}
       </main>
 
+      {habitsReady && biometricsLoaded && !profileLoading && (
+        <AdaptiveCheck userId={userId} data={loggedData} biometrics={biometrics} profile={profile} onUpdateProfile={updateProfile} />
+      )}
+      {habitsReady && biometricsLoaded && trainingOn && (
+        <WorkoutCheck
+          userId={userId}
+          data={loggedData}
+          biometrics={biometrics}
+          weightKg={latestWeight ?? profile.weight_kg}
+          onOpenDay={(date) => { setActiveDate(date); goTab("habits"); }}
+        />
+      )}
       {habitsReady && (
         <Suspense fallback={null}>
           <LogLayer
@@ -588,7 +611,7 @@ function DesktopApp({ deviceOutcome, openProfile }: { deviceOutcome: DeviceOutco
             onPanel={setPanel}
             cardProps={{
               data, onChange, activeDate, biometrics, medications, userId, profileName: profile.name,
-              goals: { calories: profile.calorie_goal, water: profile.water_goal, sleepHours: profile.sleep_goal, weightKg: profile.weight_kg, goalKey: profile.primary_goal },
+              goals: { calories: dayCalories, trainingDay: training, water: profile.water_goal, sleepHours: profile.sleep_goal, weightKg: latestWeight ?? profile.weight_kg, goalKey: profile.primary_goal, weightUnit: profile.weight_unit, heightCm: profile.height_cm, targetWeightKg: profile.target_weight_kg, diets: dietsOf(profile) },
               trackMacros: tracksMacros(profile.tracking_style),
             }}
             profile={profile}
@@ -596,6 +619,7 @@ function DesktopApp({ deviceOutcome, openProfile }: { deviceOutcome: DeviceOutco
             meal={meal}
             onMeal={setMeal}
             onQuick={quickLog}
+            onNotice={(message) => toast(message)}
             onVoiceSave={(next, foods) => {
               const before = completion(data, activeDate, profile.water_goal).done;
               if (foods.length) void foodLog.addEntries(foods, next);

@@ -30,16 +30,20 @@ export interface PlanLimits {
   proactiveCoach: boolean;
   /** Pattern insight cards; on Free a locked card says one was found. */
   patternInsights: boolean;
+  /** Weekly adaptive calorie target suggestions (lib/adaptiveTdee.ts). */
+  adaptiveTargets: boolean;
+  /** Training-day calorie targets (lib/trainingDays.ts). */
+  trainingDays: boolean;
 }
 
 export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
-  free: { customHabits: 3, aiPerWeek: 5, coachPerDay: null, historyDays: 7, wearableBiometrics: false, interactionAi: false, csvExport: false, deepDiveReports: false, proactiveCoach: false, patternInsights: false },
-  premium: { customHabits: null, aiPerWeek: null, coachPerDay: 20, historyDays: 30, wearableBiometrics: true, interactionAi: false, csvExport: false, deepDiveReports: false, proactiveCoach: false, patternInsights: true },
-  max: { customHabits: null, aiPerWeek: null, coachPerDay: 50, historyDays: null, wearableBiometrics: true, interactionAi: true, csvExport: true, deepDiveReports: true, proactiveCoach: true, patternInsights: true },
+  free: { customHabits: 3, aiPerWeek: 5, coachPerDay: null, historyDays: 7, wearableBiometrics: false, interactionAi: false, csvExport: false, deepDiveReports: false, proactiveCoach: false, patternInsights: false, adaptiveTargets: false, trainingDays: false },
+  premium: { customHabits: null, aiPerWeek: null, coachPerDay: 20, historyDays: 30, wearableBiometrics: true, interactionAi: false, csvExport: false, deepDiveReports: false, proactiveCoach: false, patternInsights: true, adaptiveTargets: true, trainingDays: false },
+  max: { customHabits: null, aiPerWeek: null, coachPerDay: 50, historyDays: null, wearableBiometrics: true, interactionAi: true, csvExport: true, deepDiveReports: true, proactiveCoach: true, patternInsights: true, adaptiveTargets: true, trainingDays: true },
 };
 
 /** Before plans are enforced, everyone has everything. */
-const OPEN: PlanLimits = { customHabits: null, aiPerWeek: null, coachPerDay: 20, historyDays: null, wearableBiometrics: true, interactionAi: true, csvExport: true, deepDiveReports: true, proactiveCoach: true, patternInsights: true };
+const OPEN: PlanLimits = { customHabits: null, aiPerWeek: null, coachPerDay: 20, historyDays: null, wearableBiometrics: true, interactionAi: true, csvExport: true, deepDiveReports: true, proactiveCoach: true, patternInsights: true, adaptiveTargets: true, trainingDays: true };
 
 export const limitsFor = ({ plan, enforced }: PlanState): PlanLimits => (enforced ? PLAN_LIMITS[plan] : OPEN);
 

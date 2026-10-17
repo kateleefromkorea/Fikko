@@ -88,8 +88,6 @@ export const HARVEST_REWARDS = ["mint", "stripe", "bee", "snail"] as const;
 
 /** Seeds unlocked by the number of plants harvested. */
 export const GARDENER_SEEDS = [{ at: 3, seed: "fern" }];
-/** Every this many harvests earns a free month of Premium (at most one a year). */
-export const PREMIUM_EVERY = 3;
 
 /** Item ids unlocked by harvesting: the rewards picked, and seeds earned by garden size. */
 export function unlockedItems(garden: { reward: string | null }[]): string[] {

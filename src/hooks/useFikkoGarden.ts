@@ -12,13 +12,11 @@ export interface GardenPlant {
   harvestedOn: string;
   completeDays: number;
   reward: string | null;
-  premiumMonth: boolean;
   /** A real tree for this plant is for Max members: `none` for anyone else (migration 039). */
   treeStatus: "none" | "pending" | "planted";
 }
 
 export interface HarvestResult {
-  premiumMonth: boolean;
   gardenSize: number;
   /** A real tree is owed for this harvest (the member is on Max). */
   realTree: boolean;
@@ -34,7 +32,7 @@ export function useFikkoGarden(userId: string | null) {
     }
     const { data } = await supabase
       .from("fikko_garden")
-      .select("id, seed, pot, companion, planted_on, harvested_on, complete_days, reward, tree_status, premium_month")
+      .select("id, seed, pot, companion, planted_on, harvested_on, complete_days, reward, tree_status")
       .eq("user_id", userId)
       .order("created_at");
     // A database without migration 026 yet returns an error: show an empty garden.
@@ -48,7 +46,6 @@ export function useFikkoGarden(userId: string | null) {
         harvestedOn: r.harvested_on,
         completeDays: r.complete_days,
         reward: r.reward,
-        premiumMonth: r.premium_month,
         treeStatus: r.tree_status,
       })),
     );
@@ -71,9 +68,9 @@ export function useFikkoGarden(userId: string | null) {
       p_reward: reward,
     });
     if (error) throw new Error("We couldn't move your plant to the garden. Please try again.");
-    const row = (Array.isArray(data) ? data[0] : data) as { premium_month: boolean; garden_size: number; real_tree: boolean };
+    const row = (Array.isArray(data) ? data[0] : data) as { garden_size: number; real_tree: boolean };
     await load();
-    return { premiumMonth: row.premium_month, gardenSize: row.garden_size, realTree: row.real_tree === true };
+    return { gardenSize: row.garden_size, realTree: row.real_tree === true };
   }
 
   return { garden, harvest };

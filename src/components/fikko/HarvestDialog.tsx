@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, Crown, Loader2, Star, TreeDeciduous } from "lucide-react";
+import { Check, Loader2, Star, TreeDeciduous } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -23,7 +23,7 @@ interface Props {
 
 /**
  * Moving a blooming plant to the garden: pick a free extra, see the real tree it
- * plants (Max), then any bonus seed or Premium month the harvest earned.
+ * plants (Max), then any bonus seed the harvest earned.
  */
 export default function HarvestDialog({ open, onOpenChange, seedId, potId, companionId, unlocked, onMax, onHarvest }: Props) {
   const seed = seedById(seedId);
@@ -142,15 +142,6 @@ export default function HarvestDialog({ open, onOpenChange, seedId, potId, compa
                 <span>
                   <span className="block font-medium">Your tree is on its way</span>
                   We plant trees in batches with our planting partner. You&apos;ll see it marked as planted in your garden.
-                </span>
-              </p>
-            )}
-            {result.premiumMonth && (
-              <p className="flex gap-3 rounded-lg bg-[#FBF1D6] p-3 text-sm text-ink">
-                <Crown className="mt-0.5 size-5 shrink-0 text-[#8A6414]" aria-hidden="true" />
-                <span>
-                  <span className="block font-medium">Plus a free month of Premium</span>
-                  Earned for growing {result.gardenSize} plants. It will be added to your account when Premium launches.
                 </span>
               </p>
             )}

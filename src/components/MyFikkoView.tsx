@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ArrowRight, CalendarCheck, CloudRain, Crown, Sun, Flame, Lock, Share2, Sprout, Star, TreeDeciduous, TriangleAlert, type LucideIcon } from "lucide-react";
+import { ArrowRight, CalendarCheck, CloudRain, Sun, Flame, Lock, Share2, Sprout, Star, TreeDeciduous, TriangleAlert, type LucideIcon } from "lucide-react";
 import PageHeader from "./PageHeader";
 import { SectionLabel, softCardCls } from "./HabitCard";
 import FikkoPlant from "./fikko/FikkoPlant";
@@ -15,7 +15,7 @@ import type { HabitData } from "../types";
 import { completion } from "../lib/completion";
 import { todayKey } from "../lib/dates";
 import {
-  BLOOM_DAYS, COMPANIONS, DIE_AFTER, GARDENER_SEEDS, MAX_RAIN_CLOUDS, POTS, PREMIUM_EVERY, RAIN_CLOUD_EVERY, SCENES, STAGES, WITHER_AFTER,
+  BLOOM_DAYS, COMPANIONS, DIE_AFTER, GARDENER_SEEDS, MAX_RAIN_CLOUDS, POTS, RAIN_CLOUD_EVERY, SCENES, STAGES, WITHER_AFTER,
   computeGrowth, lockedReason, owns, seedById, unlockedItems, type Growth, type Plan,
 } from "../lib/fikko";
 import { cn } from "@/lib/utils";
@@ -199,9 +199,7 @@ export default function MyFikkoView({ userId, data, profile, onUpdateProfile, pl
 function Garden({ garden, realTrees, onMax, showScene }: { garden: GardenPlant[]; realTrees: number; onMax: boolean; showScene: boolean }) {
   const [sharing, setSharing] = useState(false);
   const days = garden.reduce((sum, p) => sum + p.completeDays, 0);
-  const months = garden.filter((p) => p.premiumMonth).length;
   const nextBonus = GARDENER_SEEDS.find((b) => b.at > garden.length);
-  const toPremium = PREMIUM_EVERY - (garden.length % PREMIUM_EVERY);
 
   return (
     <section className="space-y-4">
@@ -218,14 +216,13 @@ function Garden({ garden, realTrees, onMax, showScene }: { garden: GardenPlant[]
 
       {showScene && <GardenScene garden={garden} current={null} trees={realTrees} className="max-w-3xl" />}
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         <Stat icon={Sprout} value={days} label="complete days grown" />
         {onMax || realTrees > 0 ? (
           <Stat icon={TreeDeciduous} value={realTrees} label={`real ${realTrees === 1 ? "tree" : "trees"} from full blooms`} />
         ) : (
           <Stat icon={Star} value={garden.length} label={garden.length === 1 ? "plant in full bloom" : "plants in full bloom"} />
         )}
-        <Stat icon={Crown} value={months} label={months === 1 ? "Premium month earned" : "Premium months earned"} />
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
@@ -244,12 +241,11 @@ function Garden({ garden, realTrees, onMax, showScene }: { garden: GardenPlant[]
         </div>
       </div>
 
-      <p className="text-sm text-muted-foreground">
-        {nextBonus
-          ? `${nextBonus.at - garden.length} more ${nextBonus.at - garden.length === 1 ? "bloom" : "blooms"} to unlock the ${seedById(nextBonus.seed)?.name}. `
-          : ""}
-        Every {PREMIUM_EVERY === 3 ? "third" : `${PREMIUM_EVERY}th`} bloom earns a free month of Premium ({toPremium} to go, up to one a year).
-      </p>
+      {nextBonus && (
+        <p className="text-sm text-muted-foreground">
+          {nextBonus.at - garden.length} more {nextBonus.at - garden.length === 1 ? "bloom" : "blooms"} to unlock the {seedById(nextBonus.seed)?.name}.
+        </p>
+      )}
 
       <ShareGardenDialog open={sharing} onOpenChange={setSharing} garden={garden} realTrees={realTrees} />
     </section>

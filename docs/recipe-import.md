@@ -4,6 +4,8 @@ Members paste a link to a recipe page on the Recipes page (**Import from URL**).
 
 ## How it works
 
+**Fewest taps:** pasting a link into the empty field (or tapping **Paste**) starts the import straight away. Share text around the link ("Try this! https://…") is fine. Instagram, TikTok, YouTube, Facebook, X/Threads and Pinterest links get a "not supported yet" message before anything is fetched, so they never use an AI read.
+
 1. **Client:** `src/components/recipes/ImportRecipeDialog.tsx` → `src/lib/recipeImport.ts` → `POST /api/recipe-import`.
 2. **Server:** `api/recipe-import.ts` checks the member and rate limit, normalises the URL (`_lib/recipeImport/url.ts`), and looks for:
    - a recipe the member already has from that page (by normalised URL), which it offers to open instead;
@@ -28,7 +30,7 @@ New kinds of source (Instagram, TikTok, video) are added as another `RecipeSourc
 
 ## Safety
 
-- **SSRF** (`safeFetch.ts`): only http and https on ports 80 and 443. Every resolved address is checked at connect time, which also stops DNS rebinding. Private, loopback, link-local, CGNAT, multicast, metadata and non-global IPv6 addresses are blocked. At most 5 redirects, each checked again. There's a 7 s deadline and a 4 MB cap on the decompressed size (3 MB and 4 s for images). Cookies and credentials are never sent.
+- **SSRF** (`safeFetch.ts`): only http and https on ports 80 and 443. Every resolved address is checked at connect time, which also stops DNS rebinding. Private, loopback, link-local, CGNAT, multicast, metadata and non-global IPv6 addresses are blocked. At most 5 redirects, each checked again. There's a 7 s deadline and a 4 MB cap on the decompressed size (2 MB and 4 s for images). Cookies and credentials are never sent.
 - **Being a good citizen:** `User-Agent: FikkoBot/1.0 (+https://fikko.io; …)`. We honour `robots.txt` (cached for an hour per site), and we don't get around paywalls or logins: a 401, 402 or 403 tells the member the site needs a sign-in.
 - **Abuse:** 6 imports a minute and 60 a day per member (`rate_limit`, migration 032). Results are cached by normalised URL.
 - **Privacy:** logs are one JSON line per import: `{event, host, outcome, stage, reason, cached, confidence, ms}`. They never include page contents, the full URL or who asked.

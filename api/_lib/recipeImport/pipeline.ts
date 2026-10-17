@@ -6,12 +6,13 @@ import { allowedByRobots, decodeHtml, FetchError, safeFetch } from "./safeFetch.
 import { extractStructured, isComplete } from "./structured.js";
 import { mainText, MIN_CHARS } from "./content.js";
 import type { LlmInput } from "./llm.js";
+import { unsupportedSource } from "./url.js";
 import type { ImportedRecipe, ImportStage, PageExtraction } from "./types.js";
 
 /** Why an import didn't produce a recipe. The endpoint turns each into a message with a next step. */
 export type FailureCode =
   | "invalid_url" | "blocked" | "robots" | "unreachable" | "timeout" | "too_large" | "not_html"
-  | "login_required" | "not_found" | "no_recipe" | "js_only" | "ai_unavailable";
+  | "login_required" | "not_found" | "no_recipe" | "js_only" | "ai_unavailable" | "unsupported_source";
 
 export class ImportFailure extends Error {
   constructor(public code: FailureCode, message: string, public partial: Partial<ImportedRecipe> | null = null) { super(message); }
@@ -74,7 +75,7 @@ function failureFor(err: unknown): ImportFailure {
 
 export const webSource: RecipeSource = {
   id: "web",
-  handles: (url) => url.protocol === "https:" || url.protocol === "http:",
+  handles: (url) => (url.protocol === "https:" || url.protocol === "http:") && !unsupportedSource(url),
   async extract(url) {
     try {
       if (!(await allowedByRobots(url))) {
@@ -104,8 +105,11 @@ export interface PipelineResult {
 /** Runs the stages in order. Throws ImportFailure, with whatever was found as `partial`. */
 export async function runPipeline(url: URL, options: PipelineOptions = {}): Promise<PipelineResult> {
   const source = SOURCES.find((s) => s.handles(url));
-  if (!source) throw new ImportFailure("invalid_url", "We can't import from that kind of link yet.");
+  if (!source) throw new ImportFailure("unsupported_source", unsupportedSource(url) ?? "We can't import from that kind of link yet.");
   const { finalUrl, extraction, html } = await source.extract(url);
+  // A short link (pin.it, a link shortener) can land on a social site.
+  const landed = unsupportedSource(finalUrl);
+  if (landed) throw new ImportFailure("unsupported_source", landed);
 
   // Stage 1: structured data.
   if (isComplete(extraction.recipe) && extraction.stage) {
@@ -155,7 +159,8 @@ const IMAGE_TYPES = /^image\/(jpeg|png|webp|avif|gif)\b/;
 export async function fetchImage(imageUrl: string | null): Promise<string | null> {
   if (!imageUrl) return null;
   try {
-    const res = await safeFetch(new URL(imageUrl), { maxBytes: 3 * 1024 * 1024, timeoutMs: 4000, accept: "image/avif,image/webp,image/jpeg,image/png,image/*;q=0.8", allowTypes: IMAGE_TYPES });
+    // 2 MB keeps the base64 reply well under Vercel's 4.5 MB response limit.
+    const res = await safeFetch(new URL(imageUrl), { maxBytes: 2 * 1024 * 1024, timeoutMs: 4000, accept: "image/avif,image/webp,image/jpeg,image/png,image/*;q=0.8", allowTypes: IMAGE_TYPES });
     const type = res.contentType.match(IMAGE_TYPES)?.[0];
     return type ? `data:${type};base64,${res.body.toString("base64")}` : null;
   } catch {

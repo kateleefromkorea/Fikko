@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { InvalidUrlError, normalizeUrl, sourceKey } from "./url";
+import { InvalidUrlError, normalizeUrl, sourceKey, unsupportedSource } from "./url";
 
 describe("normalizeUrl", () => {
   test("strips tracking parameters and the fragment, keeps real ones sorted", () => {
@@ -53,4 +53,20 @@ describe("sourceKey", () => {
   test("keeps path case, which some sites use", () => {
     expect(sourceKey(normalizeUrl("https://example.com/Recipe/AbC"))).toBe("example.com/Recipe/AbC");
   });
+});
+
+describe("unsupportedSource", () => {
+  test.each([
+    ["https://www.instagram.com/p/abc/", "Instagram"],
+    ["https://vm.tiktok.com/xyz", "TikTok"],
+    ["https://youtu.be/abc", "YouTube"],
+    ["https://m.facebook.com/watch", "Facebook"],
+    ["https://x.com/someone/status/1", "X and Threads"],
+    ["https://pin.it/abc", "Pinterest"],
+    ["https://www.pinterest.co.uk/pin/1", "Pinterest"],
+  ])("%s is not supported yet", (u, site) => expect(unsupportedSource(new URL(u))).toContain(site));
+
+  test.each(["https://www.bbcgoodfood.com/recipes/x", "https://notinstagram.com/r", "https://cookpad.com/jp/recipes/1"])("%s is fine", (u) =>
+    expect(unsupportedSource(new URL(u))).toBeNull(),
+  );
 });

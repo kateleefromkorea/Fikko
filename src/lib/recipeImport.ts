@@ -29,15 +29,23 @@ export async function importRecipe(url: string): Promise<ImportResult> {
   const token = data.session?.access_token;
   if (!token) throw new ImportError("Sign in again to continue.", "auth", null);
   let res: Response;
+  // A little longer than the server's own 60-second limit, so a stuck request still ends.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 65_000);
   try {
     res = await fetch("/api/recipe-import", {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({ url, tzOffset: new Date().getTimezoneOffset() }),
+      signal: controller.signal,
     });
   } catch (err) {
+    if (controller.signal.aborted) throw new ImportError("That page took too long to read. Please try again in a moment.", "timeout", null);
     throw new ImportError(friendlyError(err, "We couldn't reach Fikko. Please try again."), "network", null);
+  } finally {
+    clearTimeout(timer);
   }
+  if (res.status === 504) throw new ImportError("That page took too long to read. Please try again in a moment.", "timeout", null);
   const out = (await res.json().catch(() => ({}))) as {
     recipe?: ImportedRecipe; stage?: ImportStage; sourceKey?: string; imageData?: string | null;
     duplicate?: { id: string; title: string };

@@ -26,7 +26,7 @@ import { extractWithClaude, MODEL, type LlmInput } from "./_lib/recipeImport/llm
 import { isComplete } from "./_lib/recipeImport/structured.js";
 import { OPTIONS, withCors } from "./_lib/cors.js";
 import { SLOW_DOWN, withinLimits } from "./_lib/rateLimit.js";
-import { InvalidUrlError, normalizeUrl, sourceKey } from "./_lib/recipeImport/url.js";
+import { InvalidUrlError, normalizeUrl, sourceKey, unsupportedSource } from "./_lib/recipeImport/url.js";
 import { fetchImage, ImportFailure, runPipeline, type LlmOutcome } from "./_lib/recipeImport/pipeline.js";
 import type { ImportedRecipe, ImportStage } from "./_lib/recipeImport/types.js";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -91,6 +91,8 @@ async function handlePOST(request: Request) {
     const message = err instanceof InvalidUrlError ? err.message : "Paste a link to a recipe page.";
     return json({ error: message, code: "invalid_url" }, 400);
   }
+  const unsupported = unsupportedSource(url);
+  if (unsupported) return json({ error: unsupported, code: "unsupported_source" }, 400);
   const host = url.hostname;
   const key = sourceKey(url);
 
@@ -119,7 +121,7 @@ async function handlePOST(request: Request) {
     } catch (err) {
       const failure = err instanceof ImportFailure ? err : new ImportFailure("unreachable", "We couldn't open that page. Please try again.");
       log({ host, outcome: "failed", reason: failure.code, ms: Date.now() - started });
-      if (failure.code === "blocked") return json({ error: failure.message, code: failure.code }, 400);
+      if (failure.code === "blocked" || failure.code === "unsupported_source") return json({ error: failure.message, code: failure.code }, 400);
       // The link itself was fine, so the member can still keep the recipe by typing it in, credited to the page.
       return json({ error: failure.message, code: failure.code, partial: failure.partial, sourceUrl: url.toString(), sourceKey: key }, 422);
     }

@@ -71,5 +71,26 @@ export function sourceKey(url: URL) {
   return `${host}${port}${path}${url.search}`;
 }
 
+// Social and video sites: their pages hold a post or a player, not the
+// recipe, and need their own source types (a later phase). Caught before
+// fetching, so they never use an AI read.
+const SOCIAL: [RegExp, string][] = [
+  [/(^|\.)(instagram\.com|instagr\.am)$/, "Instagram"],
+  [/(^|\.)tiktok\.com$/, "TikTok"],
+  [/(^|\.)(youtube\.com|youtu\.be)$/, "YouTube"],
+  [/(^|\.)(facebook\.com|fb\.com|fb\.watch)$/, "Facebook"],
+  [/(^|\.)(x\.com|twitter\.com|threads\.net)$/, "X and Threads"],
+  [/(^|\.)(pinterest\.[a-z.]+|pin\.it)$/, "Pinterest"],
+];
+
+/** A message for links from sites we can't import from yet, or null. */
+export function unsupportedSource(url: URL): string | null {
+  const host = url.hostname.toLowerCase();
+  const match = SOCIAL.find(([re]) => re.test(host));
+  return match
+    ? `${match[1]} links aren't supported yet. If the post links to a recipe website, paste that link instead.`
+    : null;
+}
+
 /** "bbcgoodfood.com" for showing where a recipe came from. */
 export const siteName = (url: URL) => url.hostname.toLowerCase().replace(/^www\./, "");

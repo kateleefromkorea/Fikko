@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { BookOpenCheck, Check, ExternalLink, Link2, Loader2, PencilLine, SearchX } from "lucide-react";
+import { BookOpenCheck, Check, ClipboardPaste, ExternalLink, Link2, Loader2, PencilLine, SearchX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -23,6 +23,18 @@ const FLAG_TEXT: Partial<Record<string, [FlaggedField, string]>> = {
   calories: ["calories", "No calories on the page. Add them if you know, or leave blank."],
   image: ["photo", "No photo on the page. Add your own if you like."],
 };
+
+/** Looks like a link: worth starting the import as soon as it's pasted. */
+const LINKISH = /https?:\/\/\S+|^[\w-]+(\.[\w-]+)+\/\S*$/i;
+
+/** "bbcgoodfood.com" from whatever was pasted, for the progress message. */
+function siteOf(text: string) {
+  const link = text.match(/https?:\/\/[^\s<>"']+/i)?.[0] ?? (/^\S+\.\S+$/.test(text.trim()) ? `https://${text.trim()}` : "");
+  try { return new URL(link).hostname.replace(/^www\./, ""); } catch { return ""; }
+}
+
+// Clipboard reads need a browser that supports them; the button is hidden elsewhere.
+const canReadClipboard = typeof navigator !== "undefined" && typeof navigator.clipboard?.readText === "function";
 
 const isTag = (t: string): t is RecipeTag => RECIPE_TAGS.some((r) => r.key === t);
 
@@ -131,15 +143,14 @@ function ImportFlow({ onOpenChange, onSave, onOpenRecipe, busyRef }: Props & { b
   // Ignores a reply that arrives after the member moved on.
   const attempt = useRef(0);
 
-  async function start(e?: React.FormEvent) {
+  /** `link` when called straight from a paste, before the field's state has caught up. */
+  async function start(e?: React.FormEvent, link = url) {
     e?.preventDefault();
-    if (!url.trim()) return setStage({ kind: "paste", error: "Paste the link to a recipe page." });
+    if (!link.trim()) return setStage({ kind: "paste", error: "Paste the link to a recipe page." });
     const mine = ++attempt.current;
-    let site = "";
-    try { site = new URL(/^https?:\/\//i.test(url.trim()) ? url.trim() : `https://${url.trim()}`).hostname.replace(/^www\./, ""); } catch { /* shown as "the page" */ }
-    setStage({ kind: "loading", site });
+    setStage({ kind: "loading", site: siteOf(link) });
     try {
-      const result = await importRecipe(url);
+      const result = await importRecipe(link);
       if (mine !== attempt.current) return;
       if (result.kind === "duplicate") return setStage({ kind: "duplicate", id: result.id, title: result.title });
       // Resized and re-encoded like a member's own upload; a photo that won't decode is simply left out.
@@ -157,7 +168,8 @@ function ImportFlow({ onOpenChange, onSave, onOpenRecipe, busyRef }: Props & { b
     } catch (err) {
       if (mine !== attempt.current) return;
       const error = err instanceof ImportError ? err : new ImportError("Something went wrong. Please try again.", "unknown", null);
-      if (error.code === "invalid_url") return setStage({ kind: "paste", error: error.message });
+      // Problems with the link itself are shown under the field, ready for another try.
+      if (error.code === "invalid_url" || error.code === "unsupported_source") return setStage({ kind: "paste", error: error.message });
       setStage({ kind: "failed", error });
     }
   }
@@ -249,11 +261,40 @@ function ImportFlow({ onOpenChange, onSave, onOpenRecipe, busyRef }: Props & { b
               autoFocus
               value={url}
               onChange={(e) => { setUrl(e.target.value); if (stage.error) setStage({ kind: "paste" }); }}
+              // Pasting a link into an empty field starts straight away: one less tap.
+              onPaste={(e) => {
+                const text = e.clipboardData.getData("text").trim();
+                if (url.trim() || !LINKISH.test(text)) return;
+                e.preventDefault();
+                setUrl(text);
+                void start(undefined, text);
+              }}
               placeholder="https://"
               aria-invalid={!!stage.error}
               aria-describedby="import-url-hint"
-              className="h-11 pl-9"
+              className={cn("h-11 pl-9", canReadClipboard && "pr-24")}
             />
+            {canReadClipboard && (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="absolute top-1/2 right-1.5 -translate-y-1/2"
+                onClick={async () => {
+                  try {
+                    const text = (await navigator.clipboard.readText()).trim();
+                    if (!text) return setStage({ kind: "paste", error: "Your clipboard is empty. Copy the recipe page's link first." });
+                    setUrl(text);
+                    void start(undefined, text);
+                  } catch {
+                    // Permission refused: the member can still paste into the field.
+                    document.getElementById("import-url")?.focus();
+                  }
+                }}
+              >
+                <ClipboardPaste />Paste
+              </Button>
+            )}
           </div>
           {stage.error ? (
             <p id="import-url-hint" role="alert" className="text-sm text-destructive">{stage.error}</p>
